@@ -1,0 +1,2 @@
+- initial install and training succeeded easily
+- after 500k training with SAC the arm still had zero success rate though it looked like it's trying

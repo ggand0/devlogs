@@ -1,0 +1,9 @@
+- inspired by the youtube warehouse dodgeball game
+- initially started out with DQN + level1 easy level
+- took a bit of time to implement the skybox
+- enhanced the game
+- game settings configurable via API from the python side
+- level2 (to make it more interesting): initially did +- 60 angles but too hard
+- tried +- 20 angles with PPO: somehow worse, 30 angles was better
+- trained 2M+ iterations with this settings, but plateaued with no significant improvement
+- finally tried SAC, siginificantly better results!

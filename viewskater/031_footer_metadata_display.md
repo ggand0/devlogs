@@ -427,6 +427,20 @@ Each pane gets `window_width / 2.0` as available width for its footer.
 | `src/app/message_handlers.rs` | Added handler for `WindowResized` |
 | `src/main.rs` | Queue `WindowResized` on window resize events |
 
+## Archive File Size Fix
+
+When viewing images inside ZIP archives and using slider navigation, the file size was showing "0 B" on slider release.
+
+**Root cause:** `get_file_size()` was called with `None` for the archive cache:
+
+```rust
+let file_size = crate::file_io::get_file_size(&img_path, None);
+```
+
+For `PathSource::Archive`, the function needs the archive cache to look up file sizes. Without it, it returns 0.
+
+**Fix:** Pass the archive cache to `get_file_size()` in the slider release path (`navigation_slider.rs`). The fix gets the file size while still holding the archive lock (needed for the preceding image load), then explicitly drops the lock before continuing.
+
 ## Future Work
 
 Issue #40 also mentions:

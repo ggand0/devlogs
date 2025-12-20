@@ -289,6 +289,131 @@ flash_color_gradient.add_key(0.5, Vec4::new(10.0, 6.5, 3.9, 0.5));
 flash_color_gradient.add_key(1.0, Vec4::new(10.0, 6.5, 3.9, 0.0));
 ```
 
+## Session 3: GPU Parts Debris with Sprite Sheet (2025-12-17)
+
+### Problem: Flat Billboards Look Bad
+
+Initial GPU parts implementation used flat colored billboards, but they looked significantly worse than CPU 3D mesh debris.
+
+**Solution**: Bake 3D debris meshes into a sprite sheet from multiple viewing angles, then use flipbook animation to select random frames.
+
+### Sprite Sheet Generation Tool
+
+Created `src/bin/render_debris_sprites.rs` - a Bevy utility that renders 3D meshes to PNG:
+
+```rust
+// 3 mesh variants (same as CPU implementation)
+let debris_meshes = [
+    meshes.add(Cuboid::new(1.0, 0.8, 0.6)),  // Chunky rock
+    meshes.add(Cuboid::new(1.2, 0.4, 0.8)),  // Flat slab
+    meshes.add(Cuboid::new(0.5, 0.5, 1.4)),  // Elongated shrapnel
+];
+
+// Camera with transparent background
+commands.spawn((
+    Camera3d::default(),
+    Camera {
+        clear_color: ClearColorConfig::Custom(Color::NONE),
+        ..default()
+    },
+    Transform::from_xyz(0.0, 0.8, 2.5).looking_at(Vec3::ZERO, Vec3::Y),
+));
+```
+
+State machine captures 3 variants × 8 angles = 24 frames with proper timing delays.
+
+**Usage**:
+```bash
+cargo run --bin render_debris_sprites
+# Outputs: assets/textures/generated/debris_v{0-2}_a{0-7}.png
+
+# Combine into sprite sheet with ImageMagick
+cd assets/textures/generated
+montage debris_v0_a*.png debris_v1_a*.png debris_v2_a*.png \
+    -tile 8x3 -geometry +0+0 debris_sprites_raw.png
+
+# Add transparency (Bevy screenshots don't preserve alpha)
+convert debris_sprites_raw.png -fuzz 10% -transparent black debris_sprites.png
+```
+
+### GPU Parts Effect with Flipbook
+
+```rust
+// Load sprite sheet
+let ground_parts_texture: Handle<Image> =
+    asset_server.load("textures/generated/debris_sprites.png");
+
+// Random sprite index [0, 23] at spawn
+let parts_init_sprite = SetAttributeModifier::new(
+    Attribute::SPRITE_INDEX,
+    (writer_parts.rand(ScalarType::Float) * writer_parts.lit(24.0))
+        .cast(ScalarType::Int)
+        .expr()
+);
+
+// Add texture slot
+let mut parts_module = writer_parts.finish();
+parts_module.add_texture_slot("debris_sprites");
+
+// Effect with flipbook
+EffectAsset::new(128, SpawnerSettings::once(60.0.into()), parts_module)
+    .with_name("ground_explosion_parts")
+    .with_alpha_mode(bevy_hanabi::AlphaMode::Blend)
+    .init(parts_init_sprite)
+    // ... other modifiers
+    .render(ParticleTextureModifier {
+        texture_slot: parts_texture_slot,
+        sample_mapping: ImageSampleMapping::Modulate,
+    })
+    .render(FlipbookModifier { sprite_grid_size: UVec2::new(8, 3) })
+```
+
+**Spawn with EffectMaterial**:
+```rust
+commands.spawn((
+    ParticleEffect {
+        handle: particle_effects.ground_parts_effect.clone(),
+        prng_seed: Some(seed),
+    },
+    EffectMaterial {
+        images: vec![particle_effects.ground_parts_texture.clone()],
+    },
+    Transform::from_translation(position).with_scale(Vec3::splat(scale)),
+));
+```
+
+### Technical Notes
+
+1. **Screenshot Timing**: Bevy needs several frames to initialize the render pipeline. Use state machine with frame delays:
+   - 10 frames at startup
+   - 3 frames between setup and capture
+
+2. **Alpha Channel**: Bevy screenshots don't preserve alpha. Post-process with ImageMagick `-transparent black`.
+
+3. **Sprite Index**: Must use `Attribute::SPRITE_INDEX` (not custom attribute) for `FlipbookModifier` to work.
+
+4. **Grid Layout**: `sprite_grid_size: UVec2::new(8, 3)` = 8 columns × 3 rows = 24 frames.
+
+### Debug Keys
+
+| Key | Effect |
+|-----|--------|
+| `0` | Parts (CPU) |
+| `Shift+0` | Parts (GPU) |
+
+### Files Changed
+
+| File | Changes |
+|------|---------|
+| `src/bin/render_debris_sprites.rs` | NEW: Sprite sheet generation tool |
+| `src/particles.rs` | GPU parts effect with flipbook, `ground_parts_texture` handle |
+| `src/ground_explosion.rs` | Shift+0 for GPU parts debug spawn |
+| `assets/textures/generated/debris_sprites.png` | Generated 8×3 sprite sheet |
+
+### Result
+
+GPU parts debris is visually indistinguishable from CPU version while reducing 50-75 ECS entities to a single GPU effect.
+
 ## Remaining Issues
 
 Fine-tuning may still be needed for:
@@ -301,9 +426,17 @@ Fine-tuning may still be needed for:
 Full migration plan with all phases documented at:
 `/home/gota/.claude/plans/witty-scribbling-hopcroft.md`
 
+## Summary: Entity Reduction
+
+| Emitter | CPU Entities | GPU Entities | Reduction |
+|---------|--------------|--------------|-----------|
+| Sparks | 30-60 | 1 | ~98% |
+| Flash Sparks | 20-50 | 1 | ~98% |
+| Parts Debris | 50-75 | 1 | ~98% |
+| **Total per explosion** | **100-185** | **3** | **~98%** |
+
 ## Next Steps
 
-1. Fine-tune GPU spark visual parameters to match CPU version
-2. Validate performance improvement with scatter barrage
-3. Phase 3: GPU parts debris (mesh particles)
-4. Remove CPU spark systems after validation
+1. Performance validation with scatter barrage
+2. Integrate GPU effects into main explosion spawn (replace CPU emitters)
+3. Remove deprecated CPU spark/parts systems after validation

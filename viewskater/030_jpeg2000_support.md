@@ -6,7 +6,7 @@
 
 ## Summary
 
-Added optional JPEG 2000 (.jp2, .j2k, .j2c) format support behind a feature flag. This was requested by a user (Jan from Czech Republic) who wanted to view space/satellite imagery.
+Added optional JPEG 2000 (.jp2, .j2k, .j2c) format support behind a feature flag. This was requested by a user who wanted to view space/satellite imagery.
 
 ## Changes
 

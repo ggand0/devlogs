@@ -145,3 +145,49 @@ This fix means:
 - `SO-ARM100/Simulation/SO101/so101_new_calib.xml` - Added `graspframe` site
 - `SO-ARM100/Simulation/SO101/lift_cube_scene.xml` - Added `grasp_pos` sensor
 - `envs/lift_cube.py` - Use `grasp_pos` for reach reward calculation
+
+---
+
+## UPDATE: This Analysis Was Wrong
+
+**The entire premise of this devlog was based on a misunderstanding of the coordinate system.**
+
+### What Actually Happened
+
+After rendering the MuJoCo scene with visible sphere markers at both site positions (`devlogs/011_spheres_wide.png`), we discovered:
+
+- **RED sphere (gripperframe/TCP)**: Actually positioned at/between the fingertips - this is the CORRECT measurement point
+- **GREEN sphere (graspframe)**: Positioned ~6cm back toward the wrist - this is WRONG for reach reward
+
+The world-frame X coordinate tells the real story:
+```
+gripperframe (TCP): X = 0.391  (closest to cube at X=0.40)
+graspframe:         X = 0.331  (6cm behind fingertips)
+static finger:      X = 0.321
+moving jaw:         X = 0.341
+```
+
+The `gripperframe` site, despite being called "TCP" and having a large negative Z in the local gripper frame (`pos="-0.0079 -0.000218121 -0.0981274"`), actually transforms to be at the fingertips in world coordinates. The local -Z axis points forward.
+
+### The Consequence
+
+Commit `368babf` ("Fix reach reward to measure from finger midpoint, not TCP") **made things worse**:
+- Changed the reach reward to measure from `graspframe` (6cm behind fingertips)
+- Agent trained with this "fix" would overshoot the cube trying to get `graspframe` close
+- Eval showed erratic behavior with gripper overshooting past the cube
+
+### The Actual Fix
+
+Reverted in commit `3a0f90f` to use `gripper_pos` (gripperframe/TCP) for the reach reward, which was correct all along.
+
+```python
+# CORRECT - gripperframe is at fingertips
+gripper_to_cube = np.linalg.norm(gripper_pos - cube_pos)
+
+# WRONG - graspframe is 6cm behind
+# gripper_to_cube = np.linalg.norm(grasp_pos - cube_pos)
+```
+
+### Lesson Learned
+
+Always render and visually verify coordinate frame positions before making "fixes" based on XML coordinate analysis. The local-to-world transformation can be non-intuitive, especially with complex kinematic chains.

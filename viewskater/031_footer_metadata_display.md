@@ -317,6 +317,116 @@ Changed all `image::load_from_memory()` calls used for dimension extraction to u
 - `image::load_from_memory()` fully decodes the image (decompresses all pixels) - O(width×height)
 - `ImageReader::into_dimensions()` only parses the image header - typically O(1) or O(few bytes)
 
+## Responsive Footer for Narrow Windows
+
+In dual pane mode, the footer can become cramped when the window is narrow. Implemented progressive element hiding based on available width.
+
+### Phases (7 levels)
+
+| Phase | Metadata | Copy Buttons | Index Display |
+|-------|----------|--------------|---------------|
+| 1 | Resolution + file size (e.g., "1920x1080 pixels  2.5 MB") | ✓ | index/total |
+| 2 | Resolution with "pixels" (e.g., "1920x1080 pixels") | ✓ | index/total |
+| 3 | Dimensions only (e.g., "1920x1080") | ✓ | index/total |
+| 4 | None | ✓ | index/total |
+| 5 | None | ✗ | index/total |
+| 6 | None | ✗ | index only |
+| 7 | None | ✗ | (empty) |
+
+### Implementation
+
+**`ResponsiveFooterState` struct and `get_responsive_footer_state()` function (`src/ui.rs`):**
+
+```rust
+struct ResponsiveFooterState {
+    metadata: Option<String>,
+    show_copy_buttons: bool,
+    footer_text: String,
+}
+
+fn get_responsive_footer_state(
+    available_width: f32,
+    metadata_text: &Option<String>,
+    footer_text: &str,
+    show_copy_buttons: bool,
+) -> ResponsiveFooterState
+```
+
+Returns a state struct that controls:
+- `metadata`: Full, resolution+pixels, dimensions-only, or None
+- `show_copy_buttons`: Whether to render copy buttons
+- `footer_text`: Full "index/total", index only, or empty
+
+**Dynamic text measurement:**
+
+Instead of using hardcoded character width approximations, the responsive footer uses actual font measurements via iced's `cosmic_text` font system:
+
+```rust
+fn measure_text_width(text: &str) -> f32 {
+    let mut font_system_guard = font_system()
+        .write()
+        .expect("Failed to acquire font system lock");
+
+    let mut buffer = cosmic_text::Buffer::new(
+        font_system_guard.raw(),
+        cosmic_text::Metrics::new(14.0, 14.0 * 1.3),
+    );
+
+    buffer.set_size(font_system_guard.raw(), Some(10000.0), Some(100.0));
+    buffer.set_text(
+        font_system_guard.raw(),
+        text,
+        to_attributes(Font::MONOSPACE),
+        to_shaping(Shaping::Basic),
+    );
+
+    measure_buffer(&buffer).width
+}
+```
+
+This creates a text buffer with the same font settings as the footer (Font::MONOSPACE at size 14) and returns the actual rendered width. This is more accurate than the previous fixed 8.5px character width estimate, which caused elements to disappear too early.
+
+**Fixed width constants (for non-text elements):**
+- Button width: 26px each (18px icon + padding)
+- Button spacing: 3px
+- Footer padding: 6px (3px each side)
+- Element spacing: 3px
+- Minimum margin: 5px (before hiding elements)
+
+**Window width tracking:**
+
+1. `window_width: f32` field added to `DataViewer` struct
+2. `WindowResized(f32)` message added to `Message` enum
+3. `main.rs` sends `WindowResized` on `WindowEvent::Resized`
+4. Handler updates `app.window_width`
+
+**macOS Retina display fix:**
+
+`WindowEvent::Resized` provides physical pixels, but on macOS Retina displays the scale factor is typically 2.0. The width must be divided by `window.scale_factor()` to get logical pixels:
+
+```rust
+WindowEvent::Resized(size) => {
+    let logical_width = size.width as f32 / window.scale_factor() as f32;
+    state.queue_message(Message::WindowResized(logical_width));
+}
+```
+
+Without this fix, macOS would report a 1920px window as 3840px, causing the responsive footer to think there's twice as much space available.
+
+**Width calculation for dual pane:**
+
+Each pane gets `window_width / 2.0` as available width for its footer.
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/ui.rs` | Added `ResponsiveFooterState` struct, `get_responsive_footer_state()` function, updated `get_footer()` to use state |
+| `src/app.rs` | Added `window_width: f32` field |
+| `src/app/message.rs` | Added `WindowResized(f32)` message |
+| `src/app/message_handlers.rs` | Added handler for `WindowResized` |
+| `src/main.rs` | Queue `WindowResized` on window resize events |
+
 ## Future Work
 
 Issue #40 also mentions:

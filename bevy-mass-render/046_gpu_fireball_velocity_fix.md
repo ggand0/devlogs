@@ -72,3 +72,98 @@ This works because `attr(POSITION)` in the expression system reads the particle'
 ## Key Insight
 
 When debugging particle effects, separate the actual physics (position/velocity) from visual rendering (textures, UV effects, orientation). The debug effect with simple colored quads immediately showed particles were actually moving correctly - the visual "inward" appearance was purely from the broken UV zoom effect.
+
+---
+
+## Visual Tuning (Post-Fix)
+
+After fixing the UV zoom bug, additional tuning was needed to match the CPU fireball appearance.
+
+### Spawn Hemisphere Size
+
+The initial 0.5m radius (1m diameter) was too small - particles appeared stationary because the large particle sizes (8-20m) completely obscured the outward movement.
+
+**Solution**: Increased spawn hemisphere to 7.5m radius (15m diameter):
+
+```rust
+// Position: hemisphere (Y >= 0) surface, radius 7.5 (15m diameter)
+let rx = writer_fireball.rand(ScalarType::Float) * writer_fireball.lit(2.0) - writer_fireball.lit(1.0);
+let ry = writer_fireball.rand(ScalarType::Float); // [0,1] for Y >= 0
+let rz = writer_fireball.rand(ScalarType::Float) * writer_fireball.lit(2.0) - writer_fireball.lit(1.0);
+let fb_pos = rx.vec3(ry, rz).normalized() * writer_fireball.lit(7.5);
+```
+
+### Size Gradient: Cubic Ease-Out Curve
+
+The CPU fireball uses a cubic ease-out curve (`1 - (1-t)³`) for size scaling from 0.5× to 1.3× over lifetime. This creates fast initial expansion that slows down.
+
+**Cubic ease-out formula**: `scale = 0.5 + 0.8 * (1 - (1-t)³)`
+
+| t | (1-t)³ | 1-(1-t)³ | scale |
+|---|--------|----------|-------|
+| 0.0 | 1.0 | 0.0 | 0.5× |
+| 0.2 | 0.512 | 0.488 | 0.89× |
+| 0.4 | 0.216 | 0.784 | 1.127× |
+| 0.6 | 0.064 | 0.936 | 1.249× |
+| 0.8 | 0.008 | 0.992 | 1.294× |
+| 1.0 | 0.0 | 1.0 | 1.3× |
+
+**GPU implementation** using gradient keys (base size 16m):
+
+```rust
+let mut fireball_size_gradient = bevy_hanabi::Gradient::new();
+fireball_size_gradient.add_key(0.0, Vec3::splat(8.0));    // 0.5× = 8m
+fireball_size_gradient.add_key(0.2, Vec3::splat(14.2));   // 0.89× = 14.2m
+fireball_size_gradient.add_key(0.4, Vec3::splat(18.0));   // 1.127× = 18m
+fireball_size_gradient.add_key(0.6, Vec3::splat(20.0));   // 1.249× = 20m
+fireball_size_gradient.add_key(0.8, Vec3::splat(20.7));   // 1.294× = 20.7m
+fireball_size_gradient.add_key(1.0, Vec3::splat(21.0));   // 1.3× = 21m
+```
+
+### UV Zoom Gradient
+
+The UV zoom creates the "emerging from center" effect. Scale starts at 500 (extremely zoomed in) and eases out to 1 (full texture visible).
+
+```rust
+.render(UVScaleOverLifetimeModifier {
+    gradient: {
+        let mut g = bevy_hanabi::Gradient::new();
+        g.add_key(0.0, Vec2::splat(500.0));  // Tiny center region
+        g.add_key(0.2, Vec2::splat(466.0));  // Fast initial zoom-out
+        g.add_key(0.4, Vec2::splat(350.0));
+        g.add_key(0.6, Vec2::splat(224.0));
+        g.add_key(0.8, Vec2::splat(100.0));
+        g.add_key(1.0, Vec2::splat(1.0));    // Full texture
+        g
+    },
+})
+```
+
+### Velocity Tuning
+
+Increased outward velocity from 3-5 m/s to 5-8 m/s to match CPU scatter distance:
+
+```rust
+let fb_speed = writer_fireball.lit(5.0)
+    + writer_fireball.rand(ScalarType::Float) * writer_fireball.lit(3.0); // 5-8 m/s
+```
+
+### Modifier Order
+
+**Critical**: UV zoom must run BEFORE FlipbookModifier. The CPU shader applies UV zoom to base UVs, then the flipbook offset is added. If reversed, the zoom centers on the wrong point.
+
+```rust
+// CORRECT ORDER:
+.render(UVScaleOverLifetimeModifier { ... })  // First: zoom base UVs
+.render(FlipbookModifier { sprite_grid_size: UVec2::new(8, 8) })  // Then: offset to frame
+```
+
+## Final Result
+
+The GPU fireball now visually matches the CPU version:
+- Particles spawn on 15m diameter hemisphere
+- Fast initial size expansion (cubic ease-out)
+- UV zoom creates "emerging from center" effect
+- Outward velocity 5-8 m/s
+- J key: GPU explosion + impact flash (clean test)
+- K key: Full explosion with all emitters

@@ -155,3 +155,94 @@ The CPU uses `t³` for scale growth (slow start, fast finish). Gradient approxim
 | Reduction | **~95%** |
 
 The J key now spawns a complete GPU explosion with only the impact flash remaining as CPU (point light + glow circle - benefits from being a single entity).
+
+## Visual Tuning Session (December 24, 2025)
+
+Initial GPU implementations were functional but visually "off" compared to CPU versions. The following fixes were applied:
+
+### Smoke Cloud Fixes
+
+**Color**: Changed from grey to brown tones matching CPU's `SmokeColorOverLife`:
+```rust
+// Before: Grey (wrong)
+smoke_color_gradient.add_key(0.0, Vec4::new(0.4, 0.4, 0.4, 0.6));
+
+// After: Brown interpolation (correct)
+smoke_color_gradient.add_key(0.0, Vec4::new(0.147, 0.117, 0.089, 0.0));   // Dark brown
+smoke_color_gradient.add_key(0.25, Vec4::new(0.192, 0.147, 0.106, 0.25));
+smoke_color_gradient.add_key(0.5, Vec4::new(0.237, 0.176, 0.123, 0.5));   // Peak alpha
+smoke_color_gradient.add_key(0.75, Vec4::new(0.283, 0.206, 0.139, 0.25));
+smoke_color_gradient.add_key(1.0, Vec4::new(0.328, 0.235, 0.156, 0.0));   // Tan
+```
+
+**Alpha**: Changed from linear fade to smoothstep bell curve (0→0.5→0)
+
+**Size curve**: Changed from linear to ease-out `1-(1-t)²`:
+```rust
+// ease_out(t) = 1 - (1-t)², scale = initial * (1 + 2*ease_out)
+smoke_size_gradient.add_key(0.0, Vec3::splat(0.75));   // 1x
+smoke_size_gradient.add_key(0.25, Vec3::splat(1.41));  // ease-out
+smoke_size_gradient.add_key(0.5, Vec3::splat(1.88));
+smoke_size_gradient.add_key(0.75, Vec3::splat(2.16));
+smoke_size_gradient.add_key(1.0, Vec3::splat(2.25));   // 3x
+```
+
+### Wisp Puffs Fixes
+
+**Alpha**: Changed from simple fade to two-phase (4→1 fast, then 1→0 linear):
+```rust
+wisp_color_gradient.add_key(0.0, Vec4::new(0.15, 0.12, 0.10, 4.0));   // Start HDR
+wisp_color_gradient.add_key(0.2, Vec4::new(0.15, 0.12, 0.10, 1.0));   // Fast drop
+wisp_color_gradient.add_key(1.0, Vec4::new(0.15, 0.12, 0.10, 0.0));   // Linear fade
+```
+
+**Size curve**: Changed from cubic ease-in (t³) to smoothstep `t²(3-2t)`:
+```rust
+// smoothstep(t) = t² * (3 - 2t)
+wisp_size_gradient.add_key(0.0, Vec3::splat(0.0));
+wisp_size_gradient.add_key(0.2, Vec3::splat(1.04));    // smoothstep(0.2) * 10
+wisp_size_gradient.add_key(0.4, Vec3::splat(3.52));
+wisp_size_gradient.add_key(0.6, Vec3::splat(6.48));
+wisp_size_gradient.add_key(0.8, Vec3::splat(8.96));
+wisp_size_gradient.add_key(1.0, Vec3::splat(10.0));
+```
+
+### Random Sprite Rotation
+
+CPU uses `SpriteRotation { angle }` to give each billboard a random rotation (0-360°), making particles blend together rather than appearing as distinct quads.
+
+**Key insight**: For `FaceCameraPosition`, use `.with_rotation()` NOT `.with_axis_rotation()`:
+- `.with_axis_rotation()` rotates around Y axis (wrong - spins like a turntable)
+- `.with_rotation()` rotates in camera plane (correct - spins like a coin facing you)
+
+```rust
+let random_rot = writer.rand(ScalarType::Float) * writer.lit(TAU);
+let init_rot = SetAttributeModifier::new(Attribute::F32_0, random_rot.expr());
+let rotation = writer.attr(Attribute::F32_0).expr();
+
+.init(init_rot)
+.render(OrientModifier::new(OrientMode::FaceCameraPosition)
+    .with_rotation(rotation))
+```
+
+### Flipbook Animation
+
+GPU effects were stuck on frame 0 - missing flipbook animation. Fixed by adding `SPRITE_INDEX` update each frame:
+
+```rust
+// Animate sprite index based on age/lifetime
+let frame = (writer.attr(Attribute::AGE) / writer.attr(Attribute::LIFETIME) * writer.lit(64.0))
+    .cast(ScalarType::Int)
+    .min(writer.lit(63i32));
+let update_sprite = SetAttributeModifier::new(Attribute::SPRITE_INDEX, frame.expr());
+
+.update(update_sprite)  // Must be in update phase, not init!
+```
+
+- Smoke: 35 frames over lifetime
+- Wisp: 64 frames over lifetime
+
+### Commits
+
+- `db5ed21` - GPU smoke/wisp: fix color, alpha, and size curves to match CPU
+- `e8695d3` - GPU smoke/wisp: add random rotation and flipbook animation

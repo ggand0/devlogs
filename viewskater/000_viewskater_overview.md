@@ -85,5 +85,26 @@ Active discussion on Iced Discord
 
 Positioned as a lightweight alternative to heavy image viewers and editors, optimized for large datasets and technical workflows
 
+### Download Statistics (as of Dec 2025)
+
+**Total: ~725 downloads** (675 GitHub + ~50 Mac App Store)
+
+| Release | Downloads |
+|---------|-----------|
+| 0.2.5   | 90        |
+| 0.2.4   | 167       |
+| 0.2.3   | 55        |
+| 0.2.2   | 16        |
+| 0.2.1   | 54        |
+| 0.2.0   | 91        |
+| 0.1.2   | 21        |
+| 0.1.1   | 172       |
+| 0.1.0   | 9         |
+
+**By Platform:**
+- Windows (.exe): 359 (~53%)
+- Linux (.AppImage): 160 (~24%)
+- macOS (.dmg): 156 (~23%)
+
 ### User's notes
 I usually use the command `RUST_LOG=viewskater=debug cargo run --profile opt-dev`

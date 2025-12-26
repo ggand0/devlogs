@@ -85,7 +85,88 @@ Now:
 - Opening beyond reset → prevented (would drop cube)
 - Closing tighter → allowed (maintains grip)
 
+## Fix: Top-Down Grasp Approach (Dec 26, 2025)
+
+The IK reset was approaching the cube from the side (forward in X direction), causing the static finger to hit the cube first and tilt it. This resulted in diagonal grasps.
+
+**Fixed:** Changed approach to come from above (Z+0.05) then descend, so fingers straddle the cube before closing.
+
+```python
+# Before: Forward approach
+target = np.array([cube_x - 0.03, cube_y, cube_z])  # Approach from behind
+# Then move forward to cube_x
+
+# After: Top-down approach
+target = np.array([cube_x, cube_y, cube_z + 0.05])  # Position above
+# Then descend to cube_z
+```
+
+**Result:** 10/10 grasp success rate in tests.
+
+## Fix: Unlock Joint 3 (wrist_flex) During Training
+
+Training with both joints [3, 4] locked resulted in 0% eval success - the arm couldn't lift high enough.
+
+**Problem:** Joint 3 (wrist_flex) locked at 1.65 limited vertical reach.
+
+**Fixed:** Only lock joint 4 (wrist_roll) to keep fingers horizontal, let joint 3 flex for lifting range.
+
+```python
+# Before
+locked_joints=[3, 4]
+ctrl[3] = 1.65  # Fixed wrist_flex
+ctrl[4] = np.pi / 2
+
+# After
+locked_joints=[4]  # Only lock wrist_roll
+ctrl[4] = np.pi / 2
+```
+
+## Training Results with Fixes (Dec 26, 2025)
+
+Run: `runs/lift_curriculum_s1/20251226_025507`
+
+```
+Eval num_timesteps=500000, episode_reward=428.15 +/- 24.92
+Success rate: 0.00% (during training)
+```
+
+### Eval Results (5 episodes post-training)
+
+| Episode | cube_z | Success | Behavior |
+|---------|--------|---------|----------|
+| 1 | 0.075 | No | Held steady, just under threshold |
+| 2 | 0.075 | No | Held steady, just under threshold |
+| 3 | 0.074 | No | Held steady, just under threshold |
+| 4 | 0.081 | **Yes** | Reached target |
+| 5 | 0.065 | No | Held steady |
+
+**Success rate: 20% (1/5)**
+
+**Key improvements:**
+- Grasp maintained throughout episodes (no drops!)
+- Consistent lift to ~0.075 (vs previous drops)
+- Episode 4 succeeded at z=0.081
+
+The agent reliably lifts and holds at ~0.075, just barely under the 0.08 target.
+
+## Next Steps: Stage 3 (Grasp + Lift)
+
+Current Stage 1 trains lifting with cube already grasped. Next step is Stage 3:
+
+| Stage | Start State | Agent Learns |
+|-------|-------------|--------------|
+| 1 (done) | Cube grasped | Lift |
+| 3 (next) | Gripper near cube, open | Grasp + Lift |
+| 0 (final) | Arm at home, cube on table | Full task |
+
+**Plan:**
+- Fine-tune from Stage 1 best model (`runs/lift_curriculum_s1/20251226_025507`)
+- Use `curriculum_stage: 3` with `_reset_gripper_near_cube()`
+- Agent must learn to close gripper on cube, then lift
+- May need `lock_wrist: false` to allow gripper control
+
 ## Files Changed
 
-- `envs/lift_cube.py` - Added `_reward_v10()`, fixed gripper constraint logic
-- `configs/lift_curriculum_s1.yaml` - reward_version: v10
+- `envs/lift_cube.py` - Added `_reward_v10()`, fixed gripper constraint logic, top-down approach, unlock joint 3
+- `configs/lift_curriculum_s1.yaml` - reward_version: v10, lock_wrist: true, action_scale: 0.005

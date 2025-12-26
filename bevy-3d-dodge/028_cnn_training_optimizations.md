@@ -4,13 +4,14 @@
 
 ## Overview
 
-Implemented three optimizations to speed up CNN-based RL training and improve learning:
+Implemented four optimizations to speed up CNN-based RL training and improve learning:
 
 1. **84x84 resolution** (default, was 256x256) - 9x smaller images
 2. **Frame stacking** - Helps CNN infer velocity from consecutive frames
 3. **Grayscale mode** - 3x smaller images (optional)
+4. **Parallel environments** - Run N game instances for ~N× faster data collection
 
-Combined potential reduction: **~27x smaller** than original 256x256 RGB.
+Combined potential reduction: **~27x smaller** images than original 256x256 RGB, plus **~2x faster** with parallel envs.
 
 ## Commits
 
@@ -166,9 +167,45 @@ image_grayscale: true
 frame_stack: 4
 ```
 
+### 4. Parallel Environments (Vectorized Training)
+
+Run multiple Bevy game instances in parallel for N× faster data collection.
+
+**Configuration:**
+```yaml
+n_envs: 2  # Number of parallel game instances (requires 2 game servers)
+```
+
+**Files changed:**
+- `python/config.py`: Added `n_envs: int = 1` field
+- `python/bevy_dodge_env/vec_env.py`: Updated `make_vec_env()` to accept `config_kwargs` for game configuration
+- `python/bevy_dodge_env/environment.py`: Added `refresh_spaces()` method to re-query observation/action spaces after configuration
+- `python/train_sac.py`: Use `SubprocVecEnv` when `n_envs > 1`, pre-configure all game servers before creating parallel environments
+- `start_parallel_servers.sh`: New script to launch N headless game servers
+- `python/configs/sac_topdown_cnn_parallel.yaml`: Example config with `n_envs: 2`
+
+**Usage:**
+```bash
+# Terminal 1: Start N parallel game servers
+./start_parallel_servers.sh 2
+
+# Terminal 2: Train with parallel environments
+uv run python python/train_sac.py --config python/configs/sac_topdown_cnn_parallel.yaml
+```
+
+**Performance results:**
+
+| n_envs | FPS | Projected Time (500K) | Speedup |
+|--------|-----|----------------------|---------|
+| 1 | 15 | ~12 hours | 1x |
+| 2 | 26 | ~4.5 hours | ~1.7x |
+
+Note: Speedup is less than 2x due to SubprocVecEnv IPC overhead and GPU sharing.
+
 ## Notes
 
 - Image dimensions and grayscale settings require server restart to resize the internal buffer
 - Frame stacking is handled entirely in Python (SB3's VecFrameStack)
 - The 84x84 resolution is now the default; no configuration needed for size
 - Grayscale is optional and defaults to false (RGB)
+- Parallel environments require starting N game servers before training

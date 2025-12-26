@@ -227,19 +227,77 @@ pub struct LaserProjectile {
 
 | File | Changes |
 |------|---------|
-| `src/types.rs` | Added `MovementMode`, `MovementTracker` components, `origin` to LaserProjectile |
-| `src/constants.rs` | Added accuracy constants |
+| `src/types.rs` | Added `MovementMode`, `MovementTracker` components, `origin` to LaserProjectile, `blocked_timer` to CombatUnit |
+| `src/constants.rs` | Added accuracy constants, `BLOCKED_TARGET_TIMEOUT` |
 | `src/setup.rs` | Spawn new components with droids |
 | `src/movement.rs` | Mode check in animate_march, tracker update system |
-| `src/combat.rs` | `calculate_hit_chance()`, modified hitscan + projectile systems |
+| `src/combat.rs` | `calculate_hit_chance()`, modified hitscan + projectile systems, `clear_blocked_targets_system` |
 | `src/selection/input.rs` | H key hold_command_system |
 | `src/selection/movement.rs` | Shift+RMB Attack Move, sets movement mode on move command |
 | `src/selection/mod.rs` | Exported hold_command_system |
 | `src/main.rs` | Registered new systems |
+| `src/turrets.rs` | Updated CombatUnit spawn with blocked_timer |
+
+## Stuck Prevention
+
+Prevents AttackMove units from getting stuck when they can't shoot:
+
+```rust
+// In CombatUnit
+pub blocked_timer: f32,  // Time with target but no successful fire
+
+// In clear_blocked_targets_system
+if combat.current_target.is_some() {
+    combat.blocked_timer += delta_time;
+    if combat.blocked_timer > BLOCKED_TARGET_TIMEOUT {  // 3.0s
+        combat.current_target = None;
+        combat.blocked_timer = 0.0;
+    }
+}
+
+// In hitscan_fire_system - reset on successful fire
+combat_unit.blocked_timer = 0.0;
+```
+
+## Squad Details UI
+
+Debug UI panel (bottom-left) showing selected squad information:
+
+**New Module: selection/ui.rs**
+
+```rust
+#[derive(Component)]
+pub struct SquadDetailsUI;
+
+pub fn spawn_squad_details_ui(commands: &mut Commands) { ... }
+pub fn update_squad_details_ui(...) { ... }
+```
+
+**Displayed Information:**
+
+| Field | Description |
+|-------|-------------|
+| Squad ID | Unique squad identifier |
+| Team | A (Blue) or B (Red) |
+| Units | X/50 alive count |
+| Mode | Current movement mode (Hold/AttackMove/Move) with unit count |
+| Engaged | Units with active combat targets |
+| Stationary | Units considered stationary for accuracy bonus |
+| Pos | Average position of units (X, Z) |
+| Target | Squad target position |
+| Group | Group ID if part of a formation group |
+
+**Files Added/Modified:**
+
+| File | Changes |
+|------|---------|
+| `src/selection/ui.rs` | NEW: SquadDetailsUI component and systems |
+| `src/selection/mod.rs` | Export ui module |
+| `src/setup.rs` | Spawn UI on scene setup |
+| `src/main.rs` | Register update_squad_details_ui system |
 
 ## Future Work
 
-- **Stuck Prevention** - Clear target after 2s without LOS to prevent deadlock
 - **Suppression** - Units under fire have reduced accuracy
 - **Cover System** - Terrain objects provide accuracy bonus
 - **Visual Feedback** - Miss tracers slightly offset from target

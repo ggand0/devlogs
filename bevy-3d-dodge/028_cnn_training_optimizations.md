@@ -206,6 +206,46 @@ Note: Speedup is less than 2x due to SubprocVecEnv IPC overhead and GPU sharing.
 
 - Image dimensions and grayscale settings require server restart to resize the internal buffer
 - Frame stacking is handled entirely in Python (SB3's VecFrameStack)
-- The 84x84 resolution is now the default; no configuration needed for size
+- The 256x256 resolution is now the default for accurate spatial representation
 - Grayscale is optional and defaults to false (RGB)
 - Parallel environments require starting N game servers before training
+
+---
+
+## Bug Fix: Inaccurate Entity Sizes in Synthetic Image (2025-12-27)
+
+### Issue
+
+The synthetic top-down image was using **inflated entity sizes** that didn't match the actual game:
+
+| Entity | Game (actual) | Synthetic (was) | Error |
+|--------|---------------|-----------------|-------|
+| Projectile | `Sphere::new(0.3)` | 0.5 | **67% too large** |
+| Player | `Capsule3d::new(0.5, 1.0)` | 0.6 | 20% too large |
+| Thrower | `Sphere::new(0.2)` | 0.8 | **300% too large** |
+
+This meant the CNN was learning incorrect spatial relationships - projectiles appeared much larger relative to the player than they actually are in the game.
+
+### Root Cause
+
+The original 84x84 resolution made entities too small to see clearly (projectile = ~1px diameter), so sizes were artificially inflated. But this created a mismatch between what the CNN saw and the actual game physics.
+
+### Fix
+
+1. **Reverted to 256x256 resolution** - Entities are now clearly visible at actual sizes:
+   - Projectile (0.3 radius): ~6.4px diameter
+   - Player (0.5 radius): ~10.7px diameter
+
+2. **Updated entity radii to match game code:**
+   - Projectile: 0.5 → **0.3** (matches `Sphere::new(0.3)` in projectile.rs)
+   - Player: 0.6 → **0.5** (matches `Capsule3d::new(0.5, 1.0)` in player.rs)
+   - Thrower: 0.8 → **0.2** (matches `Sphere::new(0.2)` in projectile.rs)
+
+### Files Changed
+
+- `src/config.rs`: `IMAGE_OBS_WIDTH/HEIGHT` 84 → 256
+- `src/rl/image_observation.rs`: Updated `draw_circle` calls with actual entity radii
+
+### Impact
+
+The CNN now sees accurate spatial relationships matching game physics. This should improve learning since the model sees the same proportions it needs to reason about for collision avoidance.

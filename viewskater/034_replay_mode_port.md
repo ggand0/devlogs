@@ -213,6 +213,32 @@ Message::ReplayKeepAlive => {
 
 This ensures only one keep-alive message is in flight at a time, preventing queue flooding while still maintaining replay timing.
 
+## Potential Improvement: FPS Accuracy for Cached Images
+
+### Problem
+The sliding window cache pre-loads the first N images (e.g., N=5 means ~11 images total). These cached images display instantly, causing inflated FPS readings at the start of navigation.
+
+### Current Solution
+Added `--skip-initial` CLI option to skip metric collection for the first N navigations:
+```rust
+// In update_metrics()
+if self.navigation_count < self.config.skip_initial_images {
+    return;  // Don't collect metrics yet
+}
+```
+
+### Limitation
+Even after the skip period, iced's `upload_timestamps` VecDeque still contains timestamps from the cached-image frames. These old timestamps affect the FPS calculation until they naturally expire from the 2-second sliding window.
+
+### Potential Fixes (No iced changes needed)
+Both approaches use existing iced APIs:
+
+1. **Reset approach**: Call `reset_image_fps()` when `navigation_count == skip_initial_images` to clear the VecDeque before collecting metrics.
+
+2. **Filter approach**: Use `get_image_upload_timestamps()` to get raw timestamps, skip the first N entries, and calculate FPS manually in ViewSkater.
+
+The reset approach is simpler. The filter approach gives more control but requires custom FPS calculation logic.
+
 ## Commits
 
 ```

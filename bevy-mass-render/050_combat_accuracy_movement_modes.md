@@ -296,6 +296,33 @@ pub fn update_squad_details_ui(...) { ... }
 | `src/setup.rs` | Spawn UI on scene setup |
 | `src/main.rs` | Register update_squad_details_ui system |
 
+## Common Pitfall: TurretRotatingAssembly Query Inclusion
+
+**Problem:** Turret assemblies have `BattleDroid` component for reusing targeting/firing code. Queries for `BattleDroid` unintentionally include turret assemblies.
+
+**Symptoms:**
+- Turrets appear in unit lists when they shouldn't
+- Enemy units target turret assembly (child) instead of TurretBase (parent)
+- Queries expecting `MovementTracker` fail silently (turrets don't have it)
+- Features mysteriously don't work for turrets
+
+**Solution:** Add `Without<TurretRotatingAssembly>` filter to queries that should only include infantry:
+
+```rust
+// WRONG - includes turret assemblies
+Query<(Entity, &BattleDroid, &mut CombatUnit)>
+
+// CORRECT - infantry only
+Query<(Entity, &BattleDroid, &mut CombatUnit), Without<TurretRotatingAssembly>>
+```
+
+**Affected systems in this codebase:**
+- `target_acquisition_system` - combat query must exclude assemblies
+- `hitscan_fire_system` - combat query already excludes correctly
+- Any new system querying `BattleDroid` for infantry behavior
+
+See also: [devlogs/common_pitfalls.md](common_pitfalls.md)
+
 ## Future Work
 
 - **Suppression** - Units under fire have reduced accuracy

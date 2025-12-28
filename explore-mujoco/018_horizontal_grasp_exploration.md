@@ -102,8 +102,37 @@ A horizontal approach could work if:
 - `tests/test_horizontal_grasp.py` - Tests horizontal gripper at various heights
 - `tests/test_ik_side_grasp.py` - Compares top-down vs side approach configurations
 
+## Working Implementation
+
+After fixing fingertip site positions and grip force control, horizontal grasp now works at elevated heights.
+
+### Key Fixes
+
+1. **Fingertip Sites**: Added `static_fingertip` and `moving_fingertip` sites to XML using mesh vertex analysis (not guesswork). Sites track actual fingertip positions.
+
+2. **Targeting Fingertip Midpoint**: IK targets `finger_mid` (midpoint between fingertips) to the cube, not `graspframe`:
+   ```python
+   offset = finger_mid - graspframe_pos
+   graspframe_target = cube_pos - offset
+   ```
+
+3. **Grip Force Constraint**: Close gripper until contact detected, then tighten by small fixed amount (0.1) to avoid launching cube:
+   ```python
+   tighten_amount = 0.1
+   if is_grasping():
+       contact_action = gripper_action
+   if gripper_action <= contact_action - tighten_amount:
+       grasp_action = gripper_action
+       break
+   ```
+
+4. **Allow Wrist Flex During Lift**: Lock wrist horizontal during approach/close, but let IK find stable pose during lift.
+
+### Result
+
+With cube at Z=0.06 (raised), horizontal grasp successfully lifts and holds the cube.
+
 ## Next Steps
 
-- Keep current top-down reset implementation
-- Consider horizontal approach only if task involves raised objects
-- Investigate why grasp detection succeeds but lift fails (grasp stability issue)
+- Keep current top-down reset for table-level grasping
+- Use horizontal approach for raised objects if needed

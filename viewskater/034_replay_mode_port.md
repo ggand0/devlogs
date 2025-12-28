@@ -1,7 +1,7 @@
 # Devlog 034: Replay Mode Port from Legacy Branch
 
-**Date:** 2025-12-26
-**Branch:** `feat/replay-mode` (new, ported from `feat/replay-mode-legacy`)
+**Date:** 2025-12-26 to 2025-12-28
+**Branch:** `feat/replay-mode` (ported from `feat/replay-mode-legacy`, merged to main)
 
 ## Context
 
@@ -22,25 +22,28 @@ This is useful for:
 - Testing macOS keyboard navigation performance (target: 50-60 FPS)
 - Comparing performance across different platforms
 
-## Implementation Details
+## Final Implementation
 
 ### Files Added/Modified
 
 | File | Change |
 |------|--------|
 | `Cargo.toml` | Added `clap = { version = "4.0", features = ["derive"] }` |
-| `src/replay.rs` | New file (483 lines) - ReplayController, ReplayState, ReplayMetrics, ReplayAction |
-| `src/main.rs` | Added `mod replay`, clap `Args` struct, replay config creation |
-| `src/app.rs` | Added `replay_controller` + `replay_keep_alive_task` fields, helper methods |
+| `src/replay.rs` | New file (588 lines) - ReplayController, ReplayState, ReplayMetrics, ReplayAction |
+| `src/main.rs` | Refactored CLI with clap `Args` struct, replay config creation |
+| `src/app.rs` | Added `replay_controller` + keep-alive fields (+46 lines) |
+| `src/app/replay_handlers.rs` | New file (230 lines) - extracted from app.rs |
 | `src/app/message.rs` | Added `ReplayKeepAlive` variant |
-| `src/app/message_handlers.rs` | Added handler for `ReplayKeepAlive` |
+| `src/app/message_handlers.rs` | Added handler for `ReplayKeepAlive`, ready signal after LoadPos |
+| `.gitignore` | Added `benchmarks/` |
 
 ### Key Components
 
 #### 1. ReplayController (`src/replay.rs`)
 - Manages replay state machine: `Inactive` → `LoadingDirectory` → `WaitingForReady` → `NavigatingRight` → `NavigatingLeft` → `Finished`
-- Tracks metrics: UI FPS, Image FPS, memory usage
+- Tracks metrics: UI FPS, Image FPS (min/max/avg/last), memory usage
 - Handles multiple iterations and multiple test directories
+- Helper methods: `finalize_current_metrics()`, `should_transition()`
 
 #### 2. CLI Arguments (`src/main.rs`)
 ```rust
@@ -53,165 +56,127 @@ struct Args {
     #[arg(long, default_value = "50")] nav_interval: u64,  // ms between navs
     #[arg(long, default_value = "both")] directions: String,
     #[arg(long)] output: Option<PathBuf>,
+    #[arg(long, default_value = "text")] output_format: String,  // json/markdown/text
     #[arg(long, default_value = "1")] iterations: u32,
+    #[arg(long, default_value = "0")] skip_initial: usize,  // skip cached images
     #[arg(long)] verbose: bool,
+    #[arg(long)] auto_exit: bool,    // exit after replay completes
 }
 ```
 
-#### 3. Replay Update Logic (`src/app.rs`)
+#### 3. Replay Handlers (`src/app/replay_handlers.rs`)
+Extracted from app.rs to reduce file size (970 → 748 lines):
 - `update_replay_mode()`: Called each frame to update replay state and metrics
 - `process_replay_action()`: Handles actions like LoadDirectory, NavigateRight, NavigateLeft
-- Keep-alive task ensures continuous update loop during timing phases
 
 ### Usage
 
 ```bash
 # Basic replay mode
-cargo run --profile opt-dev -- --replay /path/to/images
+cargo run --profile opt-dev -- --replay --test-dir /path/to/images
 
-# With options
+# Full options for CI
 cargo run --profile opt-dev -- --replay \
     --test-dir /path/to/images \
     --duration 10 \
-    --iterations 3 \
-    --verbose \
-    --output results.txt
+    --iterations 2 \
+    --directions right \
+    --skip-initial 30 \
+    --output results.json \
+    --output-format json \
+    --auto-exit
 ```
 
-## Issue Fixed: Navigation Not Starting
+## Issues Fixed
 
-### Symptom
-Navigation wasn't happening. From the logs:
-```
-move_right_all() - LoadPos operation in queue, skipping move_right_all()
-```
+### 1. Navigation Not Starting
 
-The `being_loaded_queue` had a `LoadPos` operation that never completed.
+**Symptom:** Navigation wasn't happening. `being_loaded_queue` had a `LoadPos` operation that never completed.
 
-### Root Cause
-Two issues:
+**Root Cause:**
+1. `initialize_dir_path()` returns a `Task<Message>` that was being discarded
+2. `on_ready_to_navigate()` was called before images had loaded
 
-1. **Discarded Task**: `initialize_dir_path()` returns a `Task<Message>` that performs async image loading. We were discarding it with `let _ = self.initialize_dir_path(...)` and returning a dummy task instead. The real loading task never ran.
+**Fix:** Return the Task from `initialize_dir_path()` and move `on_ready_to_navigate()` to `ImagesLoaded` handler after `LoadPos` completes.
 
-2. **Premature `on_ready_to_navigate()`**: We were calling `on_ready_to_navigate()` immediately after `on_directory_loaded()`, before images had loaded. This caused replay to try navigating while `being_loaded_queue` still had pending work.
+### 2. Stuck in NavigatingLeft Phase
 
-### Fix
-1. Return the Task from `initialize_dir_path()` instead of discarding it:
-   ```rust
-   let load_task = self.initialize_dir_path(&path, 0);
-   // ... notify replay controller ...
-   Some(load_task)  // Return the real task
-   ```
+**Symptom:** Replay mode got stuck during left navigation - timing never advanced.
 
-2. Move `on_ready_to_navigate()` call to `ImagesLoaded` handler after `LoadPos` completes:
-   ```rust
-   // In handle_image_loading_messages, after LoadPos handling:
-   if let Some(ref mut replay_controller) = app.replay_controller {
-       if matches!(replay_controller.state, ReplayState::WaitingForReady { .. }) {
-           replay_controller.on_ready_to_navigate();
-       }
-   }
-   ```
+**Root Cause:** Keep-alive task was being `.take()`n but never returned during skate mode.
 
-### Verification
+**Fix:** Batch the keep-alive task with the navigation task when skate mode is active using `Task::batch([nav_task, keep_alive])`.
 
-After the fix, replay mode works correctly:
-```
-$ RUST_LOG=viewskater=debug cargo run --profile opt-dev -- --replay --test-dir /path/to/images --duration 10 --iterations 1
+### 3. Message Queue Flooding
 
-...
-INFO viewskater::replay:397 Completed iteration 1/1
-INFO viewskater::replay:410 Replay mode completed! All 1 iterations finished.
-INFO viewskater::replay:418 === FINAL REPLAY SUMMARY ===
-INFO viewskater::replay:419 Total directories tested: 2
-INFO viewskater::replay:426 Overall Average UI FPS: 835.9
-INFO viewskater::replay:427 Overall Average Image FPS: 152.0
-INFO viewskater::replay:432 UI FPS Range: 0.0 - 1131.0
-```
+**Symptom:** `MESSAGE QUEUE OVERLOAD: 62 messages pending`
 
-## Issue Fixed: Stuck in NavigatingLeft Phase
+**Root Cause:** `update_replay_mode()` created a new keep-alive task every frame, faster than 50ms processing.
 
-### Symptom
-Replay mode got stuck during left navigation. Logs showed `move_left_all` being called repeatedly at index 1, but the replay controller timing never advanced:
-```
-DEBUG viewskater::app:772 move_left_all from self.skate_left block
-DEBUG viewskater::navigation:196 move_left_all called
-DEBUG viewskater::navigation:200 move_left_all called 2
-DEBUG viewskater::navigation:207 move_left_all: current_index: 1
-```
+**Fix:** Track `replay_keep_alive_pending` flag to ensure only one keep-alive is in flight at a time.
 
-The replay controller's timing logic wasn't being called, so it never detected when the navigation phase should end.
+### 4. Metrics Skewed by Idle Time
 
-### Root Cause
-When `skate_left` is true, the keep-alive task was being `.take()`n but never returned:
+**Symptom:** FPS metrics included idle time at directory boundaries when navigation was stopped.
+
+**Fix:** Added `at_boundary` flag to ReplayController. When at boundary, metrics collection is paused to avoid skewing results with idle frames.
+
+### 5. RestartIteration Not Resetting Position
+
+**Symptom:** New iterations started from where previous iteration ended instead of beginning.
+
+**Fix:** `RestartIteration` action fully reloads the directory to reset pane position to index 0.
+
+## Refactoring
+
+### Removed Dead Code from replay.rs
+- Removed unused `Pausing` state from `ReplayState` enum
+- Removed unused `should_navigate_right()` and `should_navigate_left()` methods
+- Combined redundant `Right` and `Both` match arms in `on_ready_to_navigate()`
+
+### Extracted Helper Methods
 ```rust
-if let Some(keep_alive_task) = self.replay_keep_alive_task.take() {
-    if !self.skate_right && !self.skate_left {
-        return keep_alive_task;  // Never reached during skate mode!
+/// Finalize current metrics and prepare for next phase
+fn finalize_current_metrics(&mut self) {
+    if let Some(mut metrics) = self.current_metrics.take() {
+        metrics.finalize();
+        if self.config.verbose { metrics.print_summary(); }
+        self.completed_metrics.push(metrics);
     }
+    self.at_boundary = false;
 }
-// Task discarded, replay timing stalls
-```
 
-The keep-alive task is what triggers `ReplayKeepAlive` messages, which in turn call `update_replay_mode()` to check timing. Without it, the replay controller never got a chance to advance state.
-
-### Fix
-Batch the keep-alive task with the navigation task when skate mode is active:
-```rust
-let keep_alive_task = self.replay_keep_alive_task.take();
-
-if self.skate_left {
-    let nav_task = move_left_all(...);
-    // Batch with keep-alive task if present (for replay mode timing)
-    if let Some(keep_alive) = keep_alive_task {
-        Task::batch([nav_task, keep_alive])
-    } else {
-        nav_task
-    }
+/// Check if navigation phase should transition
+fn should_transition(&self, elapsed: Duration) -> bool {
+    const MIN_METRICS_DURATION: Duration = Duration::from_secs(1);
+    elapsed >= self.config.duration_per_directory ||
+        (self.at_boundary && elapsed >= MIN_METRICS_DURATION)
 }
 ```
 
-This ensures the keep-alive task is always returned, even during continuous navigation, allowing the replay controller to check timing and advance through phases.
+### Extracted replay_handlers.rs
+Moved `update_replay_mode()` and `process_replay_action()` from app.rs to dedicated module:
+- app.rs: 970 → 748 lines (-222 lines)
+- New replay_handlers.rs: 230 lines
 
-## Issue Fixed: Message Queue Flooding
+## Metrics Output
 
-### Symptom
-After fixing the stall issue, replay mode caused message queue overload warnings and lag spikes:
-```
-WARN viewskater:257 MESSAGE QUEUE OVERLOAD: 62 messages pending - clearing queue
-WARN viewskater:257 MESSAGE QUEUE OVERLOAD: 77 messages pending - clearing queue
-```
-
-### Root Cause
-The previous fix batched the keep-alive task with every navigation frame. But `update_replay_mode()` creates a new keep-alive task **every time it's called** (which is every frame). Each keep-alive schedules a 50ms delayed `ReplayKeepAlive` message.
-
-During fast navigation (frames faster than 50ms), delayed messages accumulated faster than they could be processed, flooding the queue.
-
-### Fix
-Track whether a keep-alive is "in flight" to prevent scheduling multiple:
-```rust
-// New field
-pub replay_keep_alive_pending: bool,
-
-// Only create if none pending
-if replay_controller.is_active() && !self.replay_keep_alive_pending {
-    self.replay_keep_alive_task = Some(Task::perform(...));
-}
-
-// Set pending when returned
-if let Some(keep_alive) = keep_alive_task {
-    self.replay_keep_alive_pending = true;
-    Task::batch([nav_task, keep_alive])
-}
-
-// Reset when message received
-Message::ReplayKeepAlive => {
-    app.replay_keep_alive_pending = false;
-    Task::none()
+### JSON Format
+```json
+{
+  "image_fps": {
+    "min": 45.2,
+    "max": 62.1,
+    "avg": 55.3,
+    "last": 58.7
+  }
 }
 ```
 
-This ensures only one keep-alive message is in flight at a time, preventing queue flooding while still maintaining replay timing.
+### Markdown Format
+```
+| Directory | Direction | Duration | Frames | UI FPS (avg) | Image FPS (avg) | Image FPS (last) | Memory (avg) |
+```
 
 ## Potential Improvement: FPS Accuracy for Cached Images
 
@@ -239,13 +204,28 @@ Both approaches use existing iced APIs:
 
 The reset approach is simpler. The filter approach gives more control but requires custom FPS calculation logic.
 
-## Commits
+## Commits (13 total)
 
 ```
 97aa797 Port replay mode for performance benchmarking
 286cdc9 Fix replay mode stalling during left navigation
 4cd37c9 Prevent replay keep-alive message flooding
+7372918 Add --auto-exit flag for replay mode automation
+fdc3d02 Add --output-format flag for replay results (json, markdown, text)
+4c73ac0 Fix replay metrics skewed by idle time at directory boundaries
+20b881b Fix RestartIteration not resetting pane position for new iteration
+e68fa92 Add --skip-initial option to exclude cached images from FPS metrics
+94e380c Switch to remote iced dependencies
+edf9ac2 Fix clippy warnings in replay code
+bf64ccd Refactor replay.rs: remove dead code and extract helpers
+a40712a Extract replay handlers to separate module
+2f2bcaa Add last_image_fps to replay metrics output
 ```
+
+## Next Steps
+
+- Add slider navigation mode (`--nav-mode slider`) for comparison benchmarking
+- See `tmp_slider_replay_handoff.md` for implementation plan
 
 ## References
 

@@ -18,23 +18,22 @@ Train the SO-101 robot arm to pick up a cube and lift it to a target height (8cm
 
 ```
 explore-mujoco/
-├── envs/
-│   ├── lift_cube.py              # Main env: Cartesian action space with staged rewards
-│   ├── lift_cube_cartesian.py    # Original Cartesian env (v1 robosuite-style)
-│   └── pick_cube.py              # Original joint-space env
-├── controllers/
+├── models/so101/                 # Robot models and scenes
+│   ├── so101_new_calib.xml       # Current robot (finger pads, fingertip sites)
+│   ├── so101_ik_grasp.xml        # Legacy robot (no pads)
+│   ├── so101_horizontal_grasp.xml # Horizontal approach variant
+│   ├── lift_cube.xml             # Scene: elliptic friction
+│   ├── lift_cube_ik_grasp.xml    # Scene: default friction
+│   ├── lift_cube_horizontal.xml  # Scene: horizontal approach
+│   └── assets/                   # STL mesh files (Git LFS)
+├── src/controllers/
 │   └── ik_controller.py          # Damped least-squares IK
-├── callbacks/
-│   └── plot_callback.py          # Learning curve plotting
-├── configs/
-│   └── lift_500k.yaml            # Training config
-├── train_lift.py                 # Main training script (supports resume)
-├── eval_cartesian.py             # Evaluation with video recording
+├── envs/
+│   ├── lift_cube.py              # Main env: Cartesian action space
+│   └── pick_cube.py              # Original joint-space env
+├── tests/                        # Test scripts
 ├── runs/                         # Training outputs
-│   ├── lift_cube/                # Current experiments (v3, v4, etc.)
-│   └── lift_cube_cartesian/      # Original v1/v2 experiments
-├── devlogs/                      # Experiment documentation
-└── SO-ARM100/                    # Robot model (git submodule)
+└── devlogs/                      # Experiment documentation
 ```
 
 ## Environment Design
@@ -153,3 +152,39 @@ uv run python eval_cartesian.py \
 - [004_cartesian-ik-training.md](004_cartesian-ik-training.md) - IK controller, Cartesian action space
 - [005_continuous-lift-reward.md](005_continuous-lift-reward.md) - V2 experiment, resume feature
 - [006_v1-to-1M-and-staged-rewards.md](006_v1-to-1M-and-staged-rewards.md) - V1 to 1M, V3, V4 experiments
+- [011_graspframe_fix.md](011_graspframe_fix.md) - Graspframe site positioning
+- [013_collision_exclusions.md](013_collision_exclusions.md) - Gripper self-collision fix
+- [014_ik_orientation_control.md](014_ik_orientation_control.md) - IK orientation + locked joints
+- [015_gripperframe_centering.md](015_gripperframe_centering.md) - Gripperframe Y-axis centering
+- [018_horizontal_grasp.md](018_horizontal_grasp.md) - Horizontal approach exploration
+- [019_elliptic_cone_friction.md](019_elliptic_cone_friction.md) - Friction tuning for slip prevention
+- [020_topdown_pick.md](020_topdown_pick.md) - Top-down pick with fingertip targeting
+- [021_finger_pad_collision_fix.md](021_finger_pad_collision_fix.md) - Finger pad boxes for stable grasping
+- [022_test_setups.md](022_test_setups.md) - Test script configurations (3 setups)
+- [023_model_reorganization.md](023_model_reorganization.md) - Move models out of submodule, Git LFS
+
+## Test Configurations
+
+Three distinct test setups exist in `models/so101/`:
+
+| Setup | Robot Model | Scene | Script | Features |
+|-------|-------------|-------|--------|----------|
+| Top-Down (current) | so101_new_calib.xml | lift_cube.xml | test_topdown_pick.py | Finger pads, elliptic friction |
+| IK Grasp (legacy) | so101_ik_grasp.xml | lift_cube_ik_grasp.xml | test_ik_grasp*.py | Original model, default friction |
+| Horizontal (experimental) | so101_horizontal_grasp.xml | lift_cube_horizontal.xml | test_horizontal_grasp.py | Horizontal approach |
+
+See [022_test_setups.md](022_test_setups.md) for detailed documentation.
+
+### Quick Commands
+
+```bash
+# Top-down pick (current best)
+PYTHONPATH=. uv run python tests/test_topdown_pick.py
+
+# IK grasp (legacy, reproduces original behavior)
+PYTHONPATH=. uv run python tests/test_ik_grasp.py
+PYTHONPATH=. uv run python tests/test_ik_grasp_video.py
+
+# Horizontal grasp (experimental)
+PYTHONPATH=. uv run python tests/test_horizontal_grasp.py
+```

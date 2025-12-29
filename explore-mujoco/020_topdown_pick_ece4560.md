@@ -56,3 +56,24 @@ def is_grasping():
 
 - `tests/test_topdown_pick.py` - Main implementation
 - `src/controllers/ik_controller.py` - IK controller used for positioning
+
+## Comparison with ECE4560 Reference
+
+| Aspect | ECE4560 | Ours | Notes |
+|--------|---------|------|-------|
+| Gripper open | 50/100 | 0.3 (~65%) | Partial open, not fully open |
+| Gripper closed | 5/100 | -0.8 (~10%) | Similar tightness |
+| Height offset | 0.03m | 0.03m | Same |
+| Z-offset (platform) | 0.015m | 0.015m (cube center) | Same |
+| Grasp method | Fixed close to 5% | Contact detection + tighten | Ours is more robust |
+| Timing | 1-2 sec durations | Step counts | Equivalent |
+
+### Improvements Over ECE4560
+
+1. **Contact-based grasp detection**: ECE4560 blindly closes to a fixed value. We detect contact first, then tighten 0.4 beyond the contact point for adaptive grip strength.
+
+2. **Locked wrist joints**: We lock wrist_flex and wrist_roll during IK to maintain stable top-down orientation throughout the motion.
+
+3. **Y-offset compensation**: We compensate for the asymmetric gripper (static vs moving finger) with a -15mm Y offset to center the grip on the cube.
+
+4. **Reduced lift gain**: We use lower IK gain (0.3 vs 0.5) during lift/hold phases to minimize oscillation and wobble.

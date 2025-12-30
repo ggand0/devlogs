@@ -29,7 +29,6 @@ Split directory initialization into two phases:
 pub struct DirectoryEnumResult {
     pub file_paths: Vec<PathBuf>,
     pub directory_path: String,
-    pub original_path: PathBuf,
     pub initial_index: usize,
 }
 
@@ -162,9 +161,38 @@ fn update(&mut self, message: Message) -> Task<Message> {
 |------|---------|
 | `src/app/message.rs` | Added `DirectoryEnumResult`, `DirectoryEnumError`, `DirectoryEnumerated` |
 | `src/file_io.rs` | Added `enumerate_directory_async()` |
-| `src/app.rs` | Split `initialize_dir_path()`, added `complete_dir_initialization()`, `initialize_dir_path_sync()` |
-| `src/pane.rs` | Added `initialize_with_paths()` |
+| `src/app.rs` | Split `initialize_dir_path()`, added `complete_dir_initialization()`, `initialize_dir_path_sync()`, extracted helpers |
+| `src/pane.rs` | Added `initialize_with_paths()`, extracted `setup_scene_for_image()` helper |
 | `src/app/message_handlers.rs` | Added handler for `DirectoryEnumerated` |
+
+## Refactoring
+
+After initial implementation, extracted helper methods to reduce code duplication:
+
+### `src/app.rs` Helpers
+
+```rust
+/// Ensure panes vector has at least `pane_index + 1` panes
+fn ensure_pane_exists(&mut self, pane_index: usize)
+
+/// Clear cached slider images from all panes
+fn clear_slider_images(&mut self)
+
+/// Start loading neighbor images after directory initialization
+/// Sets last_opened_pane, loads selection state, calls load_initial_neighbors()
+fn start_neighbor_loading(&mut self, pane_index: usize) -> Task<Message>
+```
+
+These helpers are used by both `initialize_dir_path()` (async path) and `initialize_dir_path_sync()` (archive path).
+
+### `src/pane.rs` Helper
+
+```rust
+/// Set up scene with cached image data (GPU texture, BC1 compressed, or CPU bytes)
+fn setup_scene_for_image(&mut self, cached_data: &CachedData)
+```
+
+Used by `render_next_image()`, `render_prev_image()`, `initialize_dir_path()`, and `initialize_with_paths()`.
 
 ## Design Decisions
 

@@ -115,10 +115,53 @@ Same as Experiment 1, but action penalty only applies when z > 0.06:
 2. Further reduce penalty coefficient
 3. Increase target bonus to incentivize pushing through the penalty zone
 
+## Experiment 3: 500k Training with 3-Second Hold Requirement
+
+**Run**: `runs/lift_curriculum_s1/20251229_224741/`
+**Eval video**: `runs/lift_curriculum_s1/20251229_224741/eval_500000_combined.mp4`
+
+### Config Changes
+
+- `timesteps: 500000` (up from 200k)
+- `hold_steps: 150` (~3 seconds at 50Hz, up from 10)
+- `max_episode_steps: 300` (up from 100)
+
+### Results
+
+- **Training**: 500k steps
+- **Rollout success**: 62%
+- **Final eval**: 100% success rate (10/10 episodes)
+- **Behavior**: Agent lifts aggressively to z=0.225-0.237m, holds for 3 seconds
+- **Mean reward**: ~43
+
+| Episode | Final z | Success |
+|---------|---------|---------|
+| 1 | 0.227 | ✅ |
+| 2 | 0.233 | ✅ |
+| 3 | 0.237 | ✅ |
+| 4 | 0.229 | ✅ |
+| 5 | 0.225 | ✅ |
+| 6 | 0.236 | ✅ |
+| 7 | 0.232 | ✅ |
+| 8 | 0.236 | ✅ |
+| 9 | 0.225 | ✅ |
+| 10 | 0.231 | ✅ |
+
+### Analysis
+
+**Robust lift policy achieved!** The longer hold requirement (3 seconds) and more training produced a robust policy:
+- Agent lifts quickly (z > 0.08 by step 5-7)
+- Overshoots to z=0.22-0.24m (well above target)
+- Holds stable for 150 steps
+- 100% success across varied initial conditions (±2cm cube position randomization)
+
+The aggressive z-action (close to +1.0) shows the agent learned to push past the action rate penalty zone quickly rather than getting stuck.
+
 ## Key Learnings
 
 1. **Action rate penalty works for smoothness**: Completely eliminated twitching when λ=0.05
 2. **But can prevent task completion**: If penalty is too strong or unconditional, agent prefers doing nothing
 3. **Conditional penalties are better**: Apply smoothness penalty only where it matters (at target height)
 4. **Coefficient tuning matters**: 0.05 too strong, 0.01 with conditional activation achieves 60% success
-5. **First successful curriculum stage 1 policy**: Conditional penalty (z > 0.06, λ=0.01) achieved 60% eval success
+5. **Longer hold requirement helps**: 3-second hold (150 steps) forces more robust holding behavior
+6. **More training helps**: 500k steps achieved 100% eval success vs 60% at 200k

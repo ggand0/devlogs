@@ -100,9 +100,72 @@ curl http://127.0.0.1:8000/observation_space
 - Existing trained models work without changes
 - New training can opt-in to 69-dim with `observation_mode: with_thrower`
 
-## Next Steps
+## Training Results
 
-1. Train SAC with thrower indicator mode
-2. Compare stability vs standard mode
-3. Test if agent learns to anticipate throws
+### SAC with Thrower Indicator (2M steps)
+
+**Experiment Directory:**
+```
+results/v1/sac_level2_thrower/20251221_022814/
+```
+
+**Model Weights:**
+- Best: `results/v1/sac_level2_thrower/20251221_022814/models/best/best_model.zip`
+- Final: `results/v1/sac_level2_thrower/20251221_022814/models/final_model.zip`
+
+**Training Config:**
+```yaml
+algorithm: SAC
+total_timesteps: 2000000
+observation_mode: with_thrower  # 69-dim
+thrower_delay_seconds: 0.5
+spawn_angle_degrees: 30         # ±30° = 60° fan
+level: 2
+action_space_type: basic_3d
+net_arch: [256, 256]
+```
+
+**Best Training Eval (at step 1.63M):**
+```
+Mean reward:     1001.81 ± 0.66
+Success rate:    100% (10/10) - likely lucky RNG
+```
+
+**Actual Eval (10 episodes, deterministic):**
+```
+Mean reward:     627.83 ± 386.68
+Reward range:    [61.44, 1006.61]
+Episode length:  676.2 ± 337.9 steps
+Success rate:    50% (5/10 episodes reached 1000 steps)
+```
+
+The agent shows strong but inconsistent performance. The thrower indicator helps with anticipation, but high variance persists due to unfavorable projectile spawn patterns. The 100% training eval was likely a lucky run.
+
+**Evaluate:**
+```bash
+# Terminal 1: Start game
+VK_LOADER_DEBUG=error VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/radeon_icd.x86_64.json cargo run --release
+
+# Terminal 2: Evaluate
+uv run python python/eval_sac.py \
+  results/v1/sac_level2_thrower/20251221_022814/models/best/best_model.zip \
+  --observation-mode with_thrower \
+  --spawn-angle 30 \
+  --episodes 10
+```
+
+### Training Progression
+
+| Steps | Mean Reward | Notes |
+|-------|-------------|-------|
+| 1.0M | ~200 | Early learning |
+| 1.4M | ~700 | Rapid improvement |
+| 1.63M | **1001.81** | Lucky eval (actual ~50% success) |
+| 2.0M | ~900 | Final model |
+
+## Future Directions
+
+1. ~~Train SAC with thrower indicator mode~~ ✅ Done
+2. ~~Compare stability vs standard mode~~ ✅ 50% success rate (vs ~20% without thrower)
+3. ~~Test if agent learns to anticipate throws~~ ✅ Yes, improved performance
 4. Consider multi-thrower support for future adversarial training

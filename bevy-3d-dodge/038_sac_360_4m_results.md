@@ -45,6 +45,45 @@ Testing full 360° spawn coverage (projectiles from any direction).
 3. **Architecture changes**: Might need larger network for more complex spatial reasoning
 4. **Curriculum learning**: Start with narrow angles, gradually widen
 
-## Conclusion
+---
 
-360° full coverage is substantially harder than 120° fan. The agent learned some dodging behavior but struggles with attacks from behind. Consider curriculum learning or intermediate difficulty steps.
+## Experiment 2: No Dodge Bonus
+
+Testing whether disabling close-call rewards helps or hurts learning on 360°.
+
+### Configuration
+- Same as above, but with `dodge_bonus_multiplier: 0.0`
+- Pure survival reward only
+
+### Results
+
+| Metric | Value |
+|--------|-------|
+| Training time | 4h 25m |
+| Final eval | 344.28 ± 351.65 |
+| Best eval | 764.63 |
+| Final ep length | 425 ± 323 |
+| Peak ep length | 289 (training) |
+| Throughput | ~251 fps |
+
+### Comparison: Dodge Bonus vs No Dodge Bonus
+
+| Variant | Best Eval | Final Eval | Ep Length |
+|---------|-----------|------------|-----------|
+| With dodge bonus | 726 | 416 ± 385 | ~488 |
+| **No dodge bonus** | **765** | 344 ± 352 | ~425 |
+
+### Analysis
+
+1. **Slightly better best eval**: 765 vs 726 (+5%) without dodge bonus
+2. **Worse final eval**: 344 vs 416 (-17%) suggests less stable learning
+3. **Similar variance**: Both have high variance (~350-385)
+4. **Shorter episodes**: 425 vs 488 steps on average
+
+### Conclusion
+
+Removing dodge bonus slightly improved peak performance but hurt stability. The difference is marginal - neither reward shaping significantly helps with 360° difficulty. The core challenge is spatial awareness of threats from all directions.
+
+## Overall Conclusion
+
+360° full coverage is substantially harder than 120° fan. Neither reward variant achieved stable learning. Consider curriculum learning or intermediate difficulty steps (90°, 120°) before attempting full coverage.

@@ -98,10 +98,80 @@ For future stages 5/6, added:
 
 This will be used after stage 4 succeeds.
 
+## Training Results
+
+**Run:** `runs/lift_curriculum_s4/20251230_230834/`
+**Duration:** ~8 hours (2M timesteps)
+
+### Training Dynamics
+
+| Timestep | Success Rate | Notes |
+|----------|--------------|-------|
+| 700K | **100%** | Peak performance |
+| 1M-2M | 0-80% | High variance, policy instability |
+| 2M (final) | 60% | Degraded from peak |
+
+Training showed instability after 700K steps - the policy learned the task but then partially forgot it. This is a common issue with SAC when exploration noise interferes with a learned policy.
+
+### Evaluation (Corrected)
+
+Initial evaluation used `hold_steps=10` (default) instead of `hold_steps=150` (config). Fixed `eval_cartesian.py` to properly read hold_steps from config.
+
+**Evaluation with hold_steps=150 (3-second hold requirement):**
+
+| Model | Success Rate | Mean Reward | Notes |
+|-------|-------------|-------------|-------|
+| **Best** (~700K) | **75%** | 1390.97 ± 735.88 | Consistent behavior |
+| Final (2M) | 55% | 1341.48 ± 916.30 | Higher variance |
+
+### Failure Modes
+
+1. **Cube dropping** - Grasps cube but loses grip during lift or hold phase
+2. **Erratic movements** - Occasional jerky actions, especially in later training checkpoints
+3. **Miss on reach** - ~25% of episodes fail to reach/grasp the cube from the initial 8-12cm distance
+
+### Videos
+
+- `runs/lift_curriculum_s4/20251230_230834/eval_best_150hold.mp4`
+- `runs/lift_curriculum_s4/20251230_230834/eval_final_150hold.mp4`
+
+## Fixes Made
+
+### eval_cartesian.py
+- Added `hold_steps` parameter from config (was hardcoded to default 10)
+- Changed step loop from hardcoded `range(200)` to `range(max_episode_steps)`
+
+## Separate Evaluation Environment
+
+Created `.venv-eval-np2` with numpy 2.x for evaluating models trained with numpy 2.x (main `.venv` uses numpy 1.26.4 for image-RL compatibility).
+
+```bash
+# Evaluate stage 4 models with numpy 2.x venv
+MUJOCO_GL=egl PYTHONPATH=. .venv-eval-np2/bin/python eval_cartesian.py \
+  --run runs/lift_curriculum_s4/20251230_230834 \
+  --model best_model/best_model.zip \
+  --episodes 20
+```
+
 ## Files Changed
 
 - `src/envs/lift_cube.py` - Added stage 4 reset, place_target support, v12 reward
 - `configs/curriculum_stage4.yaml` - Stage 4 configuration
 - `configs/pick_place.yaml` - Future pick-and-place configuration
 - `train_lift.py` - Added place_target parsing
-- `eval_cartesian.py` - Added --run flag, place task logging
+- `eval_cartesian.py` - Added --run flag, place task logging, hold_steps from config
+
+## Experiment Backups (State-Based RL)
+
+All successful state-based RL experiments backed up to `/data/ggando/pick-101/runs/`:
+
+| Stage | Original Path | Backup Path | Success Rate |
+|-------|---------------|-------------|--------------|
+| S1 | `runs/lift_curriculum_s1/20251229_224741/` | `state_s1_lift_hold_100pct/` | 100% |
+| S3 | `runs/lift_curriculum_s3/20251230_135113/` | `state_s3_grasp_lift_xpost/` | 100% |
+| S4 | `runs/lift_curriculum_s4/20251230_230834/` | `state_s4_reach_grasp_lift/` | 75% (best) |
+
+Notes:
+- S1: First robust lift+hold policy (devlog 026)
+- S3: Grasp+lift from scratch, used for X post demo (devlog 029)
+- S4: Full reach+grasp+lift, best checkpoint at ~700K steps

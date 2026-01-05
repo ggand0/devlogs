@@ -55,12 +55,35 @@ uv pip install --system -e ".[hilserl]"
 
 Key packages: placo (kinematics), grpcio (actor-learner), gym-hil, wandb
 
+### 5. Implemented SO101FollowerEndEffector in LeRobot
+
+SO-101 was missing end-effector control support (SO-100 had it but SO-101 didn't). Added:
+
+**Files created/modified in lerobot fork:**
+- `src/lerobot/robots/so101_follower/config_so101_follower.py`: Added `SO101FollowerEndEffectorConfig` with fields:
+  - `urdf_path`: Path to URDF for kinematics
+  - `target_frame_name`: End-effector frame (`gripper_frame_link`)
+  - `end_effector_bounds`: Workspace limits in meters
+  - `end_effector_step_sizes`: Action scaling per axis
+  - `max_gripper_pos`: Gripper range limit
+
+- `src/lerobot/robots/so101_follower/so101_follower_end_effector.py`: New class that:
+  - Inherits from `SO101Follower`
+  - Uses `RobotKinematics` for forward/inverse kinematics via placo
+  - Transforms 4D EE-space actions (delta_x, delta_y, delta_z, gripper) to joint-space
+  - Clips targets to `end_effector_bounds`
+
+- `src/lerobot/robots/so101_follower/__init__.py`: Export new classes
+- `src/lerobot/robots/utils.py`: Register `so101_follower_end_effector` in factory
+
+**Robot type changed from `so101_follower` to `so101_follower_end_effector` in configs.**
+
 ## Next Steps (Require Robot)
 
 ### Phase 2: Calibrate Workspace
 ```bash
 python find_joint_limits_so101_fixed.py \
-  --robot.type=so101_follower \
+  --robot.type=so101_follower_end_effector \
   --robot.port=/dev/ttyACM0 \
   --robot.id=ggando_so101_follower \
   --robot.urdf_path=models/so101_new_calib.urdf \
@@ -109,7 +132,11 @@ python -m lerobot.rl.actor --config_path train_config_so101.json
 | `models/so101_new_calib.urdf` | Created (downloaded) |
 | `env_config_so101.json` | Modified |
 | `train_config_so101.json` | Created |
-| `docs/plans/hilserl_implementation_plan.md` | Created |
+| **LeRobot fork changes:** | |
+| `lerobot/.../so101_follower/config_so101_follower.py` | Modified (added SO101FollowerEndEffectorConfig) |
+| `lerobot/.../so101_follower/so101_follower_end_effector.py` | Created |
+| `lerobot/.../so101_follower/__init__.py` | Modified |
+| `lerobot/.../robots/utils.py` | Modified (factory) |
 
 ## References
 

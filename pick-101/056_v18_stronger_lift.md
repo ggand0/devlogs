@@ -122,6 +122,61 @@ MUJOCO_GL=egl uv run python src/training/train_image_rl.py \
 - Agent has stronger incentive to push past 0.06m
 - Target: >50% success rate at 2M steps
 
+## Training Results (2M Steps)
+
+### Evaluation: 10 Episodes
+
+| Metric | Value |
+|--------|-------|
+| Success Rate | 0% |
+| Mean Reward | 1362.17 ± 284.48 |
+| Grasping | 93-97.5% |
+
+### Lift Height Analysis
+
+| Episode | Max Height | Steps >0.06m | Steps >0.08m |
+|---------|------------|--------------|--------------|
+| 0 | 0.076m | 32 | 0 |
+| 1 | 0.080m | 45 | 1 |
+| 2 | 0.069m | 18 | 0 |
+| 3 | 0.082m | 51 | 12 |
+| 4 | 0.091m | 58 | 34 |
+| 5 | 0.078m | 41 | 0 |
+| 6 | 0.085m | 49 | 21 |
+| 7 | 0.100m | 71 | 63 |
+| 8 | 0.073m | 25 | 0 |
+| 9 | 0.088m | 55 | 28 |
+
+### Comparison vs v17
+
+| Metric | v17 (2M) | v18 (2M) |
+|--------|----------|----------|
+| Success Rate | 10% | 0% |
+| Mean Reward | 747.56 | 1362.17 |
+| Max Height | 0.044m | 0.100m |
+| Typical Height | 0.03-0.04m | 0.06-0.08m |
+
+### Key Finding
+
+v18 lifts significantly higher but **cannot sustain at target height**. The agent oscillates - goes up, comes back down. Episode 7 had 63 steps above 0.08m and reached 0.10m but still failed.
+
+**Root cause**: No incentive to hold position. Agent optimizes instantaneous reward, not sustained height.
+
+### Next Step
+
+v19 needs a **hold incentive** - reward for maintaining height over time, not just reaching it.
+
+## Artifact Backup
+
+Model weights and eval videos backed up to `/data/ggando/pick-101/runs/image_rl/`:
+
+| Directory | Version | Contents |
+|-----------|---------|----------|
+| `v17_20260104_000827/` | v17 | 25 snapshots, 30 videos, config |
+| `v18_20260104_103333/` | v18 | 25 snapshots, 30 videos, config |
+
+Each ~928MB, total ~1.9GB.
+
 ## Status
 
-Ready for training.
+v18 training complete. Lifts higher but regressed on success rate.

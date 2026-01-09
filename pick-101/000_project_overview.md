@@ -14,6 +14,25 @@ Train the SO-101 robot arm to pick up a cube and lift it to a target height (8cm
 | Deep Learning | PyTorch + ROCm 6.4 | 2.9.1 |
 | GPU | AMD Radeon RX 7900 XTX | - |
 
+## Image-Based RL Resources
+
+### Papers
+- **DrQ-v2** - [Mastering Visual Continuous Control: Improved Data-Augmented RL](https://arxiv.org/abs/2107.09645) - State-of-the-art pixel-based RL with data augmentation
+- **DrQ** - [Image Augmentation Is All You Need](https://arxiv.org/abs/2004.13649) - Random shift augmentation for pixel-based RL
+- **SAC-AE** - [Improving SAC with Autoencoders](https://arxiv.org/abs/1910.01741) - SAC from pixels with reconstruction loss
+- **CURL** - [Contrastive Unsupervised Representations for RL](https://arxiv.org/abs/2004.04136) - Contrastive learning for visual RL
+- **RAD** - [Reinforcement Learning with Augmented Data](https://arxiv.org/abs/2004.14990) - Systematic study of data augmentation
+
+### Frameworks
+- **RoboBase** - https://github.com/SiddhantTandon/roboBase - DrQ-v2 implementation used in this project
+- **DMControl** - https://github.com/deepmind/dm_control - DeepMind's physics-based control suite
+
+### Key Techniques
+- Frame stacking (3 frames) for temporal information
+- Random shift augmentation (±4 pixels) for generalization
+- Separate encoder for actor/critic with EMA target
+- Low-dim state (proprioception) concatenated with visual features
+
 ## Project Structure
 
 ```

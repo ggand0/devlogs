@@ -126,6 +126,67 @@ joint_targets[:, 4] = -torch.pi / 2  # Match real robot
 3. Check if checkpoint actually achieves high success in Genesis eval
 4. Consider running Genesis eval script to capture reference observations
 
+## Sim2Real Diagnostic Test
+
+Added `--sim_frames_dir` and `--sim_states_file` options to prove whether visual sim2real gap is the issue.
+
+**Hypothesis**: If the policy produces correct actions with Genesis frames but wrong actions with real camera frames, the visual domain gap is the problem.
+
+### Step 1: Record Genesis Episode
+
+In Genesis eval, save frames and states from a successful episode:
+
+```python
+# In Genesis evaluation code, add saving logic:
+import cv2
+import os
+
+save_dir = "genesis_successful_episode"
+os.makedirs(save_dir, exist_ok=True)
+
+for step in range(episode_length):
+    obs = env.get_obs()  # dict with 'wrist_rgb' and 'low_dim_state'
+
+    # Save frame as PNG (84x84 RGB)
+    img_rgb = obs['wrist_rgb'].cpu().numpy().transpose(1, 2, 0)  # CHW -> HWC
+    img_bgr = cv2.cvtColor((img_rgb * 255).astype(np.uint8), cv2.COLOR_RGB2BGR)
+    cv2.imwrite(f"{save_dir}/frame_{step:04d}.png", img_bgr)
+
+    # Save state
+    states.append(obs['low_dim_state'].cpu().numpy())
+
+# Save all states as single file
+np.save(f"{save_dir}/states.npy", np.array(states))
+```
+
+### Step 2: Run Diagnostic on Real Robot
+
+```bash
+# Test with sim frames only (use real robot state)
+uv run python scripts/ppo_inference.py \
+    --checkpoint /path/to/checkpoint.pt \
+    --sim_frames_dir ./genesis_successful_episode \
+    --episode_length 50 \
+    --debug_state
+
+# Test with full sim observations (sim frames + sim states)
+uv run python scripts/ppo_inference.py \
+    --checkpoint /path/to/checkpoint.pt \
+    --sim_frames_dir ./genesis_successful_episode \
+    --sim_states_file ./genesis_successful_episode/states.npy \
+    --dry_run \
+    --episode_length 50 \
+    --debug_state
+```
+
+### Expected Results
+
+| Scenario | If Works | If Fails |
+|----------|----------|----------|
+| Sim frames + sim states (dry_run) | Policy architecture is correct | Bug in inference code |
+| Sim frames + real states | Visual gap NOT the issue | State mismatch is the issue |
+| Real frames + real states | Transfer works | Visual sim2real gap confirmed |
+
 ## Commands
 
 ```bash

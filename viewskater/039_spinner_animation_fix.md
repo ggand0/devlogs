@@ -40,11 +40,15 @@ The loading spinner showed as a static frame - it only animated when the mouse c
 │                         AFTER FIX (Widget without cache)                    │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  SpinnerTick fires                                                          │
+│  SpinnerTick fires as UserEvent                                             │
 │       ↓                                                                     │
-│  UserEvent handler                                                          │
+│  UserEvent handler (Action::Output)                                         │
 │       ↓                                                                     │
-│  *redraw = true                                                             │
+│  state.queue_message(message)                                               │
+│       ↓                                                                     │
+│  state.update()  ←── Processes SpinnerTick, schedules next tick             │
+│       ↓                                                                     │
+│  Direct render if is_any_pane_loading()                                     │
 │       ↓                                                                     │
 │  renderer.present()                                                         │
 │       ↓                                                                     │
@@ -56,7 +60,7 @@ The loading spinner showed as a static frame - it only animated when the mouse c
 │       ↓                                                                     │
 │  frame.into_geometry()  ←── No cache, always new geometry                   │
 │       ↓                                                                     │
-│  Animation updates!                                                         │
+│  Animation updates! Loop continues every 16ms                               │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

@@ -94,9 +94,9 @@ HFOV = VFOV = 70.5°
 
 See `scripts/calculate_fov.py` for full calculation.
 
-## Final Settings (v6)
+## Final Settings (v5)
 
-| Parameter | v5 | v6 | Notes |
+| Parameter | v5 | v5 | Notes |
 |-----------|-----|-----|-------|
 | Position X | 0.01 | **0.008** | Fine-tuned |
 | Position Y | -0.07 | **-0.065** | B=6.5cm from gripper center |
@@ -108,10 +108,25 @@ See `scripts/calculate_fov.py` for full calculation.
 ### XML Format
 
 ```xml
-<camera name="wrist_cam" pos="0.008 -0.065 -0.019" euler="-0.398 0 3.14159" fovy="70.5"/>
+<camera name="wrist_cam" pos="0.008 -0.065 -0.019" euler="0.398 0 3.14159" fovy="70.5"/>
 ```
 
-Note: euler pitch in radians: -22.8° = -0.398 rad
+Note: euler pitch in radians: +22.8° = +0.398 rad
+
+**IMPORTANT: MuJoCo euler sign convention**
+
+MuJoCo XML euler angles have opposite sign from scipy's `R.from_euler('xyz', ...)`.
+The `visualize_camera.py` script uses scipy which requires `-22.8°`, but the XML requires `+22.8°` (+0.398 rad) to achieve the same orientation.
+
+Verification:
+```python
+# scipy (visualize_camera.py)
+rot = R.from_euler('xyz', [-22.8, 0, 180], degrees=True)
+q = rot.as_quat()  # gives [0, 0, -0.197, 0.980]
+
+# MuJoCo XML euler="0.398 0 3.14159"
+# produces quat [0, 0, +0.197, 0.980]  # same rotation!
+```
 
 ## Visualization Script Changes
 

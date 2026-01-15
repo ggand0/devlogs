@@ -34,40 +34,91 @@ cam_pos = [0.01, -0.065, -0.008]
 
 ### Pitch Calculation
 
-Camera looks at gripperframe + 4cm forward (to center the workspace in view):
+Camera looks at gripperframe + forward offset along -Z axis (toward fingertips):
 
 ```python
-target = gripperframe + [0, -0.04, 0]  # 4cm forward
-target = [0, -0.04, -0.0981]
+# NOTE: "forward" is along -Z axis (toward fingertips), NOT -Y axis
+target = gripperframe + [0, 0, -forward]  # forward cm in -Z direction
+target = [0, 0, gripperframe_z - forward]
 
 # Best pitch with yaw=180° convention
-pitch = -15.5°
+# Use scripts/calculate_camera_params.py to compute
 ```
 
-## Final Settings (v5)
+### FOV Calculation
 
-| Parameter | v4 | v5 | Notes |
+innoMaker USB camera specs:
+- Diagonal FOV: 130°
+- Horizontal FOV: 103°
+- Native resolution: 1080p (1920x1080, 16:9)
+
+**Problem: Specs are inconsistent**
+
+The stated diagonal (130°) and horizontal (103°) FOVs cannot both be correct for a 16:9 sensor:
+
+```python
+# Method 1: VFOV from HFOV and 16:9 aspect ratio
+tan(VFOV/2) = tan(103°/2) × (9/16) = 1.257 × 0.5625 = 0.707
+VFOV = 70.5°
+
+# Verify diagonal from these values
+DFOV = 2 × atan(√(tan²(51.5°) + tan²(35.3°))) = 110.5°  # NOT 130°!
+
+# Method 2: VFOV from diagonal formula
+tan²(VFOV/2) = tan²(130°/2) - tan²(103°/2) = 4.60 - 1.58 = 3.02
+VFOV = 120.2°
+
+# But this implies aspect ratio 0.724:1 (portrait!), not 16:9
+```
+
+**Solution: Trust HFOV=103° as ground truth**
+
+Pipeline: 16:9 native → 4:3 mode (640x480) → 1:1 square crop (480x480)
+
+```python
+# Focal length from native HFOV
+f = 1920 / (2 × tan(51.5°)) = 763.6 pixels
+
+# Step 1: Native 16:9 (1920x1080)
+HFOV = 103°, VFOV = 70.5°
+
+# Step 2: Crop to 4:3 (1440x1080) - keep full height, crop width
+HFOV = 2 × atan(1440 / (2 × 763.6)) = 86.6°
+VFOV = 70.5° (unchanged)
+
+# Step 3: Crop to 1:1 (1080x1080) - crop width to match height
+HFOV = VFOV = 70.5°
+```
+
+**Result: MuJoCo fovy = 70.5°** (not 86° as previously calculated)
+
+See `scripts/calculate_fov.py` for full calculation.
+
+## Final Settings (v6)
+
+| Parameter | v5 | v6 | Notes |
 |-----------|-----|-----|-------|
-| Position X | 0.02 | **0.01** | Closer to static finger |
-| Position Y | -0.08 | **-0.065** | From IRL measurement (B=6.5cm) |
-| Position Z | -0.02 | **-0.008** | From IRL measurement (A=9cm) |
-| Pitch | -25° | **-15.5°** | Calculated to look at gripperframe+4cm |
+| Position X | 0.01 | **0.008** | Fine-tuned |
+| Position Y | -0.07 | **-0.065** | B=6.5cm from gripper center |
+| Position Z | -0.015 | **-0.019** | Fine-tuned |
+| Pitch | -23.2° | **-22.8°** | Fine-tuned |
 | Yaw | 180° | 180° | Unchanged |
-| FOV | 86° | 86° | Unchanged |
+| FOV | 70.5° | **70.5°** | Unchanged |
 
 ### XML Format
 
 ```xml
-<camera name="wrist_cam" pos="0.01 -0.065 -0.008" euler="-0.2705 0 3.14159" fovy="86"/>
+<camera name="wrist_cam" pos="0.008 -0.065 -0.019" euler="-0.398 0 3.14159" fovy="70.5"/>
 ```
 
-Note: euler pitch in radians: -15.5° = -0.2705 rad
+Note: euler pitch in radians: -22.8° = -0.398 rad
 
 ## Visualization Script Changes
 
 Updated `apply_calibrated_camera()` in `scripts/visualize_camera.py`:
-- Position: `[0.01, -0.065, -0.008]`
-- Euler: `[-15.5, 0, 180]` degrees
+- Position: `[0.008, -0.065, -0.019]`
+- Euler: `[-22.8, 0, 180]` degrees
+- FOV: `70.5°`
 
 ## Test Output
 

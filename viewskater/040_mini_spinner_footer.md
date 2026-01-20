@@ -118,3 +118,50 @@ These could be removed or kept with `#[allow(dead_code)]` for future use.
 1. **Horizontal array indicator**: Planned for showing sliding window cache status in footer
 2. **Mini spinner next to array**: Could use `mini_circular()` alongside the array visualization
 3. **Menu bar option**: If footer visibility in fullscreen becomes problematic, could add spinner to menu bar
+
+## Dual-Pane Spinner Fix
+
+### Bug
+
+In dual-pane mode, the spinner clearing logic was checking the **global** loading queue state before clearing a pane's `loading_started_at`. This caused a bug where one pane's spinner would never clear if another pane finished loading later.
+
+**Scenario:**
+1. Load directory in pane 0 → `pane[0].loading_started_at = t0`
+2. Load directory in pane 1 → `pane[1].loading_started_at = t1`
+3. Pane 0 finishes → global queue still has pane 1's work → `pane[0].loading_started_at` NOT cleared
+4. Pane 1 finishes → only `pane[1].loading_started_at` cleared
+5. **Bug:** Pane 0's spinner shows forever
+
+### Root Cause
+
+```rust
+// BEFORE (buggy)
+let still_loading = !app.loading_status.loading_queue.is_empty()
+    || !app.loading_status.being_loaded_queue.is_empty();
+if !still_loading {
+    if let Some(pane) = app.panes.get_mut(pane_index) {
+        pane.loading_started_at = None;  // Only clears if GLOBAL queue empty
+    }
+}
+```
+
+The `loading_status` is shared across all panes, so checking global queue state for per-pane clearing was incorrect.
+
+### Fix
+
+Clear `loading_started_at` for the specific pane when its load operation completes, regardless of global queue state:
+
+```rust
+// AFTER (fixed)
+// Clear loading timer for this pane
+if let Some(pane) = app.panes.get_mut(pane_index) {
+    pane.loading_started_at = None;
+}
+```
+
+### Correct Behavior
+
+| Location | Granularity | Behavior |
+|----------|-------------|----------|
+| Footer | Per-pane | Each pane's spinner independently reflects its own loading state |
+| Menu Bar | Global | Single spinner shows if *any* pane is loading |

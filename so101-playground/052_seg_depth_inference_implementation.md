@@ -249,9 +249,43 @@ Safe return sequence...
 Done.
 ```
 
+## Real Robot Results
+
+### Initial Observations
+
+- Robot successfully executes IK reset motion to initial pose
+- Policy outputs reasonable actions (moving toward perceived cube location)
+- Gripper closes when near perceived target
+
+### Segmentation Quality Issue
+
+**Problem**: The segmentation model confuses shadows with the cube (class 3). When the robot arm casts a shadow on the table, the shadow region gets classified as "cube", causing the robot to chase the shadow instead of the actual cube.
+
+**Behavior observed**:
+- Robot moves toward shadow regions detected as cube
+- As robot moves, shadow moves, creating a feedback loop
+- Policy appears to work correctly given the (incorrect) segmentation input
+
+**Potential solutions**:
+1. **Post-processing**: Add morphological filtering or minimum area threshold
+2. **Brightness filtering**: Reject dark "cube" regions (shadows are darker than orange cube)
+3. **Retrain segmentation**: Add shadow augmentation to training data
+4. **Improve lighting**: Reduce shadows with diffuse lighting
+
+### Recording Options
+
+Added `--save_preview_video` flag to record RGB|Seg|Depth visualization for debugging.
+
+```bash
+uv run python scripts/rl_inference_seg_depth.py \
+    --checkpoint ... --seg_checkpoint ... \
+    --genesis_mode --camera_index 1 \
+    --save_preview_video preview.mp4
+```
+
 ## Next Steps
 
-1. Test with real camera and perception models
-2. Verify segmentation quality on real images
-3. Verify depth estimation matches training format
+1. ~~Test with real camera and perception models~~ Done
+2. ~~Verify segmentation quality on real images~~ Issue found: shadow confusion
+3. Fix segmentation shadow issue (retrain or post-process)
 4. Run real robot evaluation and compare to sim success rate (70%)

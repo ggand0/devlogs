@@ -119,3 +119,75 @@ Set `bc_weight: 0.5`
 - Don't implement fixes based on general intuition without evidence for specific setup
 - HIL-SERL works because of reward classifier, not because of demo handling in loss
 - The "sparse reward" in HIL-SERL is actually dense (every step) compared to terminal-only
+
+---
+
+## Update: BC Pretraining for SAC (2026-01-26)
+
+Instead of adding BC loss during RL training, implemented a separate BC pretraining script to initialize the SAC actor before RL begins.
+
+### Approach
+
+1. **Separate pretraining phase**: Train actor with supervised learning on demos
+2. **Then RL fine-tuning**: Start HIL-SERL with pretrained weights
+3. **No BC loss during RL**: Pure SAC after pretraining
+
+This is different from the reverted approach (BC loss during training) and aligns with standard practice in robotics RL.
+
+### Implementation
+
+Script: `scripts/bc_pretrain_sac.py`
+
+Key features:
+- Loads demo dataset and SAC policy
+- Freezes critic, only trains actor (and encoder if not frozen)
+- MSE loss between actor output and demo actions
+- Saves pretrained model in HuggingFace format
+
+### Bug Fix
+
+Initial version had a critical bug - multiplying images by 255:
+```python
+# BUGGY (removed):
+if obs.max() <= 1.0:
+    obs = obs * 255.0  # WRONG!
+```
+
+Dataset stores images in [0, 1], policy expects [0, 1]. The 255x scaling caused distribution mismatch.
+
+### Training Results (2026-01-26)
+
+| Metric | Value |
+|--------|-------|
+| Steps | 3000 |
+| Epochs | 375 |
+| Final Loss | **0.0065** |
+| Training Time | 2h 23min |
+| Dataset | 2220 samples |
+
+Loss progression:
+```
+Step 100:  0.0915
+Step 500:  0.0231
+Step 1000: 0.0117
+Step 2000: 0.0083
+Step 3000: 0.0065
+```
+
+### Output
+
+- BC model: `outputs/hilserl_reach_grasp_v4_bc_pretrained/bc_pretrained/final/pretrained_model`
+- Checkpoint: `outputs/hilserl_reach_grasp_v4_bc_pretrained/checkpoints/000000/pretrained_model`
+
+### Loading into HIL-SERL
+
+Since `pretrained_path` is not a valid SACConfig field, used checkpoint workaround:
+1. Created `checkpoints/000000/pretrained_model/` with BC weights
+2. Set `resume: true` in config
+3. Learner loads BC weights on start
+
+### Expected Benefit
+
+- Actor should already know basic reaching behavior from BC
+- RL fine-tuning focuses on grasping and edge cases
+- Lower intervention rate expected compared to training from scratch

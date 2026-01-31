@@ -22,8 +22,10 @@
 ## Testing Results
 
 ### macOS
-- Original PR code: Window position works, but window size wasn't retained
-- After fix: Both position and size work correctly
+- Original PR code: Window position worked, but window size/zoom wasn't retained
+- `.with_position()` alone doesn't work on macOS
+- Final solution: Use native `setFrameAutosaveName` API
+- Works: position, size, double-click zoom, green button maximize
 
 ### Linux X11
 Found multiple issues:
@@ -153,25 +155,24 @@ CONFIG.window_height > (size.height - 80)
 2. `src/main.rs`: Add `.with_position()` and `.with_maximized()` for X11 compatibility
    - Commit: `9fdcf72`
    - +4 lines, -1 line
-   - Original post-creation code kept as fallback for Windows/macOS
 
-```diff
-+let monitor_size = event_loop.primary_monitor().or_else(|| event_loop.available_monitors().next()).unwrap().size();
-+let should_maximize = CONFIG.window_width >= monitor_size.width && CONFIG.window_height > (monitor_size.height - 80);
- let window = Arc::new(
-     event_loop
-     .create_window(
-         winit::window::WindowAttributes::default()
-             .with_inner_size(...)
-+            .with_position(PhysicalPosition::new(CONFIG.window_position_x, CONFIG.window_position_y))
-+            .with_maximized(should_maximize)
-             .with_title("ViewSkater")
-             .with_resizable(true)
-     )
-     .expect("Create window"),
- );
--window.set_outer_position(PhysicalPosition::new(CONFIG.window_position_x, CONFIG.window_position_y));
-```
+3. `src/main.rs`: Fix window position restore on macOS with platform-specific handling
+   - Commit: `7fbcd5f`
+   - Added back `set_outer_position()` for macOS/Windows
+   - X11 uses `.with_position()`, macOS/Windows use `set_outer_position()`
+
+4. `src/main.rs`: Use macOS native `setFrameAutosaveName` for window state persistence
+   - Commit: `d2b7f4e`
+   - Uses `NSWindow.setFrameAutosaveName("ViewSkaterMainWindow")`
+   - macOS automatically saves/restores window frame including zoom state
+   - More reliable than manual state tracking for macOS
+
+### Platform Differences Summary
+| Platform | Position | Size | Maximize/Zoom |
+|----------|----------|------|---------------|
+| X11 | `.with_position()` | `.with_inner_size()` | `.with_maximized()` |
+| macOS | `setFrameAutosaveName` (native) | `setFrameAutosaveName` (native) | `setFrameAutosaveName` (native) |
+| Windows | `set_outer_position()` | `.with_inner_size()` | `set_maximized()` |
 
 ## Open Questions for Contributor
 1. What does `-80` represent? Should it be a named constant?

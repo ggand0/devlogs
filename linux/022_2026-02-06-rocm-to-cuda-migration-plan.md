@@ -29,6 +29,32 @@ sudo apt autoremove
 sudo apt clean
 ```
 
+### 1.1b Remove leftover amdgpu-pro and display packages
+
+The above purge won't catch old amdgpu-pro packages from the 20.04/22.04 era. These are
+still installed and could cause conflicts (broken symlinks, stale Vulkan ICDs, etc.):
+
+```bash
+sudo apt purge 'amdgpu-*' 'vulkan-amdgpu-pro' 'amf-amdgpu-pro' 'libamdenc-amdgpu-pro' \
+  'libdrm-amdgpu-*' 'libdrm2-amdgpu' 'libegl1-amdgpu-*' 'libgbm1-amdgpu' \
+  'libgl1-amdgpu-*' 'libglapi-amdgpu-*' 'libllvm17.0.60000-amdgpu' \
+  'libva*-amdgpu*' 'libwayland-amdgpu-*' 'libxatracker2-amdgpu' \
+  'xserver-xorg-video-amdgpu'
+sudo apt autoremove
+```
+
+**If GUI breaks after this** (unlikely — system Mesa `radeonsi` should take over, but just
+in case): Ctrl+Alt+F3 to get a TTY, log in, and run:
+
+```bash
+sudo apt install --reinstall libgl1-mesa-dri mesa-va-drivers mesa-vdpau-drivers
+sudo systemctl restart gdm3
+```
+
+This reinstalls the system Mesa drivers that handle display for the AMD card. The amdgpu
+kernel module (built into the 6.8 kernel, separate from amdgpu-dkms) still provides basic
+display output even after removing DKMS.
+
 ### 1.2 Remove ROCm apt repo and keyring
 
 ```bash
@@ -69,8 +95,8 @@ AMD one would conflict.
 Edit `/etc/default/grub`:
 
 ```
-# FROM:
-GRUB_CMDLINE_LINUX_DEFAULT="quiet splash acpi_enforce_resources=lax iommu=pt amdgpu.gfxoff=0 amdgpu.tmz=0 amdgpu.runpm=0"
+# FROM (actual, includes ppfeaturemask from devlog 011 stutter fix):
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash acpi_enforce_resources=lax iommu=pt amdgpu.gfxoff=0 amdgpu.tmz=0 amdgpu.runpm=0 amdgpu.ppfeaturemask=0xfffd7fff"
 
 # TO:
 GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"
@@ -232,6 +258,80 @@ print(torch.version.cuda)               # e.g. 12.4
 
 ---
 
+## Rollback Plan: Swap Back to 7900 XTX
+
+If the RTX 3090 is defective (artifacts, no POST, driver crashes), swap back to the 7900 XTX
+and reinstall the AMD stack.
+
+### Step 1: Remove NVIDIA
+
+```bash
+sudo apt purge cuda 'nvidia-*'
+sudo apt autoremove
+sudo rm /etc/apt/sources.list.d/cuda-*.list
+sudo apt update
+```
+
+### Step 2: Shut down and physically swap back to 7900 XTX
+
+### Step 3: Reinstall ROCm
+
+The system Mesa `radeonsi` driver will handle display out of the box. For compute, reinstall
+ROCm following the same procedure from blog post rocm1 / devlog 016:
+
+```bash
+# Re-add ROCm repo
+wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | \
+  gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/6.4.3 noble main" \
+  | sudo tee /etc/apt/sources.list.d/rocm.list
+sudo apt update
+sudo apt install amdgpu-dkms rocm
+```
+
+### Step 4: Restore config files
+
+```bash
+# linker config
+echo -e "/opt/rocm/lib\n/opt/rocm/lib64" | sudo tee /etc/ld.so.conf.d/rocm.conf
+sudo ldconfig
+
+# udev rules
+echo 'KERNEL=="kfd", GROUP="video", MODE="0660"' | sudo tee /etc/udev/rules.d/70-amdgpu.rules
+
+# GRUB — re-add AMD kernel params
+# Edit /etc/default/grub:
+# GRUB_CMDLINE_LINUX_DEFAULT="quiet splash acpi_enforce_resources=lax iommu=pt amdgpu.gfxoff=0 amdgpu.tmz=0 amdgpu.runpm=0"
+sudo update-grub
+```
+
+### Step 5: Restore ~/.bashrc ROCm entries
+
+```bash
+export PATH=$PATH:/opt/rocm-6.0/bin
+export LD_LIBRARY_PATH=/opt/rocm/lib
+export HIP_VISIBLE_DEVICES=0
+export HSA_OVERRIDE_GFX_VERSION=11.0.0
+alias rocm-smi='/opt/rocm/bin/rocm-smi'
+alias watch-rocm='watch -n 1 /opt/rocm/bin/rocm-smi'
+```
+
+### Step 6: Revert ML projects back to ROCm wheels
+
+Undo the pyproject.toml changes from Phase 4 (change `pytorch-cuda` / `cu124` back to
+`pytorch-rocm` / `rocm6.4`, re-add `pytorch-triton-rocm`). Then `rm -rf .venv uv.lock &&
+uv sync` in each project.
+
+### Step 7: Reboot and verify
+
+```bash
+sudo reboot
+rocm-smi
+python3 -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+```
+
+---
+
 ## Summary
 
 | Removed (ROCm)                         | Added (CUDA)                          |
@@ -242,5 +342,24 @@ print(torch.version.cuda)               # e.g. 12.4
 | `/etc/udev/rules.d/70-amdgpu.rules`    | (not needed for NVIDIA)               |
 | GRUB `amdgpu.*` params                 | (none needed)                         |
 | bashrc ROCm exports                    | bashrc CUDA exports                   |
-| `pytorch-triton-rocm` + rocm6.4 wheels | cu124 wheels (triton bundled)         |
+| `pytorch-triton-rocm` + rocm6.4 wheels | cu130 wheels (triton bundled)         |
 | ~23.8 GB in /opt/rocm                  | ~5-8 GB CUDA toolkit                  |
+
+---
+
+## Completion Log (2026-02-07)
+
+Migration completed successfully. Final setup:
+- **Driver:** NVIDIA 590.48.01
+- **CUDA:** 13.1
+- **PyTorch index:** `cu130`
+- **GPU:** NVIDIA GeForce RTX 3090 (24GB)
+
+All projects verified with `torch.cuda.is_available() == True`:
+- lerobot, pick-101, salt, pick-101-genesis, explore-cv
+- roof-analyzer, so101-playground, detr-sandbox
+
+Notes:
+- `onnxruntime` in salt needed capping to `<1.24` (1.24.1 has no Linux wheel)
+- `explore-cv` needed `requires-python` bumped from `>=3.9` to `>=3.10` (cu130 wheels are 3.10+)
+- Old ROCm config files backed up to `resources/rocm-backup/`

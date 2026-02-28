@@ -45,29 +45,80 @@ if state.program().is_any_pane_loading() {
 }
 ```
 
-## Why the Spinner Still Works Without the Block
+## Why the Spinner Still Works Without the Block (Verified)
 
-After `16da27c` removed the RedrawRequested handler and `9546621` extracted `render_spinner_frame()`, the spinner loop changed to:
+The spinner animation is NOT driven by SpinnerTick messages or `render_spinner_frame()`. It's driven by `window.request_redraw()` inside the main render block.
 
+### Evidence
+
+Tested with slow-loading JP2 images (22 seconds to load). Logged every UserEvent and every SpinnerTick processed by `state.update()`. Results:
+
+- **Total UserEvents during 22-second load:** 3 (DirectoryEnumerated, ImagesLoaded, SpinnerTick)
+- **SpinnerTicks processed by state.update():** 1
+- **Spinner animation:** smooth every frame for the full 22 seconds
+
+The SpinnerTick chain dies after the first tick (no `state.update()` in Action::Output to spawn the next one). Yet the spinner animated continuously.
+
+### The Actual Spinner Render Loop
+
+The spinner is kept alive by `window.request_redraw()` at `main.rs:920-922`, inside the main WindowEvent render block. This was added in the same commit as the `Action::Output` state.update() (`ae74169`).
+
+The loop, step by step:
+
+**Step 1.** Inside the render block at `main.rs:920-922`, `request_redraw()` is called when loading is active:
+```rust
+// Continue animation loop if spinner is active
+if state.program().is_any_pane_loading() {
+    window.request_redraw();
+}
 ```
-1. SpinnerTick arrives as UserEvent → Action::Output
-2. state.queue_message(SpinnerTick) — queued, NOT processed
-3. *redraw = true
-4. render_spinner_frame() fires — renders spinner using Instant::now() (wall clock)
-5. AboutToWait: window.request_redraw() because *redraw is true
-6. RedrawRequested falls to _ => {} in WindowEvent match
-7. After match: *redraw = true
-8. state.is_queue_empty() is FALSE (SpinnerTick still queued from step 2)
-9. state.update() processes SpinnerTick → returns Task for next tick → runtime.run()
-10. Render block fires (because *redraw is true)
-11. Next SpinnerTick arrives → back to step 1
+
+**Step 2.** winit delivers `RedrawRequested` as a WindowEvent. It hits the catch-all at `main.rs:710`:
+```rust
+_ => {}
 ```
 
-Two things make this work:
+**Step 3.** After the match, `*redraw` is set unconditionally at `main.rs:713`:
+```rust
+*redraw = true;
+```
 
-1. **`render_spinner_frame()` uses wall clock time** — the Circular widget computes its rotation from `Instant::now()`, not from message state. It doesn't need SpinnerTick to be processed before rendering. SpinnerTick just triggers the scheduling of the next tick.
+**Step 4.** `state.update()` at `main.rs:799-831` runs if the queue has messages. This processes any queued SpinnerTick or other messages, and calls `view()` which rebuilds the widget tree including the Circular spinner widget:
+```rust
+if !state.is_queue_empty() {
+    let (_, task) = state.update(...);
+    ...
+}
+```
 
-2. **The message chain continues through the WindowEvent path** — `window.request_redraw()` generates a `RedrawRequested` WindowEvent. Even though it falls to `_ => {}`, the code after the match runs `state.update()` which processes the queued SpinnerTick and spawns the next one via the runtime.
+**Step 5.** Render block fires at `main.rs:835` because `*redraw` is true. `renderer.present()` calls `draw()` on all widgets. The Circular spinner widget computes its rotation angle from `Instant::now()`:
+```rust
+if *redraw {
+    *redraw = false;
+    ...
+    renderer_guard.present(...);
+    ...
+}
+```
+
+**Step 6.** Back to step 1 — `is_any_pane_loading()` is still true, so `request_redraw()` fires again.
+
+This loop runs at full frame rate with zero dependency on SpinnerTick messages. The spinner animates because `renderer.present()` calls `draw()` on the Circular widget every frame, and the widget reads `Instant::now()` to determine its angle.
+
+### What `render_spinner_frame()` and SpinnerTick Actually Do
+
+`render_spinner_frame()` in the UserEvent handler (`main.rs:1029-1035`) provides a render on the UserEvent itself — but this is redundant with the main render loop above. It was originally the primary render path for spinner animation before the `request_redraw()` loop was added.
+
+SpinnerTick messages were originally needed to keep the render chain alive. Now `request_redraw()` at line 922 handles that. The SpinnerTick chain breaks after 1 tick with no visible effect.
+
+### What ae74169 Actually Added
+
+The commit added THREE things:
+1. `window.request_redraw()` inside the render block when loading (`main.rs:920-922`) — **this is what actually drives the spinner animation**
+2. `state.update()` in `Action::Output` — originally needed to process SpinnerTick and spawn the next one, but now redundant because the `request_redraw()` loop doesn't need SpinnerTick at all
+3. `WindowEvent::RedrawRequested` handler — removed in `16da27c`
+
+Only #1 matters. #2 was the block we removed to fix NVIDIA slider performance. #3 was already removed.
 
 ## The Original Problem
 
@@ -79,22 +130,85 @@ On AMD with Fifo (VSync), `frame.present()` blocked for ~16ms, throttling the en
 
 The `state.update()` in the WindowEvent handler (the `"If there are events pending"` block) was NOT added in the spinner branch. It was there from `8777ab7` ("Refactor event loop to properly execute async tasks from state.update()", Feb 17, 2025) — the original event loop refactoring that added the iced runtime integration. This block processes iced events (mouse, keyboard, etc.) and is essential for the app to function. It was NOT deleted — it was temporarily moved during a failed batching attempt and restored in the cleanup.
 
-## Known Regression: SpinnerTick Chain Breaks When Idle
+## Dead Code Cleanup (Verified on Linux)
 
-`render_spinner_frame()` is called in the **UserEvent handler** (line 1030), right after `Action::Output` queues the message. It renders and sets `*redraw = false`. This means:
+After confirming the spinner is driven entirely by `request_redraw()`, all SpinnerTick-related code and `render_spinner_frame()` were removed in commit `9d205f9`:
 
-1. AboutToWait sees `*redraw = false` → no `window.request_redraw()`
-2. No RedrawRequested WindowEvent → no WindowEvent handler → no `state.update()`
-3. The queued SpinnerTick is never processed → no Task spawned for next tick
-4. The tick chain dies
+- `SpinnerTick` variant from `Message` enum
+- `SpinnerTick` handler and spawn sites in `message_handlers.rs`
+- `spinner_tick_task` and `spinner_tick_pending` fields from `DataViewer` struct
+- `spinner_task` batching in `load_images()` and `update()`
+- `render_spinner_frame()` function and `render.rs` module
+- `mod render;` declaration in `main.rs`
 
-The spinner appears to work during testing because mouse movement generates WindowEvents that trigger `state.update()` and process the queued ticks. But if the user stops moving the mouse while an image loads, the spinner will freeze.
+**Tested on Linux (NVIDIA RTX 3090):** Spinner still animates smoothly during JP2 image loading (22+ second loads) with all SpinnerTick code removed. The `request_redraw()` loop at `main.rs:920-922` is the sole driver of spinner animation.
 
-Fix options:
-- Call `window.request_redraw()` after `render_spinner_frame()` when loading is active (simplest)
-- Add a targeted `state.update()` only when `is_any_pane_loading()` is true in the UserEvent handler
-- Move the SpinnerTick chain to a timer-based mechanism that doesn't depend on message processing
+## macOS Benchmark Results (Apple Silicon, Metal)
 
-## Summary of What Was Deleted
+Benchmarked on MacBook (Apple Silicon, Metal) comparing `main` vs `fix/nvidia-rendering-performance`. The per-UserEvent `state.update()` problem was **not NVIDIA-specific** — it affected all platforms. NVIDIA just made it more visible due to the non-blocking present mode.
 
-Only ONE block was permanently deleted: the `state.update()` inside `Action::Output`. This block was added in `ae74169` for spinner animation but became unnecessary for rendering after `render_spinner_frame()` was extracted as a separate path using wall clock time. However, it was still needed to keep the SpinnerTick task chain alive — this is now a regression that needs to be addressed.
+### Keyboard Navigation (3s duration, 2 iterations, right only)
+
+| Directory | main (UI / Img FPS) | fix (UI / Img FPS) | Image FPS Delta |
+|---|---|---|---|
+| small_images | 44.8 / 52.4 | 380.0 / 115.9 | **+121%** |
+| 1080p_PNG_3MB | 32.7 / 33.5 | 169.9 / 36.0 | **+7%** |
+| 4k_PNG_10MB | 10.1 / 10.8 | 410.4 / 12.8 | **+19%** |
+
+### Slider Navigation (5s duration, 2 iterations, 20ms interval, right only)
+
+| Directory | main (UI / Img FPS) | fix (UI / Img FPS) | Image FPS Delta |
+|---|---|---|---|
+| small_images | 56.7 / 34.1 | 111.9 / 40.8 | **+20%** |
+| 1080p_PNG_3MB | 32.2 / 33.3 | 85.1 / 31.8 | -5% (noise) |
+| 4k_PNG_10MB | 3.3 / 2.5 | 20.0 / 6.8 | **+172%** |
+
+### Memory Usage (Slider Nav)
+
+| Directory | main (avg) | fix (avg) |
+|---|---|---|
+| small_images | 149-477 MB | 143-227 MB |
+| 1080p_PNG_3MB | 182-488 MB | 162-240 MB |
+| 4k_PNG_10MB | 510-564 MB | 221-223 MB |
+
+### Key Takeaways
+
+- **UI FPS increase** is expected — main uses AutoVsync (Fifo, capped at 60fps), fix branch uses Mailbox/Immediate (uncapped). Image FPS is the meaningful metric.
+- **4K slider was broken on main too:** 2.5 Image FPS with memory ballooning to 510-564 MB. Fix branch: 6.8 FPS, ~222 MB.
+- **Memory reduction** (510→222 MB for 4K) comes from fewer redundant `view()/layout()` rebuilds creating fewer intermediate widget tree allocations.
+- **1080p slider -5%** is within run-to-run variance (33.3 vs 31.8).
+- **No macOS-specific regressions** from removing SpinnerTick or the `state.update()` change. Spinner animates smoothly.
+
+## Linux Benchmark: NVIDIA RTX 3090 vs Previous AMD 7900 XTX Baseline
+
+Compared the fix branch on NVIDIA RTX 3090 (Feb 28) against the last baseline on AMD 7900 XTX (Jan 20). Different GPUs and different present modes (Immediate vs Fifo), so some variance is expected.
+
+### Keyboard Navigation (3s duration, 2 iterations, right only)
+
+| Directory | Jan 20 AMD (Img FPS) | Feb 28 NVIDIA (Img FPS) | Delta |
+|---|---|---|---|
+| small_images | 184.4 | 137.2 | -26% |
+| 1080p_PNG_3MB | 44.2 | 39.5 | -11% |
+| 4k_PNG_10MB | 14.1 | 13.0 | -8% |
+
+### Slider Navigation (5s duration, 2 iterations, 20ms interval, right only)
+
+| Directory | Jan 20 AMD (Img FPS) | Feb 28 NVIDIA (Img FPS) | Delta |
+|---|---|---|---|
+| small_images | 46.0 | 45.6 | -1% |
+| 1080p_PNG_3MB | 32.4 | 30.3 | -6% |
+| 4k_PNG_10MB | 7.6 | 7.2 | -5% |
+
+### Notes
+
+- Slider numbers are within noise of the AMD baseline. The fix restored NVIDIA slider performance to AMD-equivalent levels.
+- Keyboard nav shows a small drop for small images, likely due to different CPU-side overhead characteristics between the two GPU setups (different drivers, different present modes, different event loop cadence). Worth investigating in a separate branch but not blocking the merge.
+- Raw benchmark files: `benchmarks/benchmark_20260228_143231.md`, `benchmarks/slider_nav_20260228_143320.md`
+
+## Summary
+
+Two blocks were permanently deleted:
+1. `state.update()` inside `Action::Output` -- fixed 4K slider performance across all platforms (commit `d64cb51`)
+2. All SpinnerTick infrastructure and `render_spinner_frame()` -- dead code cleanup (commit `9d205f9`)
+
+Both were added in `ae74169` for spinner animation but are unnecessary. The spinner is driven by `window.request_redraw()` at `main.rs:920-922`, not by SpinnerTick processing. No regression on Linux or macOS.

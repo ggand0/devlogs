@@ -100,7 +100,29 @@ Loss values are not directly comparable across architectures (different loss for
 
 The wrist-only SmolVLA converges slightly higher than dual (0.006 vs 0.005) — the overhead camera provides marginal benefit for this constrained workspace.
 
-### Next steps
+### Real robot eval (5 rollouts each, 20k checkpoint)
 
-- Eval all three on the real robot to compare success rates
-- SmolVLA wrist-only is interesting: if comparable, it simplifies the hardware setup to a single camera
+| Model | Cameras | Success Rate | Video |
+|---|---|---|---|
+| SmolVLA (dual) | wrist + overhead | **100% (5/5)** | `recordings/smolvla_dual_20260301_202000.mp4` |
+| SmolVLA (wrist) | wrist only | 80% (4/5) | `recordings/smolvla_wrist_20260301_201800.mp4` |
+| ACT (dual) | wrist + overhead | 80% (4/5) | `recordings/act_dual_20260301_*.mp4` |
+
+SmolVLA dual-cam remains the best at 100%. Dropping the overhead camera or switching to ACT both degrade to 80%. The overhead camera clearly helps SmolVLA — likely provides global spatial context for placing the cube in the bowl.
+
+ACT matching SmolVLA wrist-only at 80% is notable given it's 52M params trained from scratch vs ~1.7B fine-tuned.
+
+### Color generalization test (SmolVLA dual, 20k checkpoint)
+
+Trained on red cube only. Prompt unchanged: `"Pick up the cube and place it in the bowl"`.
+
+| Color | Result |
+|---|---|
+| Orange | Succeeded but hit the bowl on the way back (rare with red cube) |
+| Blue | Grasped but dropped on the way to the bowl |
+| Green | Grasped and moved toward the bowl but hit it with the gripper, failed |
+
+**1/3 success** vs 5/5 with the training color (red). Grasping generalizes across colors, but the place trajectory degrades — the model learned color-specific visual features for the red cube rather than a general "cube" concept. The placing phase is more sensitive since it requires precise spatial reasoning where visual appearance matters more.
+
+- Video: `recordings/smolvla_dual_colors_20260301_204604.mp4`
+- Task prompt was not changed between episodes (no color specified in prompt)

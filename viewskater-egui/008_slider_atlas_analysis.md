@@ -182,31 +182,82 @@ Investigation confirmed:
 
 This means texture reuse in egui is nearly free — `set()` avoids the allocation churn of creating a new texture per `load_sync()` call.
 
-## Optimization Strategy for egui
+## egui Implementation: Throttled Sync Decode
 
-### What to implement
+### Why async approaches failed
 
-1. **Async slider loading** — spawn background decode tasks during slider drag instead of blocking with `load_sync()`. This is the biggest win and directly mirrors iced's approach.
+Three async strategies were attempted and rejected:
 
-2. **LRU texture cache** — retain TextureHandles for recently-viewed images. Cache hit = 0ms (same as iced's raster cache + atlas). This is architecturally the same layer as iced's `cache.rs`.
+1. **Spawn per slider event (v1)**: Spawned a background decode thread for every slider position change. With fast dragging, dozens of concurrent threads competed for CPU, and only the latest result was used. All other threads were wasted work that slowed down the one that mattered. Result: 0 FPS for stretches, then sudden bursts.
 
-3. **TextureHandle reuse** — use `set()` for sync fallback to avoid GPU allocation churn.
+2. **1 in-flight + discard stale (v2)**: Limited to 1 decode thread, discarded results that didn't match the latest target, spawned new decode for current target when stale result arrived. Problem: frames displayed out of order (frame 50 appears while slider is at 80, then jumps to 80).
 
-4. **Optional throttling** — rate-limit slider update processing (10ms on Linux, matching iced).
+3. **Ordered render queue (v3)**: VecDeque of positions decoded in FIFO order. Guaranteed in-order display but introduced severe lag — the displayed image was always far behind the slider position, working through a backlog of intermediate frames.
+
+### Why iced's async works but can't be replicated in egui
+
+The iced version's async tasks are cheap (~5ms) because they only read file bytes and wrap them into `Handle::from_bytes()` — **no decode**. The actual decode happens lazily in iced's engine prepare phase, and only for the **latest** Handle that the UI is actually rendering. So iced effectively decodes one image per render frame, skipping all intermediate positions naturally.
+
+egui has no deferred decode pipeline. `ctx.load_texture()` requires decoded `ColorImage` pixels upfront. There's no way to hand raw bytes to egui and let it decode lazily.
+
+### Current implementation: throttled sync decode
+
+The faithful equivalent of iced's pattern for egui:
+
+```
+slider.changed()
+  → update pane.current_index
+  → check sliding window cache (free hit if cached)
+  → if not cached: check SliderLoader::should_load() (10ms throttle)
+    → if throttle passes: PaneState::load_sync(ctx)
+    → if throttle rejects: previous texture stays on screen
+  → ctx.request_repaint()
+
+slider.drag_stopped()
+  → SliderLoader::cancel()
+  → cache.jump_to() to rebuild sliding window around final position
+```
+
+**`SliderLoader`** (`src/cache.rs`): Minimal struct with just an `Instant` tracking the last decode time. `should_load()` returns true only if ≥10ms have elapsed since the last decode, matching iced's Linux throttle interval.
+
+**`show_bottom_panel()`** (`src/main.rs`): On slider change, first checks the sliding window cache for a free hit. If not cached, gates `load_sync()` through the throttle. The 10ms gate means egui processes at most one sync decode per 10ms window. Since 4K decode takes ~90ms, the throttle doesn't reduce decode frequency (we can only do ~11 decodes/sec anyway), but it prevents queueing up redundant decode calls during the ~90ms block.
+
+### Current performance
+
+| Scenario | Before | Current | Iced reference |
+|----------|--------|---------|----------------|
+| 4K PNG slider drag | ~4-5 FPS | ~5 FPS | ~6-7 FPS |
+| 4K keyboard nav | ~25 FPS | ~25 FPS | ~11.5 FPS |
+
+### Remaining gap: ~5 FPS vs iced's ~6-7 FPS
+
+The ~1-2 FPS gap comes from the decode pipeline itself. Potential optimizations:
+
+1. **`TextureHandle::set()` reuse** — currently `load_sync()` calls `ctx.load_texture()` which allocates a new GPU texture every time. Using `set()` on an existing TextureHandle would skip GPU allocation overhead.
+
+2. **LRU texture cache** — cache TextureHandles for recently-viewed images. During back-and-forth scrubbing, revisits become free (0ms). This is the egui equivalent of iced's raster cache where `Memory::Device(entry)` returns instantly for previously-loaded images.
+
+3. **Faster decode** — `image::open()` is the bottleneck (~90ms for 4K PNG). Options:
+   - Use `image::io::Reader::with_guessed_format().decode()` with specific decoder settings
+   - Use `png` crate directly with `Transformations::IDENTITY` to skip unnecessary transforms
+   - Use `zune-png` or `libpng` via FFI for faster PNG decompression
+   - Downscale during decode (half-resolution for slider preview)
+
+4. **BC1 compression before upload** — iced uses `texpresso` BC1 compression (4x memory reduction). Unlikely to help FPS since upload time is <5ms, but reduces GPU memory pressure.
 
 ### Future extensibility to full atlas
 
-The LRU cache is the same abstraction layer as iced's `cache.rs` — it manages which images are retained and handles eviction policy. If a full atlas is needed later:
-- The caching policy layer (LRU eviction, capacity management) carries over directly
-- The background decode infrastructure (threads, mpsc, decode results) carries over directly
-- The texture storage layer would change: individual TextureHandles → atlas entries (layer + UV rect)
-- The rendering path would change: `painter.image(tex.id())` → custom shader sampling from texture array
+The current architecture separates cleanly:
+- **Caching policy** (which images to retain, eviction) — would carry over to an atlas backend
+- **Background decode infrastructure** (threads, mpsc, decode results in `SlidingWindowCache`) — would carry over
+- **Texture storage** — would change from individual TextureHandles to atlas entries (layer + UV rect)
+- **Rendering** — would change from `painter.image(tex.id())` to custom shader sampling from texture array
 
 ## Performance Targets
 
 | Scenario | Current egui | Iced reference | Target |
 |----------|-------------|----------------|--------|
-| 4K PNG slider drag | ~4-5 FPS | ~7-8 FPS | >= 8 FPS |
+| 4K PNG slider drag | ~5 FPS | ~6-7 FPS | >= 7 FPS |
 | 1080p slider drag | ~15 FPS | ~20 FPS | >= 20 FPS |
 | 4K keyboard nav | ~25 FPS | ~11.5 FPS | Maintain |
 
@@ -215,9 +266,10 @@ The LRU cache is the same abstraction layer as iced's `cache.rs` — it manages 
 ### egui viewskater (this repo)
 | File | Role |
 |------|------|
-| `src/main.rs` — `PaneState::load_sync()` | Current slider decode (sync, blocking) |
-| `src/main.rs` — `show_bottom_panel()` | Slider UI, triggers sync decode on change |
-| `src/cache.rs` | `SlidingWindowCache` — background decode for keyboard nav |
+| `src/main.rs` — `PaneState::load_sync()` | Slider decode (sync, throttle-gated) |
+| `src/main.rs` — `show_bottom_panel()` | Slider UI, cache check + throttled decode |
+| `src/cache.rs` — `SliderLoader` | 10ms throttle gate for slider decodes |
+| `src/cache.rs` — `SlidingWindowCache` | Background decode for keyboard nav |
 | `src/perf.rs` | FPS measurement overlay |
 
 ### iced viewskater (reference app)
@@ -226,7 +278,8 @@ The LRU cache is the same abstraction layer as iced's `cache.rs` — it manages 
 | `../data-viewer/src/widgets/dualslider.rs` | Slider widget, fires on_change/on_release |
 | `../data-viewer/src/app/message_handlers.rs:453-566` | SliderChanged/Released handlers |
 | `../data-viewer/src/navigation_slider.rs:501-638` | `update_pos()` — async load + throttling |
-| `../data-viewer/src/navigation_slider.rs:421-499` | `create_async_image_widget_task()` |
+| `../data-viewer/src/navigation_slider.rs:421-499` | `create_async_image_widget_task()` — cheap bytes read, no decode |
+| `../data-viewer/src/app/message_handlers.rs:392-419` | `SliderImageWidgetLoaded` — accepts all, overwrites, no staleness check |
 | `../data-viewer/src/cache/img_cache.rs` | Image cache, loading queue |
 
 ### iced engine (framework)
@@ -235,7 +288,7 @@ The LRU cache is the same abstraction layer as iced's `cache.rs` — it manages 
 | `../iced/widget/src/image/viewer.rs` | Viewer widget, `draw()` → `renderer.draw_image()` |
 | `../iced/wgpu/src/image/mod.rs` | Image pipeline — prepare, add_instances, render |
 | `../iced/wgpu/src/image/cache.rs` | Cache wrapper — maps handles to atlas entries |
-| `../iced/wgpu/src/image/raster.rs` | Raster cache — Host/Device memory states |
+| `../iced/wgpu/src/image/raster.rs` | Raster cache — Host/Device memory states, lazy decode here |
 | `../iced/wgpu/src/image/atlas.rs` | Atlas — persistent 2D array texture, upload, grow |
 | `../iced/wgpu/src/image/atlas/allocator.rs` | Guillotiere 2D bin packing |
 | `../iced/wgpu/src/image/atlas/entry.rs` | Entry::Contiguous vs Entry::Fragmented |

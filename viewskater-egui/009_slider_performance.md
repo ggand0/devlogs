@@ -363,3 +363,44 @@ Our fix sidesteps this by constructing `ColorImage { size, pixels }` directly �
 3. **Faster decode library** — `zune-png`, `libpng` FFI, or half-resolution decode during slider drag.
 4. **Predictive decode** — spawn background threads to decode ahead of slider drag direction.
 5. **Downscaled slider preview** — decode at half or quarter resolution during drag.
+
+## macOS build fix: winit fork `msg_send` import
+
+### Problem
+
+Building on macOS fails with `cannot find macro msg_send in this scope` in the custom winit fork (`custom-dnd-0.30.13` branch). The DnD code in `src/platform_impl/macos/window_delegate.rs` uses the `msg_send!` macro at lines 387, 411, and 448 but doesn't import it. Line 12 imports from `objc2` but omits `msg_send`:
+
+```rust
+use objc2::{declare_class, msg_send_id, mutability, sel, ClassType, DeclaredClass};
+//                         ^^^ msg_send_id is imported, but msg_send is not
+```
+
+### Fix
+
+Add `msg_send` to the import on line 12:
+
+```rust
+use objc2::{declare_class, msg_send, msg_send_id, mutability, sel, ClassType, DeclaredClass};
+```
+
+### Future improvement: migrate to typed `objc2` API
+
+The `msg_send!` import fix is a quick unblock, but `msg_send!` is an untyped escape hatch — no compile-time checking of selector names or return types. The proper `objc2` approach is to use `NSDraggingInfo` protocol methods directly:
+
+```rust
+// Current (untyped, unsafe msg_send!):
+let dl: NSPoint = unsafe { msg_send![sender, draggingLocation] };
+
+// Better (typed objc2 API):
+let dl: NSPoint = unsafe { sender.draggingLocation() };
+// with sender typed as &ProtocolObject<dyn NSDraggingInfo>
+```
+
+This requires refactoring the DnD method signatures (`dragging_entered`, `dragging_updated`, `perform_drag_operation`) to accept `&ProtocolObject<dyn NSDraggingInfo>` instead of `*mut NSObject` / `&NSObject`. The `NSDragging` feature is already enabled in the winit fork's `objc2-app-kit` dependency.
+
+### Local winit fork location
+
+- Path: `../winit` (`/Users/gota/ggando/winit`)
+- Previous branch on this Mac: `exp/custom-0.30.11`
+- Switched to: `custom-dnd-0.30.13` (fetched + checked out from origin)
+- The `Cargo.toml` `[patch.crates-io]` points to the GitHub URL, not a local path — to use the local clone for iteration, temporarily change the patch to `winit = { path = "../winit" }`

@@ -136,7 +136,110 @@ Downloaded manually from [MixMods Widescreen Fix page](https://www.mixmods.com.b
 
 The YT guide author updated his recommendation from the older GitHub version to this unofficial 2024 version, which includes additional fixes and is compatible with older mods.
 
-## Final Directory Structure
+## Step 5: Bulk Mod Installation (and Crash Debugging)
+
+After the essentials + fixes were working, we installed ~45 mods at once from the [Proper DE for SA Steam guide](https://steamcommunity.com/sharedfiles/filedetails/?id=3543921363) and the [TJGM YT guide #4](https://www.youtube.com/watch?v=AYmrSyqyppc&list=PLhWmxGTRhiNOqUZq096SMy5vDX_lyw3VW&index=4). This caused crashes.
+
+### Crash 1: Access Violation at 0x005A49D4
+
+**Symptom:** Game loads to title menu (HD loadscreens visible), but crashes right before the 3D cutscene after starting a game.
+
+**Log output:**
+```
+Unhandled exception at 0x005A49D4 in gta_sa.exe (+0x1a49d4):
+0xC0000005: Access violation reading location 0x00000018.
+```
+
+**Additional errors in log:**
+- `Full Stream Radar`: `Failed to load module "fullstreamradar.asi"; errcode: 0xC1` — wrong architecture (likely 64-bit .asi on 32-bit game)
+- `Mobile Hands`: duplicate model imports (`Removing imported model file at index 385` twice, then `Importing model file for index 386` twice)
+
+**Debugging approach:**
+1. Disabled Proper Fixes, Full Stream Radar, Mobile Hands → still crashed
+2. Disabled ALL mods except SilentPatch, OLA, WidescreenFix → still crashed
+3. Disabled ped_spec.asi in game root → still crashed
+4. Realized modloader was still scanning `_disabled_*` folders — moved them entirely out of modloader to `/tmp/gta_disabled_mods/`
+5. Cleaned stray .txt files extracted into modloader root
+
+### Crash 2: Stuck at Loading Screen
+
+After cleaning modloader, the game hung at the loading screen instead of crashing.
+
+**Root cause:** HD Movies mod had replaced `movies/GTAtitles.mpg` and `movies/Logo.mpg` with larger HD versions (61MB vs 21MB for GTAtitles). The HD video files caused Proton to hang during loading.
+
+**Fix:** Restored original movie files from the backup:
+```bash
+cp /data2/SteamLibraryFlatpak/gta_sa_org/gta_sa_afteropenlimitter_and_fixes/movies/* \
+   /data2/SteamLibraryFlatpak/gta_sa_org/gta_sa/movies/
+```
+
+**Result:** Game works again with SilentPatch + OLA + WidescreenFix.
+
+### Lessons Learned
+
+- **Never install 45 mods at once.** Add in small batches (3-5 mods) and test after each.
+- **Disabled mods in modloader still get scanned.** Move them completely out of the modloader folder.
+- **HD Movies don't work under Proton** — the larger .mpg files cause a loading hang.
+- **Full Stream Radar** has an architecture mismatch — skip it.
+- **Stray files extracted to modloader root** (e.g. readme .txt files from archives) can cause issues.
+
+## Step 6: Planned Batched Re-installation
+
+All 43 downloaded mods are staged in `/tmp/gta_disabled_mods/`. Plan is to re-enable in small batches:
+
+| Batch | Mods | Risk |
+|-------|------|------|
+| 1 | Small fixes: SkyGrad, Missing Smokes/Lampposts, Lighthouse & Pyramid, Throw Rotate, Dynamic Tram Signs, Unpause Zone Name, No Aggressive Drivers, No Extra Air Resistance, RepairGTA, carcols.dat fix | Low |
+| 2 | Gameplay fixes: FramerateVigilante, MixSets, Ladders Mod, Animation Fix | Low |
+| 3 | Interface: SkyUI, Mobile Font, Atmosphere Interface Pack (+Minigames, Inside Track), Proper Radar, More Radar Icons, HD Loadscreens | Medium |
+| 4 | Dependencies + dependents: PedSpec + Mobile Hands, PedFuncs + Original Peds Vary, Effects Loader + IMFX | Medium |
+| 5 | Graphics: SkyGfx, Wind Project, Original HQ Palms, HD Night Windows, HD Tags, HD Underwater, TheBirdsUpdate, Illuminated signs, Smuff Nut | Medium |
+| 6 | Heavy: Proper Fixes (1.4GB .img replacements), Improved Streaming | High |
+| 7 | QoL: GInput, GPS Redux, Weapon/Radio Wheel, Modernized Drive-by, Radar Zoom | Low |
+| 8 | Audio: Soundize (replacement for SA Ambient Sounds) | Medium |
+| 9 | Remaining downloads: RoSA Project Evolved, Project2DFX, PS2 Timecycle/Seabed, Stories Sprinting, HD Radar Icons, Impound Radar Blips | Varies |
+
+### Mods to Skip
+- **HD Movies** — hangs on loading under Proton
+- **Full Stream Radar** — 0xC1 architecture error
+
+### Mods Still to Download
+- ~~HD Grass~~ — Google Drive URL not found
+- ~~Cheat Menu~~ — GTAGarage URL returned 403
+
+### Newly Downloaded (not yet installed)
+- **RoSA Project Evolved** (5.4 GB) — Patreon free version (December release)
+- **Proper Fixes (RoSA version)** — Google Drive
+- **Project2DFX** — Mega (MixMods-edited version)
+- **HD Radar Icons** — Google Drive
+- **Stories Sprinting** — Google Drive
+- **Impound Radar Blips** — GTAInside
+- **PS2 Timecycle** — Google Drive
+- **PS2 Seabed** — Google Drive
+- **Animation Fix + M4k3's Vehicle Animations** — MixMods
+- **Soundize** — replacement for SA Ambient Sounds (MixMods)
+
+### Potential Additional Mods (from 4K playthrough video)
+From a [4K RTX 4090 playthrough](https://www.youtube.com/watch?v=...) using ImmersiveSA:
+- ImmersiveSA (Reeve Mods) — comprehensive graphics overhaul
+- 90's Atmosphere Weapons Pack Reborn
+- Advanced Aiming Mod
+- Behind Space Of Realities American Dream
+- CJ House Definitive Edition
+- Hysen's HD Ten Green Bottles
+- Willowfield PaulST - Retextured
+- Jefferson & Idlewood Retextured
+- Prop Vehicles Project
+- NextGen Remaster Effects
+- Revamped Vehicles Project
+- Proper Vehicles Retex
+- CJ Insanity
+- Cutscene Characters Remastered
+- Ragdoll mod
+
+These overlap with some already-installed mods (Atmosphere Interface Pack, Loadscreens 4K, Mobile Font, Missing Lampposts Fix, RoSA). Would need to evaluate compatibility before adding.
+
+## Current Directory Structure
 
 ```
 gta_sa/

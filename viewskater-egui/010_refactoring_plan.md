@@ -2,6 +2,24 @@
 
 **Date:** 2026-03-09
 **Target branch:** `main` (after merging `feat/slider-performance`)
+**X post:** https://x.com/gtgando/status/2030819669184282869
+
+## Repo history cleanup
+
+Needed to strip `Co-Authored-By: Claude` footers from 8 commits before making the repo public. Used `git filter-repo` to rewrite commit messages in-place, which changes hashes but preserves author/committer dates and all other metadata.
+
+Since the rewrite invalidates commit SHAs referenced by PR #1 on GitHub, reproduced the repo from scratch:
+
+1. Renamed the old GitHub repo to `viewskater-egui-v0`
+2. Created a fresh empty `viewskater-egui` repo
+3. Pushed main up to the pre-merge commit: `git push origin e0ecbaf:refs/heads/main`
+4. Pushed the feature branch tip: `git push origin 266662a:refs/heads/feat/slider-performance`
+5. Created PR #1 via `gh pr create`
+6. Pushed full main (including the merge commit): `git push origin main --force`
+
+Step 6 auto-closed PR #1 as "Merged" because GitHub detected the PR branch's commits became reachable from main via the merge commit. This is the same as merging locally and pushing, rather than clicking "Merge pull request" on the GitHub UI.
+
+`filter-repo` also leaves behind git replace refs (in `.git/refs/replace/`) that map old commit hashes to new ones. These are local only and never pushed, but they clutter gitk with `replace/<hash>` labels. Cleaned up with `git replace -l | xargs -I{} git replace -d {}`.
 
 ## Motivation
 
@@ -92,7 +110,21 @@ This structure supports planned features without further restructuring:
 - **Faster decode libraries** → extend `decode.rs` with alternative backends
 - **Thumbnail strip** → new module, integrated into `app.rs` panel layout
 
-## Additional cleanup
+## Outcome
 
-- Fix all clippy warnings (`cargo clippy --profile opt-dev`)
-- Address the existing `dead_code` warning on `DecodeResult::decode_ms`
+Merged `show_content`/`show_image` into `pane.rs` instead of a separate `image_view.rs` since they directly mutate PaneState's zoom/pan fields. Splitting them would require passing mutable references back and forth for no real benefit.
+
+| File | Lines | Contents |
+|------|-------|----------|
+| `main.rs` | 36 | Args, main(), mod declarations |
+| `app.rs` | 363 | App struct, keyboard/DnD/slider/panel UI |
+| `pane.rs` | 302 | PaneState, navigation, loading, zoom/pan, image rendering |
+| `decode.rs` | 44 | image_to_color_image |
+| `cache.rs` | 473 | SlidingWindowCache, SliderLoader, DecodeLruCache |
+| `file_io.rs` | 53 | Path resolution, image enumeration |
+| `perf.rs` | 85 | FPS overlay |
+
+Clippy warnings fixed:
+- `&PathBuf` → `&Path` in `spawn_load` and `decode_sync`
+- `map_or(false, ...)` → `is_some_and(...)` in cache and pane
+- `#[allow(dead_code)]` on `DecodeResult::decode_ms` (kept for future per-image decode timing)

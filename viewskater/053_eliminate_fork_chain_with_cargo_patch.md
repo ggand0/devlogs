@@ -96,6 +96,12 @@ iced_core = { path = "../iced/core" }
 3. **iced_fonts workspace dep**: Upstream iced_fonts uses `iced_core.workspace = true` which resolves to a crates.io version. The `[patch.crates-io]` for iced_core should override this. Needs verification.
 4. **Feature flags**: Upstream iced_aw may enable different default features than the fork. The fork disables defaults and enables `["advanced", "wgpu"]`. The data-viewer Cargo.toml must match.
 
+## Implementation Notes
+
+- Upstream iced_aw uses `iced = "0.13.1"` and `iced_fonts = "0.1.1"` from crates.io (not git deps), so only `[patch.crates-io]` is needed. No `[patch."https://github.com/iced-rs/iced.git"]` required.
+- Upstream iced_aw tag is `v.0.11.0` (not `v0.11.0`).
+- `iced_widget` needed the `"canvas"` feature added to the direct dep. The iced_aw fork was pulling this in implicitly through its custom build. Without it, `src/widgets/circular.rs` (which uses `iced_widget::canvas` and `iced_graphics::geometry`) fails to compile.
+
 ## Relationship to DnD Fix
 
 This is a **separate concern** from the dual-pane DnD fix. The DnD fix only touches:

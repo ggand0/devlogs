@@ -55,7 +55,7 @@ Verified with `xprop`:
 WM_CLASS(STRING) = "viewskater", "viewskater"
 ```
 
-### 2. Desktop file for system installation (`assets/viewskater.desktop`)
+### 2. Desktop file for system installation (`resources/linux/viewskater.desktop`)
 
 ```ini
 [Desktop Entry]
@@ -74,7 +74,7 @@ Key fields:
 - `%f` in Exec — allows opening files via the desktop entry
 - `Exec` **must be an absolute path** or a binary in `$PATH` — Gio silently rejects the entire `.desktop` file if the command can't be resolved. This is the shipped template; users substitute their actual binary path at install time.
 
-### 3. Desktop file for AppImage builds (`cargo-appimage.desktop`)
+### 3. Desktop file for AppImage builds (`resources/linux/appimage.desktop`)
 
 ```ini
 [Desktop Entry]
@@ -96,7 +96,7 @@ The `.desktop` file and icon must be installed to standard XDG locations. The `E
 
 ```bash
 # Edit Exec= line in the desktop file to point to the actual binary, then:
-cp assets/viewskater.desktop ~/.local/share/applications/
+cp resources/linux/viewskater.desktop ~/.local/share/applications/
 mkdir -p ~/.local/share/icons/hicolor/256x256/apps/
 cp assets/icon_256.png ~/.local/share/icons/hicolor/256x256/apps/viewskater.png
 gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor/
@@ -125,5 +125,5 @@ This is not documented in the freedesktop spec (which only says Exec should be a
 ## Files changed
 
 - `src/main.rs` — Added `with_name("viewskater", "viewskater")` and `WindowAttributesExtX11` import
-- `assets/viewskater.desktop` — Desktop file template for system installation
-- `cargo-appimage.desktop` — Custom desktop file for AppImage builds
+- `resources/linux/viewskater.desktop` — Desktop file template for system installation
+- `resources/linux/appimage.desktop` — Custom desktop file for AppImage builds

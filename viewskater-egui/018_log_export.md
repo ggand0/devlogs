@@ -4,79 +4,58 @@ Branch: `feat/logging`
 
 ## Summary
 
-Added "Export debug logs" and "Export all logs" menu items under Help, matching the iced version's PR #48 (`feat/log-export`). Currently only the debug buffer export is implemented; stdout capture via `libc::dup2` pipe redirection is the remaining piece for "Export all logs".
+Added "Export debug logs" menu item under Help that dumps the in-memory log buffer to `debug.log` on demand. Removed the continuous `FileLogger` that wrote to disk on every log call — unnecessary I/O for a GUI app. Now matches the iced version's architecture (PR #48).
+
+## Architecture
+
+Rust's `log` crate uses a global logger set once via `log::set_boxed_logger()`. Since only one global logger is allowed, `CompositeLogger` wraps two backends so that every `log::info!()`, `log::debug!()`, etc. call fans out to both:
+
+```
+log::info!("message")
+        │
+        ▼
+  CompositeLogger
+   ├── env_logger (console/stderr, for development)
+   └── BufferLogger (in-memory VecDeque<String>, 1000 entry cap)
+```
+
+- **`env_logger`** — standard Rust console logger. Respects `RUST_LOG` env var. Default filter: `viewskater_egui=info`. Only useful when running from a terminal.
+- **`BufferLogger`** — captures log output into a `VecDeque<String>` behind `Arc<Mutex<>>`. Circular buffer, oldest entries evicted when full. Filtered to `viewskater_egui` target at Debug level. This buffer is the single source for both the panic hook and on-demand export.
+
+The `Arc<Mutex<VecDeque<String>>>` is shared three ways:
+1. `CompositeLogger` (global logger) — writes to it on every log call
+2. Panic hook — reads it to dump the last 1000 entries into `panic.log`
+3. `App.log_buffer` — reads it when user clicks "Export debug logs"
+
+### Log files
+
+| File | When written |
+|---|---|
+| `debug.log` | On demand: Help > Export debug logs |
+| `panic.log` | Automatically on panic (backtrace + last 1000 log entries) |
+
+Log directory: `~/.local/share/viewskater-egui/logs/` (Linux), `~/Library/Application Support/viewskater-egui/logs/` (macOS), `%APPDATA%/viewskater-egui/logs/` (Windows).
 
 ## Iced version reference (PR #48)
 
-The iced version implements two distinct log sources:
+The iced version has the same `BufferLogger` + `env_logger` + `CompositeLogger` pattern. It additionally implements stdout capture via `libc::pipe`/`libc::dup2` to intercept `println!` output, but this was evaluated and rejected for the egui version:
 
-1. **Debug buffer** — in-memory `VecDeque<String>` behind `Arc<Mutex<>>`, captures output from `log` macros (`debug!`, `info!`, `warn!`, `error!`), 1000 entry cap. Exported to `debug.log`.
-2. **Stdout buffer** — captures `println!` output by redirecting stdout through a Unix pipe (`libc::pipe` + `libc::dup2`). A background thread reads from the pipe read-end, writes to the original stdout (so console still works), and appends timestamped entries to a separate `VecDeque`. Exported to `stdout.log`. Has a `#[cfg(not(unix))]` fallback that provides a manual-only capture buffer on Windows.
+- `dup2` requires `unsafe` and violates Rust's I/O safety model
+- Windows GUI subsystem apps have no stdout to capture
+- macOS .app bundles bind stdout to `/dev/null`
+- No established Rust GUI app uses `dup2` for stdout capture
+- The correct fix is using `log::*` macros instead of `println!`
 
-Global access pattern: `once_cell::sync::Lazy` statics (`SHARED_LOG_BUFFER`, `SHARED_STDOUT_BUFFER`) wrapped in `Arc<Mutex<Option<Arc<Mutex<VecDeque<String>>>>>>`, set during `main()` init, accessed from message handlers via `get_shared_log_buffer()` / `get_shared_stdout_buffer()`.
+The iced version's "Export all logs" (debug + stdout) was dropped. Only "Export debug logs" is implemented.
 
-Menu items:
-- "Export debug logs" → `Message::ExportDebugLogs` → `file_io::export_and_open_debug_logs()`
-- "Export all logs" → `Message::ExportAllLogs` → `file_io::export_and_open_all_logs()` (exports both debug + stdout buffers)
+## Decisions
 
-Export file format: header block with `================` separators, export timestamp, entry count, then all buffer entries. Uses `chrono::Utc` for timestamps.
+- **No continuous file logging.** The iced version doesn't have it. Writing to disk on every log call is wasteful for an image viewer that runs for hours. The in-memory buffer + on-demand export covers all debugging scenarios.
+- **No stdout capture.** `libc::dup2` is unsafe, cross-platform fragile, and solves a problem that shouldn't exist (using `println!` instead of `log::*`).
+- **Buffer on `App` struct, not global statics.** The iced version uses `once_cell::Lazy` statics with `Arc<Mutex<Option<...>>>` wrappers. The egui version passes the `Arc` through `App::new()` directly — simpler, no global state.
 
-### Stdout capture mechanism (`setup_stdout_capture`)
+## Commits
 
-```
-pipe() → [read_fd, write_fd]
-dup(STDOUT_FILENO) → original_stdout_fd
-dup2(write_fd, STDOUT_FILENO)  // redirect stdout to pipe
-close(write_fd)
-
-thread::spawn → {
-    loop {
-        BufReader::read_line(read_fd)
-        write to original_stdout (console passthrough)
-        append timestamped entry to STDOUT_BUFFER
-    }
-}
-```
-
-Key detail: the original stdout fd is dup'd before redirection so console output still works. The capture thread reads from the pipe and both passes through to console and captures to buffer.
-
-## Egui version implementation
-
-### What's done
-
-1. **`export_debug_logs()`** — dumps in-memory buffer to `debug_export.log` with formatted header/footer/timestamp using `chrono::Local`. Separate from the continuous `debug.log` written by `FileLogger`.
-2. **`export_and_open_debug_logs()`** — calls `export_debug_logs()` then opens log directory.
-3. **`export_and_open_all_logs()`** — currently calls `export_debug_logs()` only. Needs stdout capture to be complete.
-4. **`MenuAction::ExportDebugLogs`** and **`MenuAction::ExportAllLogs`** — added to enum, menu items under Help, handlers in `app/handlers.rs`.
-5. **`App.log_buffer`** — `Arc<Mutex<VecDeque<String>>>` stored on `App` struct, passed from `main()` through `App::new()`. The same `Arc` is cloned for the panic hook. This avoids the global static pattern the iced version uses.
-
-### What's remaining
-
-- **Stdout capture**: Implement `setup_stdout_capture()` with `libc::pipe` + `libc::dup2` pipe redirection (Unix) and a no-op fallback (Windows). Store the stdout buffer on `App` alongside the debug buffer.
-- **`export_stdout_logs()`**: Write stdout buffer to `stdout.log` with the same header format.
-- **Wire `export_and_open_all_logs()`** to export both buffers and open the directory.
-
-### Log files in the directory
-
-| File | Source | When written |
-|---|---|---|
-| `debug.log` | `FileLogger` (continuous) | Every log macro call |
-| `debug_export.log` | `export_debug_logs()` (on-demand) | "Export debug logs" / "Export all logs" menu |
-| `stdout.log` | `export_stdout_logs()` (on-demand) | "Export all logs" menu (once stdout capture is implemented) |
-| `panic.log` | Panic hook | On panic only |
-
-### Differences from iced version
-
-- Egui version has continuous `debug.log` via `FileLogger` in addition to the on-demand export. Iced version only writes debug logs on demand.
-- Egui version stores the buffer on `App` struct directly instead of global `Lazy` statics.
-- Export uses `chrono::Local` (local time) instead of `chrono::Utc`.
-- On-demand export file is `debug_export.log` (not `debug.log`) to avoid overwriting the continuous log.
-
-## Files changed
-
-- `Cargo.toml` — Added `chrono` and `libc` to `[dependencies]`
-- `src/file_io.rs` — `export_debug_logs()`, `export_and_open_debug_logs()`, `export_and_open_all_logs()`
-- `src/app.rs` — Added `log_buffer` field to `App`, updated constructor
-- `src/main.rs` — Clone `log_buffer` for both panic hook and `App::new()`
-- `src/menu.rs` — `ExportDebugLogs`, `ExportAllLogs` in `MenuAction`, menu items under Help
-- `src/app/handlers.rs` — Handlers for the two new actions
+1. `92e8c91` Add crash logging and Show Logs menu item
+2. `e1cd4fc` Add persistent debug.log file logging
+3. `e4091e3` Add Export debug logs menu item and remove FileLogger

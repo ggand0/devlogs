@@ -62,51 +62,69 @@ modules cannot be hot-swapped.
 
 ### Symptom
 
-After reboot, The Finals ran but appeared to render on CPU. `nvidia-smi` showed no game
-process using the GPU. `vulkaninfo --summary` showed two Vulkan devices:
-
-1. NVIDIA GeForce RTX 3090 (real GPU)
-2. llvmpipe (CPU software renderer)
+After reboot, The Finals ran but rendered entirely on CPU. `nvidia-smi` showed no game
+process using the GPU. The game process (`Discovery-d.exe`) consumed ~1286% CPU and 18GB
+RAM — clearly software rendering.
 
 ### Cause
 
-The same apt upgrade also updated **Mesa from 25.0.7 to 25.2.8**. The new Mesa version
-installed/enabled `lvp_icd.json` — the Vulkan ICD for Lavapipe (llvmpipe's Vulkan frontend),
-a software Vulkan implementation that runs entirely on CPU.
+Steam is installed as a **Flatpak**. Flatpak uses its own GL/Vulkan runtime extensions
+matched to the host nvidia driver version. The installed Flatpak GL runtimes were:
 
-Before the reboot, old Mesa libraries were still in memory so llvmpipe wasn't visible as a
-Vulkan device. After reboot, the new Mesa loaded, llvmpipe appeared as a Vulkan device, and
-the game (via Proton/DXVK) picked it over the NVIDIA GPU.
+- `org.freedesktop.Platform.GL.nvidia-590-48-01` (old driver)
+- `org.freedesktop.Platform.GL.nvidia-515-48-07` (ancient)
+
+After `apt upgrade` bumped the host driver to **595.58.03**, there was no matching Flatpak
+GL runtime. Flatpak Steam couldn't load nvidia GL/Vulkan libraries, so Proton/DXVK fell
+back to software rendering (llvmpipe).
+
+This was NOT a host Vulkan ICD issue — `vulkaninfo` on the host correctly showed the
+NVIDIA GPU. The problem was entirely inside the Flatpak sandbox.
 
 ### Fix
 
-Disable the Lavapipe ICD by renaming it:
+Update Flatpak runtimes to pull in the matching nvidia GL extension:
 
 ```bash
-sudo mv /usr/share/vulkan/icd.d/lvp_icd.json /usr/share/vulkan/icd.d/lvp_icd.json.disabled
+flatpak update
 ```
 
-Verify only the NVIDIA device remains:
+Verify the correct extensions are installed:
 
 ```bash
-vulkaninfo --summary 2>&1 | grep deviceName
+flatpak list --runtime | grep nvidia-595
 ```
 
-To undo:
+Should show both:
+- `org.freedesktop.Platform.GL.nvidia-595-58-03`
+- `org.freedesktop.Platform.GL32.nvidia-595-58-03`
+
+If `flatpak update` doesn't pull them automatically:
 
 ```bash
-sudo mv /usr/share/vulkan/icd.d/lvp_icd.json.disabled /usr/share/vulkan/icd.d/lvp_icd.json
+flatpak install flathub org.freedesktop.Platform.GL.nvidia-595-58-03
+flatpak install flathub org.freedesktop.Platform.GL32.nvidia-595-58-03
 ```
+
+After installing, **fully restart Steam** (not just the game) — Flatpak loads the GL
+runtime at Steam startup.
+
+### Dead ends tried
+
+- **Disabling Lavapipe ICD** (`lvp_icd.json` → `.disabled`): This only affects the host
+  Vulkan loader, not the Flatpak sandbox. Was a red herring.
+- **`VK_ICD_FILENAMES` Steam launch option**: Overrides ICD discovery too aggressively,
+  crashed the game (exit code 3).
 
 ### Note
 
-- `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/nvidia_icd.json %command%` as a Steam launch
-  option does NOT work — it overrides all ICD discovery too aggressively and crashes the game
-  (exit code 3).
-- Lavapipe (lvp) is only useful for Vulkan development/testing on headless machines or VMs.
-  Useless on a system with a real GPU.
-- A future Mesa update may recreate `lvp_icd.json`. If games break again after an update,
-  rename it again.
+- First launch after fix froze on GNOME workspace switch, worked on second launch.
+- After any nvidia driver upgrade via apt, `flatpak update` must also be run to pull
+  the matching GL runtime. This is easy to forget.
+- Old nvidia GL runtimes (515, 590) can be cleaned up:
+  ```bash
+  flatpak uninstall --unused
+  ```
 
 ---
 
@@ -126,7 +144,12 @@ Key packages that caused the issues:
 
 ## Lesson
 
-On a desktop with an NVIDIA GPU, `apt upgrade` can silently break things in two ways:
-the driver/library mismatch (requires reboot), and Mesa updates adding software renderers
-that steal Vulkan device selection from the real GPU. Don't upgrade casually without being
-ready to reboot and verify.
+On a desktop with an NVIDIA GPU and Flatpak Steam, `apt upgrade` can silently break things
+in two ways:
+
+1. **Driver/library mismatch** — requires reboot, no way around it.
+2. **Flatpak GL runtime mismatch** — `flatpak update` must be run after any nvidia driver
+   upgrade to pull matching GL extensions. Without this, Flatpak-sandboxed apps (Steam/games)
+   fall back to CPU software rendering.
+
+Don't upgrade casually without being ready to reboot, run `flatpak update`, and verify.

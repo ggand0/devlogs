@@ -65,9 +65,15 @@ These don't accumulate — each is freed within the same `load_sync()` call. The
 
 Two layers of memory retention:
 
-**1. glibc malloc arena retention (CPU heap):** The LRU decode cache's `ColorImage` data is freed from Rust's perspective, but glibc keeps the heap arena expanded for reuse. Fixed with `libc::malloc_trim(0)` after close.
+**1. glibc malloc arena retention (CPU heap):** The LRU decode cache's `ColorImage` data is freed from Rust's perspective, but glibc keeps the heap arena expanded for reuse. `free()` marks memory as available within the arena but does not return pages to the OS. `malloc_trim()` can return fully empty pages at the top of the heap, but fragmented arenas (especially from multi-threaded allocation patterns like our background decode threads) stay pinned. Fixed with best-effort `libc::malloc_trim(0)` after close — costs nothing but may not reclaim much due to fragmentation.
 
 Note: a deferred trim approach (waiting 3 frames for GL texture deletion before trimming) was attempted but dropped — the residual memory after close is the GL driver pool, not the glibc heap, so trim timing made no measurable difference.
+
+glibc malloc references:
+- https://blog.cloudflare.com/the-effect-of-switching-to-tcmalloc-on-rocksdb-memory-use/
+- https://www.algolia.com/blog/engineering/when-allocators-are-hoarding-your-precious-memory
+- https://blog.arkey.fr/drafts/2021/01/22/native-memory-fragmentation-with-glibc/
+- https://bugs.python.org/issue11849
 
 **2. OpenGL driver memory pool (GPU/shared memory):** After `glDeleteTextures` runs, the GL driver (Mesa on Linux, Metal-backed GL on macOS) keeps its internal memory pool allocated for reuse rather than returning pages to the OS. This is documented driver behavior — the OpenGL spec only guarantees the texture name is freed and contents are gone, but says nothing about physical memory. Drivers intentionally pool freed GPU memory because allocation/deallocation is expensive. There is no GL API to force the driver to release the pool. This accounts for ~570 MB residual after close (the sliding window's 11 textures × 32 MB + driver overhead). This memory IS reused when opening a new directory.
 

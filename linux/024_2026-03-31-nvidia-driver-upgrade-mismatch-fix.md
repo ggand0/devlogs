@@ -128,6 +128,62 @@ runtime at Steam startup.
 
 ---
 
+## Issue 3: Game stuttering after driver upgrade (monitoring)
+
+### Symptom
+
+After resolving Issues 1 and 2, The Finals runs on the GPU but stutters every ~20-30
+seconds. FPS counter stays above 100 during stutters. Occasionally a yellow packet loss
+icon appears around the same time as the stutter.
+
+### Pattern observed
+
+In a 6-8 hour gaming session on 2026-04-05, stuttering was absent at the start and only
+appeared in the last 1-2 hours. A reboot cleared the stutters — no stuttering observed
+for 5+ minutes after reboot. This suggests the issue may be related to accumulated state
+over long sessions (memory fragmentation, resource leaks, thermal throttling over time)
+rather than a persistent driver regression.
+
+### Current working setup
+
+- **Launch options:** `LD_PRELOAD="" PROTON_HIDE_NVIDIA_GPU=0 PROTON_LOCAL_SHADER_CACHE=1 %command%`
+- **Proton:** 10.0-3 (stock)
+- **Steam shader pre-caching:** ON
+- **Window mode:** Borderless fullscreen 2K
+- **No `/etc/environment` shader cache overrides** (reverted)
+
+### What was tried (none of these helped)
+
+- **`gamemoderun %command%`**: Game ran on GPU but stutters felt worse. Reverted.
+- **`PROTON_ENABLE_NVAPI=1`**: Caused game to fall back to CPU rendering (10fps).
+  Does not work with Flatpak Steam on this system.
+- **`PROTON_USE_NTSYNC=1`**: Also caused CPU rendering fallback (10fps). Does not
+  work with Flatpak Steam on this system.
+- **NVIDIA shader cache env vars in `/etc/environment`**: Added
+  `__GL_SHADER_DISK_CACHE_SIZE=12000000000` and
+  `__GL_SHADER_DISK_CACHE_SKIP_CLEANUP=1`. Did not help. Reverted — these control
+  the GL driver cache, not the DXVK pipeline cache which is what Proton games use.
+
+### Key observations
+
+- `PROTON_ENABLE_NVAPI=1` and `PROTON_USE_NTSYNC=1` both cause the game to fall
+  back to CPU software rendering on this Flatpak Steam setup. Do not use.
+- FPS stays high during stutters — this is a frame time spike, not a throughput issue.
+- The packet loss icon sometimes appearing suggests network may be a factor, but
+  stutters also happen without it.
+- No Xid errors in dmesg from the game. GPU thermals and clocks are normal.
+- Stutters appear after extended play and go away on reboot.
+
+### Options if stutters return
+
+1. **Driver downgrade to 590.48.01** — see devlog 025 for the plan and verification.
+2. **Try GE-Proton10-34** — multiple ProtonDB reports use it with smooth results on
+   NVIDIA. Has not been tested yet.
+3. **Disable Steam shader pre-caching** — reported fix by Kazucroco on ProtonDB for
+   similar symptoms on RTX 3080 Ti.
+
+---
+
 ## Summary of packages upgraded (2026-03-30)
 
 Key packages that caused the issues:

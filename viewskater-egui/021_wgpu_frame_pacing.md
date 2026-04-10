@@ -176,6 +176,60 @@ From [wgpu discussion #5899](https://github.com/gfx-rs/wgpu/discussions/5899): r
 
 Copy texels from a buffer to a texture via compute shader instead of write_texture. Keeps the work entirely on the GPU side, avoiding CPU-side staging buffer allocation variance. High complexity for uncertain benefit.
 
+## Linux test results after fix
+
+Tested on Linux with `device.poll(Maintain::Wait)` + `dithering: false` + `desired_maximum_frame_latency: Some(1)`.
+
+### 4K PNG sequences (3840x2160, ~10 MB each, 140 frames)
+
+| | glow | wgpu |
+|---|---|---|
+| UI FPS | 61 | 61-62 |
+| Image FPS | 11.5 | 11.5 |
+| Keyboard nav feel | Smooth | Smooth (identical after fix) |
+| Slider nav feel | Smooth | Smooth |
+| Visual quality | Pixel-crisp | Pixel-crisp (after dithering: false) |
+
+### 1080p PNG sequences and small images
+
+Both backends identical — no perceptible difference in FPS, visual quality, or navigation feel.
+
+## macOS test results (MacBook Pro M1, late 2020)
+
+Tested with 4K PNG sequences.
+
+- wgpu (Metal) renders **slightly smoother** than glow (OpenGL) for keyboard navigation
+- This is expected: macOS deprecated OpenGL (frozen at 4.1, no longer actively optimized by Apple), while Metal is Apple's native GPU API, heavily optimized for Apple Silicon
+- M1's unified memory architecture likely eliminates the staging buffer overhead that caused frame pacing issues on Linux/Vulkan — Metal can access CPU memory more directly
+
+**Result: wgpu is the better backend on macOS.**
+
+## Windows test results
+
+Pending. wgpu maps to DX12 on Windows (Vulkan as fallback). Expected to match or beat glow:
+- GPU vendors (NVIDIA, AMD, Intel) actively maintain both OpenGL and DX12 drivers on Windows
+- egui issue #5037 noted wgpu latency was lower on DX12 than on Vulkan
+- The `device.poll(Wait)` fix provides insurance against frame pacing variance
+
+## Cross-platform summary
+
+| Platform | wgpu backend | wgpu vs glow |
+|----------|-------------|--------------|
+| Linux | Vulkan | Matches glow (after device.poll fix) |
+| macOS | Metal | Smoother than glow (OpenGL deprecated) |
+| Windows | DX12 | Pending (expected to match or beat) |
+
+### Conclusion
+
+wgpu matches or beats glow on all tested platforms. The `device.poll(Wait)` fix resolved the only case where wgpu was worse (Linux keyboard nav with 4K images).
+
+**Decision:** Switch to wgpu-only after verifying on Windows. Rationale:
+- Frame pacing parity achieved with glow
+- eframe 0.34.0 already made wgpu the default upstream
+- Eliminates 6 MB binary size overhead from carrying both backends
+- One backend to maintain instead of two
+- More familiar from iced version of the app
+
 ## Key files
 
 - `src/main.rs` — renderer CLI arg, `NativeOptions` with `dithering: false` and `wgpu_options`

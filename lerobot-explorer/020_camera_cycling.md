@@ -208,7 +208,82 @@ Highlighting shows only the fixed episode, not a range.
 - `src/ui/panels.rs` -- camera checkboxes, View menu item, grid footer
   mode-aware rendering, episode list multi-camera navigation
 
-## Next steps
+## Phase 3: Multi-camera in grid — tiling + subgrid
 
-Phase 3: episode × camera matrix (rows=episodes, cols=cameras).
-See plan 006.
+### Evolution
+
+Initial implementation used a separate `GridMode::EpisodeCamera` that
+forced cols=cameras and rows=N. This overrode the user's grid layout
+choice and felt disconnected from the episode grid.
+
+Replaced with two approaches as a three-way M cycle within MultiEpisode:
+
+### CameraDisplay enum
+
+```rust
+enum CameraDisplay {
+    SingleCamera,  // one cam per pane (default)
+    Tiled,         // each episode gets cam_count flat panes
+    Subgrid,       // each episode cell renders cameras internally
+}
+```
+
+M cycles through these in the multi-episode grid. The `GridMode` enum
+was simplified to just `MultiEpisode` and `MultiCamera` (removed
+`EpisodeCamera`).
+
+### Tiled mode
+
+`new_tiled()` snaps cols to `cam_count * groups_per_row` where
+`groups_per_row = max(1, grid_cols / cam_count)`. Multiple episode
+groups fit per row when the grid is wide. User's grid size preference
+drives the layout — +/- resize and grid size picker work normally.
+
+### Subgrid mode
+
+`new_subgrid()` creates `grid_cols × grid_rows` episode cells, each
+with `cam_count` sub-panes rendered inside it. The outer grid matches
+the user's layout exactly. `show_subgrid()` subdivides each cell using
+`camera_grid_size()` for the internal camera arrangement.
+
+Key difference from tiled: episode count stays the same as single-camera
+mode (e.g., 3×3 = 9 episodes with camera sub-frames), whereas tiled
+reduces episode count to fit camera panes (e.g., 3×3 with 3 cameras
+shows 3 episodes).
+
+### Centralized grid construction
+
+`enter_grid_with_camera_display()` dispatches to the right constructor
+based on `camera_display`. Used by toggle_grid_view, toggle_multi_camera,
+grid_resize, grid size picker, and pending camera checkbox rebuilds.
+Eliminated duplicated construction logic.
+
+### Key refactors
+
+- `is_multi_camera()` → `is_camera_grid()`: returns true when
+  `cam_count > 1` (covers both tiled and subgrid)
+- `camera_tiling: bool` → `camera_display: CameraDisplay` enum
+- `show()` split into `show_flat()` + `show_subgrid()` with shared
+  `draw_pane_frame()` helper
+- Grid size picker always visible (stores preference even in modes that
+  auto-size)
+- `navigate_page_tiled()` respects `subgrid` flag to reconstruct with
+  the right constructor
+
+### Bug fixes
+
+1. Grid size picker resetting tiled mode to single-camera (called wrong
+   rebuild path)
+2. Subgrid showing wrong episode count (was reusing new_tiled layout
+   math instead of grid_cols × grid_rows)
+
+### Files changed
+
+- `src/grid.rs` -- removed EpisodeCamera, added new_tiled/new_subgrid,
+  show_flat/show_subgrid, draw_pane_frame, subgrid field
+- `src/app.rs` -- CameraDisplay enum, is_camera_grid(), pending rebuild
+- `src/playback.rs` -- enter_grid_with_camera_display(), three-way M
+  cycle in toggle_multi_camera
+- `src/ui/input.rs` -- simplified to MultiEpisode + MultiCamera match
+- `src/ui/panels.rs` -- cycle-aware menu labels, always-visible grid
+  picker, subgrid-aware episode list

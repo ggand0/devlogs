@@ -140,9 +140,19 @@ icon appears around the same time as the stutter.
 
 In a 6-8 hour gaming session on 2026-04-05, stuttering was absent at the start and only
 appeared in the last 1-2 hours. A reboot cleared the stutters — no stuttering observed
-for 5+ minutes after reboot. This suggests the issue may be related to accumulated state
-over long sessions (memory fragmentation, resource leaks, thermal throttling over time)
-rather than a persistent driver regression.
+for 5+ minutes after reboot.
+
+On 2026-04-11 (5 days uptime, no reboot), stutters were present immediately on game
+launch. System load was ~17 due to:
+- 4 forgotten htop instances running since Apr 6 (each 26% CPU)
+- Brave browser running for 5 days (GPU process: 1034 min CPU time, multiple renderers)
+
+Killing htop instances and closing Brave reduced load from ~17 to ~13 and noticeably
+reduced (but did not eliminate) stutters. The game itself uses ~826% CPU, so background
+processes competing for CPU/GPU contribute to the stutter.
+
+**Takeaway:** Close Brave and other heavy background apps while gaming. Long uptimes
+accumulate stale processes that eat resources.
 
 ### Current working setup
 

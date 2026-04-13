@@ -128,9 +128,32 @@ runtime at Steam startup.
 
 ---
 
-## Issue 3: Game stuttering after driver upgrade (monitoring)
+## Issue 3: Game stuttering after driver upgrade (RESOLVED)
 
-### Symptom
+### Resolution
+
+**Switched to Proton-GE for Flatpak Steam.** No stuttering at all. No launch options
+needed.
+
+Install command:
+
+```bash
+flatpak install flathub com.valvesoftware.Steam.CompatibilityTool.Proton-GE
+```
+
+After install, restart Steam and in The Finals Properties → Compatibility → Force the
+use of a specific Steam Play compatibility tool → select Proton-GE.
+
+Note: A reboot happened the day before the Proton-GE switch, so the reboot may also
+have contributed. But the same game was stuttering on stock Proton 10.0-3 immediately
+after launch even on fresh boots in earlier sessions. Proton-GE is the differentiator.
+
+For comparison: on Windows the game ran significantly smoother than on Linux with
+stock Proton, confirming this was a Proton-specific issue rather than hardware.
+
+---
+
+### Symptom (on stock Proton)
 
 After resolving Issues 1 and 2, The Finals runs on the GPU but stutters every ~20-30
 seconds. FPS counter stays above 100 during stutters. Occasionally a yellow packet loss

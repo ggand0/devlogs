@@ -287,3 +287,219 @@ Eliminated duplicated construction logic.
 - `src/ui/input.rs` -- simplified to MultiEpisode + MultiCamera match
 - `src/ui/panels.rs` -- cycle-aware menu labels, always-visible grid
   picker, subgrid-aware episode list
+
+## Phase 4: UI separation and dedicated controls
+
+After testing Phase 3, the three-way M cycle felt awkward and the grid
+size picker behavior was inconsistent across modes. Reorganized the
+controls so each layout has its own entry point.
+
+### Mental model
+
+Three orthogonal display modes, each with its own control:
+
+| Mode | Description | Entry |
+|------|-------------|-------|
+| SingleCamera | NxN episode grid, one camera per pane | Grid picker |
+| Subgrid | NxN episode grid, all cameras inside each cell | M keybind |
+| Tiled | Cols=cameras matrix layout | N keybind / row slider |
+
+The grid picker (2D NxN) controls the **episode grid** dimensions and
+always enters SingleCamera or Subgrid (whichever camera_display is set).
+Tiled has its own row slider since cols are derived from cam_count.
+
+### Keybind separation
+
+- **M**: toggles SingleCamera ↔ Subgrid (and Single-video ↔ MultiCamera)
+- **N**: toggles Tiled view on/off (no-op outside multi-episode grid)
+- Both keybinds have menu equivalents
+
+The previous three-way M cycle was confusing -- "Subgrid Cameras [M]"
+when in Tiled mode made no sense. Two-way toggle is clearer.
+
+### Matrix Rows slider
+
+Always visible in the View menu when the dataset has multiple cameras.
+Interacting with the slider auto-enters Tiled mode, so the user doesn't
+need to press N first. The slider only adjusts row count -- cols are
+derived from the selected camera count.
+
+### Bug fixes during review
+
+1. **Camera_display not reset on dataset load**: Loading a different
+   dataset preserved stale tiled/subgrid state. Reset to SingleCamera +
+   `grid_view = None` in load_dataset().
+
+2. **Grid picker no-op in MultiCamera mode**: The picker click handler
+   had a `if is_multi_camera { /* store only */ }` branch that swallowed
+   clicks silently. Now it always rebuilds to the episode grid at the
+   selected size.
+
+3. **Subgrid showing wrong episode count**: Subgrid was reusing
+   new_tiled() which computes episodes from tiled layout math
+   (groups_per_row). Added new_subgrid() that creates grid_cols × grid_rows
+   episode cells, each with cam_count panes.
+
+### Refactoring
+
+- Extracted `selected_video_keys()` helper replacing 3 duplicated
+  filter/map patterns in new_multi_camera, new_tiled, new_subgrid
+
+### Files changed (Phase 4)
+
+- `src/playback.rs` -- toggle_tiled() method, simplified toggle_multi_camera
+- `src/ui/input.rs` -- N keybind handling
+- `src/ui/panels.rs` -- separate Tiled View [N] menu button, Matrix Rows
+  slider always visible, grid picker bug fix
+- `src/grid.rs` -- selected_video_keys() helper
+- `src/app.rs` -- camera_display reset on dataset load
+
+## Phase 5: Camera switch frame preservation
+
+### Bug
+
+Pressing C/Shift+C mid-playback reset the video to the episode start
+(or the nearest keyframe). Switching cameras should preserve the frame
+position so the user stays at the same point in the episode.
+
+### Root cause
+
+Two issues stacked:
+
+1. **Player not re-seeked**: `switch_camera` called `enter_video_mode`
+   which creates a fresh VideoPlayer starting at `episode_start_frame`.
+   The preserved relative position was thrown away.
+
+2. **Paused poll grabs keyframe frame**: Even after adding `player.seek()`
+   to jump to the preserved position, the seek makes the decoder start
+   from the nearest keyframe **before** the target (e.g. frame 80 when
+   target is 100). The paused update loop polls once and receives that
+   keyframe frame, overwriting `self.current_frame` via line:
+   ```rust
+   self.current_frame = player.current_frame;
+   ```
+   When the user pressed Play, playback continued from 80 instead of 100.
+
+### Fix
+
+Added `VideoPlayer::drain_to_frame(target, timeout_ms)` — a blocking
+variant of poll that discards frames with `frame_index < target` and
+returns the first frame at or after the target. Uses `recv_timeout`
+with a 200ms bound so it can't hang the UI.
+
+`switch_camera` now:
+1. Captures `preserved_relative_frame` and `was_playing`
+2. Rebuilds paths, caches, player
+3. Calls `player.seek(abs_frame)` to start decoder near target
+4. Calls `player.drain_to_frame(abs_frame, 200)` to synchronously
+   skip intermediate keyframe frames and get the exact target texture
+5. Restores `was_playing` state
+
+Grid view has the same path via `GridView::seek_panes_to_relative`
+which captures per-pane relative frames before rebuild and seeks each
+new pane to its preserved position, draining intermediate frames.
+
+### Why the drain is synchronous
+
+`poll_next_frame` is non-blocking and only returns one frame at a
+time. To guarantee the displayed frame matches the target, we need to
+either:
+1. Block briefly to drain frames (chosen)
+2. Add state tracking across multiple update ticks to skip frames
+   until target is reached
+
+Option 1 is simpler and the decoder is fast enough that draining a few
+intermediate frames completes in well under 200ms. The user sees no
+visible rewind.
+
+### Failed alternative
+
+An earlier attempt modified `decode_all_frames_inner` to silently drop
+frames where `actual_frame < seek_to_frame`. This worked but changed
+core decoder behavior for all callers, which was too broad for a
+camera-switch feature. Reverted in favor of the drain-at-call-site
+approach that only affects camera switching.
+
+### Files changed (Phase 5)
+
+- `src/cache.rs` -- VideoPlayer::drain_to_frame()
+- `src/playback.rs` -- switch_camera drains to exact frame after seek,
+  per-pane relative frame preservation for grid path
+- `src/grid.rs` -- seek_panes_to_relative() helper
+
+## Phase 6: Composable mode transitions and state preservation polish
+
+After more testing, rounded out the grid state management.
+
+### Mode transition completeness
+
+Previously G/M/N had asymmetric behavior from different starting states.
+Normalized so each keybind is a pure dimension toggle:
+
+| From \\ Key | G | M | N |
+|------------|---|---|---|
+| Single-video | multi-episode grid | multi-camera grid | grid + Tiled |
+| Multi-episode grid | exit to single-video | + Subgrid | + Tiled |
+| Multi-camera grid | + episode dim (Subgrid) | exit to single-video | + episode dim (Tiled) |
+| Subgrid grid | exit | back to SingleCamera | switch to Tiled |
+| Tiled grid | exit | switch to Subgrid | back to SingleCamera |
+
+Both `single → M → G` and `single → G → M` now converge on Subgrid.
+Both `single → M → N` and `single → N` now land in Tiled. N works from
+single-video too (previously only worked inside the grid).
+
+### Escape as panic button
+
+Added `reset_to_initial_view()` method. Escape now:
+- Exits any grid
+- Switches to the default camera (wrist or index 0)
+- Resets all camera checkboxes to checked
+- Resets `camera_display` to SingleCamera
+- Preserves the current episode / grid start
+
+The idea: if the user is lost in a weird state combination, Escape
+always returns to a known baseline without needing to remember which
+keybinds to undo.
+
+### State preservation across rebuilds
+
+Every grid rebuild (camera switch, checkbox toggle, mode transition)
+now preserves playback position, playing/paused state, and pane
+selection. Extracted into a `PreservedGridState` struct with
+`GridView::preserved_state()` capture and `restore_state()` apply
+methods. Handles pane count mismatches (e.g., after checkbox toggle
+changes camera count) by using the first captured frame as a
+synchronized playback position for all new panes.
+
+### Bug fixes
+
+- **Frame jumped to keyframe on camera switch while paused**: `player.seek()`
+  made the decoder start from the nearest keyframe, and the paused poll
+  grabbed that first frame, overwriting `current_frame`. Fixed with
+  `drain_to_frame` (Phase 5) plus proper position preservation.
+- **Grid auto-played after camera switch**: `GridView::new` defaults to
+  `playing: true`. Now capture `grid.playing` and restore after rebuild.
+- **Pane selection lost on camera switch**: `selected_panes` is now
+  cloned and restored via `PreservedGridState`.
+- **Checkbox toggle reset video to beginning**: The pending rebuild
+  handler now uses `preserved_state()` + `restore_state()`.
+- **Exit grid returned to ep 0**: `toggle_grid_view` and Escape now set
+  `current_episode = grid.start_episode` before returning to single-video.
+- **Unchecking cameras to 1 broke the UI**: `is_camera_grid()` now
+  checks `camera_display != SingleCamera` instead of `cam_count > 1`,
+  so the checkboxes stay visible even with 1 camera selected.
+- **Camera ComboBox bypassed multi-cam state**: ComboBox is hidden in
+  multi-cam modes (where checkboxes are the authoritative control).
+- **Grid picker reset tiled mode**: Picker now routes through
+  `enter_grid_with_camera_display` so it respects `camera_display`.
+- **Matrix Rows slider sent to episode 0 from single-video**: Fallback
+  episode is now `self.current_episode`, not 0.
+
+### Files changed (Phase 6)
+
+- `src/grid.rs` -- PreservedGridState struct, preserved_state/restore_state methods
+- `src/playback.rs` -- reset_to_initial_view, toggle_grid_view/toggle_multi_camera/toggle_tiled
+  handle MultiCamera promotion, use PreservedGridState
+- `src/app.rs` -- is_camera_grid uses camera_display, pending rebuild uses PreservedGridState
+- `src/ui/input.rs` -- Escape calls reset_to_initial_view
+- `src/ui/panels.rs` -- ComboBox hidden in multi-cam, "Tiled View Rows [N]" label, grid picker routing

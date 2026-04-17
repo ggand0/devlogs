@@ -1,4 +1,4 @@
-# Grid UI polish (2026-04-16)
+# Grid UI polish (2026-04-16, PR #5)
 
 Post-multi-camera UI fixes for grid/tiled/subgrid views.
 
@@ -45,7 +45,7 @@ A single-line `TopBottomPanel` below the menu bar, toggled by `?` or
 - **Flat grid**: `[G] exit [M] subgrid [N] tiled [C] camera ...`
 - **Subgrid**: `[G] exit [M] single-cam [N] tiled ...`
 - **Tiled**: `[G] exit [M] subgrid [N] untile ...`
-- **MultiCamera**: `[M] exit [Space] play/pause [Esc] reset`
+- **MultiCamera**: `[G] exit [M] exit [Space] play/pause [Esc] reset`
 
 M/N hints reflect the actual target mode of the transition, not the current
 mode (e.g. subgrid shows `[N] tiled` because N switches TO tiled).
@@ -60,11 +60,12 @@ New top-level `Help` menu:
 
 ### About modal
 
-`src/about.rs`, following viewskater-egui pattern. Two `egui::Area` layers:
+`src/about.rs`. Two `egui::Area` layers:
 
 1. **Backdrop**: `Order::Foreground`, semi-transparent black, click-to-dismiss
 2. **Card**: `Order::Tooltip` (renders above backdrop), centered, rounded frame
    with version, commit hash, platform, author, clickable GitHub link
+   (https://github.com/ggand0/tracelr)
 
 Dismiss via Escape or clicking the backdrop. Uses existing `BuildInfo` and
 `UiTheme` (backdrop, card_bg, card_stroke, accent, muted colors).
@@ -72,15 +73,20 @@ Dismiss via Escape or clicking the backdrop. Uses existing `BuildInfo` and
 `show_about: bool` on `App`, rendered at the end of `update()` so it sits on
 top of all other UI.
 
+### Cleanup
+
+Removed unused `theme_muted` parameter from the grid rendering call chain
+(`show` -> `show_flat` / `show_subgrid` -> `draw_pane_label`). The label
+refactor made it unnecessary since both label modes use `badge_fg` (light
+text on dark background) instead of the theme muted color.
+
 ## Files changed
 
 | File | Changes |
 |------|---------|
-| `src/grid.rs` | Grouped selection border logic in `show_flat`, `draw_pane_label` helper, `LabelMode` param threaded through `show`/`show_flat`/`show_subgrid` |
+| `src/grid.rs` | Grouped selection border logic in `show_flat`, `draw_pane_label` helper, `LabelMode` param threaded through rendering, removed `theme_muted` param |
 | `src/app.rs` | `LabelMode` enum, `show_shortcut_bar`/`show_about`/`label_mode` fields, about modal call |
 | `src/ui/panels.rs` | `show_shortcut_bar` method, Help menu, footer slimdown |
 | `src/ui/input.rs` | `L`/`?` key handlers |
 | `src/about.rs` | New file, About modal |
-| `src/build_info.rs` | Removed dead_code comment |
-| `src/theme.rs` | Removed dead_code comment |
 | `Cargo.toml` | Added `webbrowser` dep |

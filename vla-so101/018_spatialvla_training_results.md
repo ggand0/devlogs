@@ -86,17 +86,60 @@ Action normalization bounds (BOUNDS_Q99), used for denormalization at inference:
 
 Dimension 5 is always zero (padding to meet SpatialVLA's 7D requirement). `action_normalization_mask[5] = False` prevents division by zero during normalization.
 
-## Inference Pipeline (TODO)
+## Inference Pipeline
 
-1. Load base model + LoRA adapter from checkpoint
-2. Run forward pass with wrist camera image + language instruction
-3. Model outputs 7D normalized action tokens → decode to continuous values
-4. Denormalize using Q01/Q99 bounds from `ds_stats.json`
-5. Discard dimension 5 (padding) → 6D absolute joint positions in degrees
-6. Send to SO-101 follower arm
+Implemented in `scripts/infer_spatialvla.py` + `scripts/infer_spatialvla.sh`.
+
+1. Load base model from `~/ggando/ml/pretrained/spatialvla-4b-224-pt`
+2. Attach LoRA adapter via `peft.PeftModel.from_pretrained` then `merge_and_unload()` for faster inference
+3. Inject `ds_stats.json` into `processor.statistics["so101_pick_place/1.0.0"]` (also baked into checkpoint's `processor_config.json`)
+4. Open SO-101 follower with wrist RealSense only (overhead skipped — not in training mixture)
+5. Reset to home pose
+6. Loop:
+   - Capture wrist image → `processor(images=[img], text=prompt)` → `model.predict_action(...)`
+   - `processor.decode_actions(gen, unnorm_key="so101_pick_place/1.0.0")` returns `(action_chunk_size=4, 7)`
+   - For each of the 4 actions: drop dim 5 (padding), clamp 5 joints, send via `bus.sync_write("Goal_Position", ...)`
+
+### Dependencies installed in SpatialVLA venv
+
+The SpatialVLA venv was missing several lerobot deps. Installed via uv:
+
+```
+draccus pyserial deepdiff feetech-servo-sdk pyrealsense2
+```
+
+## First Inference Test (2026-04-22)
+
+Pipeline runs end-to-end on hardware:
+
+```
+Policy load:        ~15s (base + LoRA merge + cuda())
+RealSense connect:  <1s
+Inference:          ~510ms per chunk (4 actions × 7 dims)
+                    → effective control rate ~8 Hz
+                    (training was 30 Hz)
+```
+
+**Behavior**: policy runs but produces unusable motion. Not yet diagnosed
+which of the following is the dominant cause:
+
+- **Control-rate mismatch**: training at 30 Hz, executing at 8 Hz. Each absolute joint command is held 4× longer than during recording.
+- **Overfitting**: 75 episodes is small; 7 epochs may have memorized scene specifics (lighting, cube position) that don't match the live setup.
+- **Prompt drift**: dataset task is exactly `"Pick up the cube and place it in the bowl"` (no color); inference tested with `"Pick up the red cube and place it in the bowl"`.
+- **Action representation**: SpatialVLA's translation tokenizer treats action dims 0-2 as cartesian xyz and applies a spherical transform before binning. Our actions are joint angles in degrees, normalized to [-1, 1]. Encode/decode is round-trip consistent so this should work in principle, but quantization through spherical bins may degrade joint-space accuracy more than xyz-space accuracy.
+- **Domain gap**: 224×224 resize + lighting/camera differences between training and live capture.
+
+### Next debugging steps
+
+1. Re-run with the exact training prompt (no "red")
+2. Try `CHECKPOINT=checkpoint-6000` and `checkpoint-8000` (less overfit)
+3. Drop `EXEC_PER_CHUNK=1` so each action gets a fresh observation
+4. Add a `--debug-dump` flag that saves the wrist image + predicted 7D action to disk per step for offline inspection
+5. Compare predicted joint values against home pose / dataset means — sanity check whether the model is just predicting the mean trajectory
 
 ## Scripts
 
 - **RLDS conversion**: `scripts/convert_to_rlds.py`
 - **Training**: `scripts/train_spatialvla_lora.sh`
+- **Inference**: `scripts/infer_spatialvla.py` + `scripts/infer_spatialvla.sh`
 - **Setup details**: `devlogs/017_spatialvla_finetuning_setup.md`

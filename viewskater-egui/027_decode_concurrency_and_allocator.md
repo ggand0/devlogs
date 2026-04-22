@@ -142,3 +142,46 @@ use in .NET runtime, Zig's standard library, various game engines.
 Alternative allocators considered: jemalloc (used in Firefox, Redis) —
 similar behavior, heavier build, Linux-focused. mimalloc is lighter
 and more portable.
+
+## Attempted and rejected: decode concurrency limits
+
+Tried two approaches to reduce the transient spikes:
+
+**MAX_CONCURRENT_DECODES=4 (thread-spawn gating):** Only allowed 4
+background decode threads at a time, queuing the rest. Spike dropped to
+750-800 MB (from 880), but keyboard nav FPS dropped from 60 to 58-59.
+Rejected — any FPS sacrifice is unacceptable on this branch.
+
+**Semaphore-gated decode (all 10 threads spawn, semaphore on decode
+phase):** All threads read file bytes in parallel (fast), but only 4
+could decode simultaneously. Functionally identical to spawning 4
+threads — the 6 waiting threads still hold ~60 MB of file bytes, and
+decode throughput is the same bottleneck. More complex, same result.
+Not committed.
+
+Both approaches fail because:
+- 60 FPS keyboard nav on 4K images requires ~4 concurrent decodes
+  (each takes ~60ms, so 4 in parallel = ~67 images/sec throughput)
+- 4 concurrent decodes × ~60 MB per decode = ~240 MB minimum spike
+- There's no way to have both full FPS AND low spikes with eager
+  decode — the CPU memory is genuinely in use during decode
+
+## Next step: lazy decode architecture (not started)
+
+The fundamental fix is to follow iced's pattern:
+
+1. Background threads only read file bytes from disk (~10 MB per 4K PNG)
+2. Cache stores raw `Vec<u8>` encoded bytes, not decoded pixels
+3. Decode happens lazily — one image at a time when it needs to display
+4. A small texture cache holds recently-decoded textures for instant re-display
+
+This eliminates the "10 simultaneous 60 MB decodes" spike entirely.
+Peak becomes ~160 MB (10 × 10 MB raw bytes + 1 × 60 MB decode in
+progress) instead of 600 MB. All file reads complete in ~20ms (SSD
+parallel I/O). Decode throughput isn't a bottleneck because the
+sliding window pre-caches decoded textures for the images around the
+current position — keyboard nav hits cached textures, same as today.
+
+This is a real architecture change to SlidingWindowCache (different
+slot representation, decode-on-demand path, two-tier cache of raw
+bytes + decoded textures). Tracked for a follow-up.

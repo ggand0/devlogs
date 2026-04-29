@@ -166,6 +166,40 @@ Both approaches fail because:
 - There's no way to have both full FPS AND low spikes with eager
   decode — the CPU memory is genuinely in use during decode
 
+## Cross-platform results with configurable decode_threads
+
+Behavior is consistent across all three platforms: lower decode_threads
+reduces RSS spikes proportionally at the cost of keyboard nav FPS.
+FPS plateaus around 5 threads on both M1 (4P+4E cores) and the
+Windows test machine, matching the number of performance cores.
+mimalloc's spike recovery works on all platforms.
+
+### Windows (4K PNG dataset, Balanced mode)
+
+| decode_threads | KB nav FPS | Dir open RSS | Skate RSS | Slider release RSS | GPU |
+|---|---|---|---|---|---|
+| 1 | 12 | 270 MB | 400–422 MB | spike to 574 MB | 354 MB |
+| 5 | 50–54 | spike to 700 MB | 580–655 MB | 630–662 MB | 1.2 GB |
+| 10 | 50–54 | spike 630→235 MB | 500 MB–1.0 GB | spike to 835–870 MB | 1.3 GB |
+
+GPU counter works on Windows (DX12 backend). Dir-open at decode_threads=10
+shows mimalloc recovery: spike to 630 MB settles to 235 MB.
+
+### macOS (4K PNG dataset, M1 MacBook, unified memory)
+
+| decode_threads | KB nav FPS | Idle RSS | Skate RSS | Slider scrub/release |
+|---|---|---|---|---|
+| 1 | 15 | 91 MB | 92 MB | 145–350 MB |
+| 5 | 50–56 | 190 MB | 800 MB | 600–800 MB |
+| 10 | 50–56 | variable | 850–900 MB | 350–600 MB |
+
+GPU counter reads 0 on macOS — Metal backend doesn't use gpu_allocator.
+
+### Linux (4K PNG dataset, RTX 3090, Balanced mode)
+
+Tested at decode_threads=10 (default). See "Result" section above.
+Dir-open settles at 345 MB, slider scrub at 373 MB. Keyboard nav 60 FPS.
+
 ## Next step: lazy decode architecture (not started)
 
 The fundamental fix is to follow iced's pattern:

@@ -174,7 +174,7 @@ FPS plateaus around 5 threads on both M1 (4P+4E cores) and the
 Windows test machine, matching the number of performance cores.
 mimalloc's spike recovery works on all platforms.
 
-### Windows (4K PNG dataset, Balanced mode)
+### Windows (4K PNG dataset, Performance mode)
 
 | decode_threads | KB nav FPS | Dir open RSS | Skate RSS | Slider release RSS | GPU |
 |---|---|---|---|---|---|

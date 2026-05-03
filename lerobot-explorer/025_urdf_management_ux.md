@@ -98,6 +98,39 @@ The trajectory panel shows a `ComboBox` dropdown when multiple arms are loaded. 
 - `src/ui/input.rs` -- `.urdf` drop detection, `handle_urdf_drop()`, `reload_kinematics_from()` updated for multi-arm model
 - `src/ui/panels.rs` -- arm selector dropdown, cache clear on arm switch, `show_urdf_missing_panel()`
 
+## Persistent arm selection (commit 3)
+
+### Problem
+
+Auto-detection can't distinguish left from right when both URDFs have identical joint names (`joint_1` through `joint_7`) and the dataset state columns have no arm prefix. Both arms match equally, so the app defaulted to whichever came first alphabetically.
+
+### Solution
+
+Persist the user's arm choice to `~/.config/tracelr/arm_preferences.json`, keyed by canonicalized dataset path, value is the arm name string:
+
+```json
+{
+  "/home/user/datasets/openarm-left-demo": "left",
+  "/home/user/datasets/openarm-right-demo": "right"
+}
+```
+
+- **Save**: written to disk immediately when the user switches arms in the dropdown. Also updates the in-memory `arm_preferences` HashMap so subsequent dataset switches within the same session pick it up.
+- **Load**: read once at app startup into the in-memory map. On dataset load, `lookup_arm_preference` canonicalizes the dataset path and checks the map. If a match is found and the arm name exists in the loaded arms, it's selected.
+- **No implicit saves**: if the default arm is correct, no preference is written. Only explicit user switches trigger a save.
+
+Matching by arm name (not index) so preferences survive URDF file reordering.
+
+### Bug found during testing
+
+Initial implementation only wrote to disk but didn't update the in-memory `arm_preferences` map. So preferences saved during the current session were invisible to subsequent `load_dataset` calls. Fixed by updating both disk and in-memory map on arm switch.
+
+### Files changed
+
+- `src/trajectory.rs` -- `arm_prefs_path()`, `load_arm_preferences()`, `save_arm_preference()`, `lookup_arm_preference()`
+- `src/app.rs` -- `arm_preferences: HashMap<PathBuf, String>` field, loaded at startup, lookup in `load_dataset()`
+- `src/ui/panels.rs` -- save to disk + update in-memory map on arm switch
+
 ## Testing
 
 Tested with OpenArm datasets:
@@ -108,3 +141,5 @@ Tested with OpenArm datasets:
 5. With both `openarm_follower_left.urdf` and `openarm_follower_right.urdf` in config dir, the app shows "left" / "right" dropdown and switching produces correct trajectories for each arm
 6. Creating `openarm_follower.toml` with custom arm names shows "Left Arm" / "Right Arm" in dropdown
 7. TOML with `joint_prefix` produces empty pos_indices on single-arm datasets (expected -- prefix is for bimanual datasets). Removing `joint_prefix` falls back to joint name matching and works correctly
+8. Arm preference persistence: select right arm on dataset A, open dataset B, reopen dataset A -- right arm is restored
+9. Preference survives app restart (read from disk on startup)

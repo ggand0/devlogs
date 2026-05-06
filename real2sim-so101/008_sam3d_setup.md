@@ -158,15 +158,53 @@ output['gs'].save_ply('output.ply')
 
 ### Red cube
 - Input: 1536x2048 RGB, mask from color segmentation
-- Output: `assets/table_objects/red_cube/red_cube.ply` (72 MB)
+- Output: `assets/table_objects/red_cube/red_cube.ply` (72 MB) → `red_cube.usdz` (124 MB)
 - VRAM: 13.8 GB peak
 - Time: ~30 seconds
+
+### Green bowl (round, IMG_3651.JPEG)
+- Input: 1536x2048 RGB, mask from HSV color segmentation + convex hull cleanup
+- Output: `assets/table_objects/green_bowl_round/green_bowl.ply` (37 MB) → `green_bowl.usdz` (64 MB)
+- VRAM: 13.7 GB peak
+- Time: ~19 seconds
+- Shape and orientation verified in Isaac Sim
 
 ### Memory notes
 - Model load: 13.7 GB VRAM
 - Gaussian-only decode fits on RTX 3090 (24 GB)
 - Mesh decode OOMs — use `decode_formats=['gaussian']` to skip it
 - The `.ply` Gaussian splat can be converted to mesh separately if needed
+
+## PLY → USDZ Conversion (3DGRUT)
+
+SAM 3D outputs Gaussian splat PLY files. Isaac Sim can't import these directly — they need conversion to USDZ via 3DGRUT's NuRec exporter.
+
+```bash
+PATH=/data/3dgrut/.venv/bin:$PATH \
+/data/3dgrut/.venv/bin/python -m threedgrut.export.scripts.ply_to_usd \
+  input.ply --output_file output.usdz
+```
+
+First run JIT-compiles CUDA kernels (~60s), subsequent runs are fast.
+
+### Mask generation for new objects
+
+Masks generated via HSV color segmentation in OpenCV. For the green bowl, wider HSV range was needed to capture the darker lower body, followed by convex hull to clean shadow blobs. Masks saved as `0.png` (binary, same size as image).
+
+### Full pipeline: photo → sim asset
+
+1. Take photo of object on table (iPhone, any resolution)
+2. Generate binary mask (color segmentation or manual)
+3. Run SAM 3D inference: `image.png` + `0.png` → `object.ply` (Gaussian splat)
+4. Convert via 3DGRUT: `object.ply` → `object.usdz` (NuRec format)
+5. Open in Isaac Sim: File > Open `object.usdz`
+
+### Generated assets
+
+| Object | Image | PLY | USDZ |
+|---|---|---|---|
+| Red cube | `assets/table_objects/red_cube/image.png` | `red_cube.ply` (72 MB) | `red_cube.usdz` (124 MB) |
+| Green bowl (round) | `assets/table_objects/green_bowl_round/image.png` | `green_bowl.ply` (37 MB) | `green_bowl.usdz` (64 MB) |
 
 ## Checkpoints
 

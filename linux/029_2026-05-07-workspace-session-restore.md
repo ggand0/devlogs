@@ -127,6 +127,20 @@ Logs rotate automatically (truncated to 200 lines when exceeding 1000).
 - **Linux Window Session Manager (lwsm)** — Node.js CLI tool, good for X11 but same tmux limitation.
 - **devilspie2** — Lua-based window matching rules, better for static placement rules than dynamic session restore.
 
+## Bug Fix: Silent Crash on First Boot (2026-05-07)
+
+Restore script failed to open any windows after reboot. Log showed tmux started but nothing after.
+
+**Root cause:** `set -euo pipefail` + `grep` returning exit code 1 when no matching windows exist yet. At boot, `get_wids("gnome-terminal")` calls `wmctrl | grep "gnome-terminal" | ...` — grep finds no matches, returns 1, pipefail propagates it, `set -e` kills the script silently.
+
+**Fix:**
+- Changed `set -euo pipefail` → `set -uo pipefail` (removed `-e`, keep nounset + pipefail)
+- Added `|| true` to the grep pipeline in `get_wids()` and `comm` in `wait_for_new_window()`
+- Added `trap ERR` handler that logs the failing line number and content
+- Added verbose logging at each stage (desktop ready, tmux session availability, each window open/place result)
+
+**Note on "missing" autostart apps:** The old `gnome-terminal.desktop` and `nautilus.desktop` autostart entries were intentionally disabled since the restore script handles them. They appeared "gone" because the restore script crashed before opening any windows.
+
 ## Known Limitations
 
 1. **Nautilus paths with non-unique names** may resolve incorrectly (e.g., "tmp" matching wrong directory). Can be manually corrected in state.json.

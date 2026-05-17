@@ -149,13 +149,28 @@ IRL overhead cam is mounted ~58cm above the cube placement area on the table.
 
 ```
 scripts/
-  sim_teleop.py          # main loop — swaps EpisodeRecorder for LeRobotRecorder
-  lerobot_recorder.py    # LeRobotRecorder class wrapping LeRobot v3.0 API
-  recording_config.py    # YAML config loading
-  leader_reader.py       # unchanged
+  sim_teleop.py              # main loop — config loading, multi-cam, LeRobotRecorder
+  lerobot_recorder.py        # LeRobotRecorder — buffers frames, saves via subprocess
+  lerobot_save_episode.py    # subprocess worker — runs in lerobot venv, writes v3.0 dataset
+  recording_config.py        # YAML config loading
+  leader_reader.py           # unchanged
 configs/
-  recording.yaml         # default recording config
+  recording.yaml             # default recording config
 ```
+
+## Process Isolation (sys.path failed)
+
+Initial approach was `sys.path.insert(0, lerobot_site_packages)` to import lerobot inside the Isaac Sim process. This crashed Isaac Sim because:
+
+- Isaac Sim bundles numpy 1.26 + torch 2.7 + cu128
+- lerobot 0.4.4 venv has numpy 2.2 + torch 2.10 + cu128
+- Inserting lerobot's site-packages poisoned the process with incompatible numpy C extensions
+
+**Solution:** Subprocess isolation. `lerobot_recorder.py` buffers frames in memory as numpy arrays during recording. On `save_episode()`, it dumps the buffer to a temp directory (as `.npy` files) and spawns `/data/lerobot-v3/.venv/bin/python scripts/lerobot_save_episode.py` as a subprocess. The subprocess runs entirely in lerobot's venv, loads the numpy data, calls `LeRobotDataset.add_frame()` + `save_episode()` + `finalize()`, and outputs JSON on stdout with the episode count.
+
+Additional fix: `HF_HUB_OFFLINE=1` is set in the subprocess to prevent lerobot from trying to contact HuggingFace Hub when loading local datasets.
+
+The subprocess takes ~5-10 seconds per episode (dominated by AV1 video encoding of the camera frames). This is acceptable since it only runs between episodes, not during the teleop loop.
 
 ## Install Commands
 
@@ -166,12 +181,35 @@ uv venv /data/lerobot-v3/.venv --python 3.10
 # Install lerobot 0.4.4
 uv pip install --python /data/lerobot-v3/.venv/bin/python lerobot==0.4.4
 
-# Verify
-/data/lerobot-v3/.venv/bin/python -c "from lerobot.datasets import LeRobotDataset; print('OK')"
+# Verify import
+/data/lerobot-v3/.venv/bin/python -c "from lerobot.datasets.lerobot_dataset import LeRobotDataset; print('OK')"
 ```
+
+## Verified
+
+- AV1 video encoding works (SVT-AV1 encoder available)
+- Dataset create + save + resume across sessions works
+- Episode discard works (in-memory buffer cleared, no subprocess call)
+- v3.0 parquet + MP4 + metadata structure correct
+- Dataset loadable by lerobot for training
+
+## Overhead Camera
+
+Created programmatically in `sim_teleop.py` at startup if `overhead` is in the camera config. Recreated each launch to pick up any parameter changes.
+
+- **USD path:** `/World/OverheadCamera`
+- **Position:** (0.10, -0.10, 1.315) — centered on workspace, 58cm above table (Z=0.735)
+- **Rotation:** (0, 0, 0) — no rotation needed. USD cameras look along -Z in local space, which is straight down in Z-up world.
+- **FOV:** focal_length computed for ~50cm horizontal coverage at 58cm distance
+- **Resolution:** 640x480 (matching wrist cam and IRL overhead)
+
+### Orientation debugging
+
+Initial attempt used (-90, 0, 0) X rotation — produced black image because it rotated the camera to look along the Y axis (sideways into nothing). Second attempt (180, 0, 0) also black — pointed the camera upward at the sky. No rotation is correct because -Z is already down.
+
+Position was also shifted from the original (0.11, -0.29) aligned with robot base to (0.10, -0.10) to center bowl, cube, and robot arm in frame. Verified with headless render test.
 
 ## Open Questions
 
-- Video codec: lerobot 0.4.4 prefers AV1 when available, falls back to H.264. Isaac Sim's system may not have AV1 encoder — need to check.
-- Whether `sys.path` insertion for lerobot's site-packages causes any import conflicts with Isaac Sim's bundled packages.
-- Overhead camera FOV/focal length may need tuning after visual inspection in the sim viewport.
+- Video decoding at training time needs system ffmpeg 6+ dev libraries (libavutil58 exists on system but torchcodec needs different .so naming). May need `apt install libavdevice-dev` or similar.
+- Memory usage: buffering 640x480x3 uint8 frames for 2 cameras at 30fps means ~18 MB/s. A 30-second episode buffers ~540 MB. Long episodes may need disk-backed buffering.

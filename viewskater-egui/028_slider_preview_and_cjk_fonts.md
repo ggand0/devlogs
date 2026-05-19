@@ -176,8 +176,222 @@ fallback fonts regardless of locale, with a user toggle to disable.
 4. This approach follows Sentrux's pattern but uses `font-kit` for more robust
    cross-platform font discovery.
 
+## macOS slider preview delay (~1s to appear)
+
+### Symptom
+
+On macOS, the slider thumbnail preview takes ~1 second to appear on hover,
+regardless of image resolution. On Linux (desktop, X11) it appears instantly.
+
+### Root cause: egui tooltip delay + macOS pointer event frequency
+
+The PR uses `response.on_hover_ui_at_pointer()` which internally goes through
+egui's tooltip pipeline. In egui 0.31, `should_show_hover_ui()` (response.rs)
+gates tooltip rendering behind two checks:
+
+1. **`show_tooltips_only_when_still: true`** (default) — the tooltip is
+   suppressed until `pointer.is_still()` returns true. egui checks whether the
+   pointer moved between the last two frames.
+2. **`tooltip_delay: 0.5`** (default) — after the pointer is deemed "still",
+   an additional 0.5 second timer must elapse before rendering.
+
+macOS reports pointer events at very high frequency (120-240Hz, tied to display
+refresh). Even sub-pixel micro-movements from hand tremor are reported as motion
+events, so `is_still()` rarely returns true. The user must hold the mouse
+genuinely motionless for the stillness check to pass, then wait the 0.5s delay
+— totaling ~1 second in practice.
+
+On Linux X11, pointer events are coarser and batched at a lower rate. Small
+jitter is filtered out, so `is_still()` becomes true almost immediately, making
+the 0.5s delay the only wait (and it feels negligible because the stillness
+check passes quickly).
+
+Additionally, the tooltip system suppresses rendering entirely during drag
+(`pointer.any_down() && has_moved_too_much_for_a_click` → return false), so the
+preview would never show while dragging the slider — though the contributor's
+current code only uses `hover_pos()` not `interact_pointer_pos()`, so this
+doesn't affect the current UX.
+
+The relevant egui code path (egui 0.31, `response.rs:748-769`):
+
+```rust
+if style.interaction.show_tooltips_only_when_still {
+    if !self.ctx.input(|i| i.pointer.is_still() && ...) {
+        self.ctx.request_repaint();
+        return false;  // suppressed until mouse is "still"
+    }
+}
+let time_til_tooltip = tooltip_delay - time_since_last_interaction;
+if 0.0 < time_til_tooltip {
+    self.ctx.request_repaint_after_secs(time_til_tooltip);
+    return false;  // suppressed until delay elapses
+}
+```
+
+### Fix
+
+The contributor independently fixed the delay by switching from
+`on_hover_ui_at_pointer` to `show_tooltip_at` in his force-push (see section
+below). However, both `show_tooltip_at` and `egui::Area` caused a separate
+flickering issue on macOS (also documented below). The final fix uses
+`ctx.layer_painter()` to paint the preview directly — no widget-level APIs,
+no hit-testing interference.
+
+## Thumbnail cache key mismatch in `initialize()`
+
+### Bug
+
+In `SlidingWindowCache::initialize()`, the center image's thumbnail was stored
+with a slot-relative key instead of the absolute file index:
+
+```rust
+let center_slot = center_index - self.first_file_index;
+// slots use window-relative indexing — correct:
+self.slots[center_slot] = Some(tex);
+// thumbnails HashMap uses absolute file index — BUG: used center_slot
+self.thumbnails.insert(center_slot, Some(thumb));  // e.g. key=5
+```
+
+But `current_thumbnail_for()` and `poll()` both look up thumbnails by absolute
+file index (e.g., key=50). So the center image's thumbnail from `initialize()`
+is stored at the wrong key and never found, causing a fallback to
+`generate_thumbnail_sync()` — a redundant full `image::open()` + resize on the
+UI thread.
+
+### Scope
+
+Only affects `initialize()` and `jump_to()` (which calls `initialize()`).
+Background-decoded images go through `poll()` which correctly uses `file_index`
+as the HashMap key. So normal sliding through cached neighbors was unaffected.
+
+After the first cache miss, `current_thumbnail_for()` re-caches the thumbnail
+at the correct absolute key, so subsequent hovers on the same index are fine.
+The bug caused one redundant sync decode per `initialize()`/`jump_to()` call.
+
+### Fix
+
+```rust
+self.thumbnails.insert(center_index, Some(thumb));  // was center_slot
+```
+
+## Contributor force-push: `show_tooltip_at` and dynamic sizing
+
+After the initial review, the contributor force-pushed with a rebased history.
+Key changes:
+
+- **Tooltip API**: Replaced `on_hover_ui_at_pointer()` with
+  `egui::show_tooltip_at()`. This also bypasses the tooltip delay because
+  `show_tooltip_at` calls `show_tooltip_at_dyn` directly — it never goes
+  through `Response::should_show_hover_ui()` where the stillness check and
+  delay timer live. So he independently fixed the macOS delay issue.
+
+- **Dynamic sizing**: Preview dimensions now scale with window size via
+  `SCREEN_PREVIEW_UI_RATIO` (window size / 5, floored at THUMBNAIL_WIDTH x
+  THUMBNAIL_HEIGHT). `screen_rect()` in egui returns the window rect, not the
+  physical monitor.
+
+- **CJK font support**: Hardcoded platform-specific font paths
+  (PingFang on macOS, NotoSansCJK on Linux, msyh on Windows) loaded at startup
+  as fallback fonts.
+
+- **Rebased onto PR #19**: His branch now includes the mouse-wheel-zoom merge,
+  which moved scroll-to-navigate handling to the app level.
+
+## macOS preview flickering with `show_tooltip_at` / `egui::Area`
+
+### Symptom
+
+On macOS, the slider preview flickers — rapidly appearing and disappearing —
+when the cursor hovers over the slider and is held still. Intermittent:
+sometimes the preview is stable, sometimes it flashes. Does not reproduce on
+Linux. Not present in the pre-force-push code (which used
+`on_hover_ui_at_pointer` and had the delay issue instead).
+
+### Root cause: widget-based rendering interferes with hit-testing
+
+Both `show_tooltip_at` and a manual `egui::Area` register widgets in egui's
+hit-testing system, which causes a frame-alternation cycle:
+
+**Background: egui's hit-testing pipeline**
+
+egui is immediate mode — widgets don't persist between frames. To determine
+hover/click/drag state, egui records all widget rects during frame N, then at
+the start of frame N+1 runs hit-testing against those saved rects. The
+hit-testing walk (`hit_test.rs`) iterates widgets sorted by layer order
+(front-to-back), checks spatial overlap with the pointer, and determines which
+widget gets `hovered`, `drag`, and `click` status. Higher-order layers
+(`Order::Tooltip`) are evaluated before lower layers (`Order::Background`).
+
+**The flickering cycle**
+
+- **Frame N**: Only the slider widget exists from the previous frame. Hit-test
+  → slider is hovered → `hover_pos()` returns `Some` → preview rendering code
+  runs → a widget is registered on the tooltip layer (either via
+  `show_tooltip_at`'s internal `Area`, or our explicit `egui::Area`).
+
+- **Frame N+1**: Hit-testing sees TWO widgets near the pointer: the slider
+  (background layer) and the preview widget (tooltip layer). The tooltip layer
+  is higher-order, so it's evaluated first. The preview widget's large
+  `interact_rect` (300-400px tall, positioned close to the slider) can cause
+  egui's layer-inclusion logic (`hit_test.rs:115-124`) to exclude the slider's
+  layer, or alter which widget wins `hits.drag`. The slider loses its `hovered`
+  flag → `hover_pos()` returns `None` → preview code doesn't run → no preview
+  widget registered for next frame.
+
+- **Frame N+2**: Only the slider exists again (preview widget wasn't rendered
+  last frame) → slider is hovered → preview renders → widget registered.
+
+- **Frame N+3**: Same as Frame N+1. Visible as rapid flashing.
+
+The intermittency depends on exact pointer position, window size, and dynamic
+preview sizing — all of which affect whether the preview's `interact_rect`
+overlaps the hit-testing search area around the pointer.
+
+**Why `egui::Area` with `.interactable(false)` didn't help**
+
+`.interactable(false)` only changes the Area's default sense from
+`Sense::click()` to `Sense::hover()` (`area.rs:458-465`). The Area still calls
+`ctx.create_widget(WidgetRect { ... })` with that sense, so the widget rect is
+still registered in the hit-testing system. A `Sense::hover()` widget doesn't
+appear in `hits.click` or `hits.drag`, but its presence on the tooltip layer
+still affects the layer-inclusion walk that determines which lower-layer
+widgets are reachable.
+
+**Why the pre-force-push code didn't flicker**
+
+The pre-force-push code used `on_hover_ui_at_pointer`, which gates rendering
+behind `should_show_hover_ui()`. The tooltip delay meant the preview rarely
+appeared at all on macOS (the delay issue), so the hit-testing interference
+cycle never got started. The flickering was latent but masked by the delay bug.
+
+### Fix: `layer_painter` — pure paint, no widgets
+
+`ctx.layer_painter(layer_id)` returns a `Painter` bound to a specific render
+layer. It emits raw draw commands (`painter.rect()`, `painter.image()`,
+`painter.galley()`) directly into the render queue — no layout, no widget
+registration, no `create_widget()` call. The preview is visually present on
+the tooltip layer but completely invisible to the hit-testing pipeline.
+
+The tradeoff is fully manual positioning: we read `style.visuals.window_fill()`,
+`window_stroke()`, `menu_corner_radius`, and `spacing.menu_margin` to match
+the default popup appearance, then compute frame rect, content offsets, image
+centering, and label position by hand.
+
+```rust
+let layer_id = egui::LayerId::new(
+    egui::Order::Tooltip, egui::Id::new("slider_preview"),
+);
+let painter = ui.ctx().layer_painter(layer_id);
+painter.rect(frame_rect, corner_radius, fill, stroke, StrokeKind::Outside);
+painter.image(tex.id(), img_rect, uv, egui::Color32::WHITE);
+painter.galley(label_pos, label_galley, text_color);
+```
+
+This is the lowest-level drawing API in egui. It sits below Area, Frame, and
+the widget system. No widget rects are registered, so the slider's hover state
+is never disturbed regardless of preview size or position.
+
 ## Open questions
 
 - Should thumbnails be generated in background threads rather than cloning
   `DynamicImage` (the PR clones the full image before downscaling)?
-- Exact positioning math for fixed-offset preview above the slider.

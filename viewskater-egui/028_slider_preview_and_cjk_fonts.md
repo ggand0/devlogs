@@ -391,7 +391,195 @@ This is the lowest-level drawing API in egui. It sits below Area, Frame, and
 the widget system. No widget rects are registered, so the slider's hover state
 is never disturbed regardless of preview size or position.
 
-## Open questions
+## Post-87a2708 review (2026-05-23)
 
-- Should thumbnails be generated in background threads rather than cloning
-  `DynamicImage` (the PR clones the full image before downscaling)?
+The contributor pushed three more commits after the initial review:
+
+- `da086e8` -- Fixed macOS flickering by switching to `layer_painter` (see
+  section above).
+- `d3e9f10` -- Fixed the thumbnail keying bug (`center_slot` -> `center_index`),
+  added `thumbnails.clear()` on cache reset, removed the min size floor for
+  preview scaling, hides preview while dragging (`!response.dragged()`).
+- `87a2708` -- Replaced the synchronous thumbnail loading in
+  `current_thumbnail_for` with an async system: separate `mpsc` channel, `in_gen`
+  HashSet, `pending_generates` VecDeque, and a spinner rendered while waiting.
+  Motivation: the contributor is working on compressed file support and wanted
+  async loading for large images.
+
+### CJK font loading is needed
+
+Initially assumed CJK font loading was unused because the tooltip only shows the
+image index. Testing with CJK-named images confirmed the footer
+(`src/menu.rs:377`, `paint_pane_footer`) displays filenames via egui text
+rendering, which shows missing-glyph squares without CJK fonts loaded. The
+window title bar renders CJK correctly without the loading code because it uses
+OS-level text rendering, not egui.
+
+### Async thumbnail loading (87a2708) is a regression
+
+The sync approach in `d3e9f10` rendered thumbnails instantly -- decode and return
+in the same frame. The async approach in `87a2708` returns `None` on cache miss
+and shows a spinner. When scrubbing the slider, every new position is a miss, so
+the spinner flashes constantly. The sync version had no perceptible lag even on
+4K images since thumbnails are small and decode fast.
+
+Two additional bugs in the async code:
+- `spawn_thumbnail_thread` never calls `ctx.request_repaint()` after sending the
+  result, so completed thumbnails sit in the channel until something else
+  triggers a repaint.
+- `poll()`'s repaint condition only checks `pending_uploads` and
+  `pending_decodes`, not `in_gen` or `pending_generates`, so the repaint loop
+  stops while thumbnail work is still in-flight.
+- `poll()` line 204 calls `self.spawn_thread` (full-image decode) instead of
+  `self.spawn_thumbnail_thread` when draining `pending_generates`. Pending
+  thumbnail requests were spawning full-image decode threads, decoding at full
+  resolution and sending results through the wrong channel.
+
+### Performance regression: keyboard nav fps drops from >60 to 30-35
+
+Tested on Linux, NVMe SSD, 24-core CPU, 4K images.
+
+**Root cause 1: `img.clone()` in decode paths**
+
+Both `decode_sync` and the background `spawn_load` thread cloned the full
+`DynamicImage` before converting -- one copy for `image_to_color_image`, one for
+`image_to_thumbnail`. For 4K images that's ~32MB per clone. Fix: change
+`image_to_thumbnail` to take `&DynamicImage`, generate thumbnail by reference
+first, then pass ownership to `image_to_color_image`.
+
+**Root cause 2: thumbnail generation piggybacked on every full-image decode**
+
+Every background decode and `decode_sync` call generated a thumbnail alongside
+the full image, even during keyboard navigation when the preview isn't visible.
+This added unnecessary work to every decode in the pipeline. Fix: removed
+thumbnail generation from `decode_sync`, `spawn_load`, `DecodeResult`, and
+`poll()` upload path. Thumbnails are now only generated on-demand when the user
+hovers the slider.
+
+After these two fixes, keyboard-only navigation returned to >60fps matching main.
+
+**Root cause 3: `current_thumbnail_for` causes fps drop during hover + keyboard nav**
+
+With the preview disabled entirely (hover block commented out), fps stays at 60
+during keyboard nav. With the preview enabled but `current_thumbnail_for`
+stubbed to return `None` (no thumbnail loading, just the frame/spinner drawing),
+fps stays at 60. So the bottleneck is `current_thumbnail_for` itself.
+
+The async path spawns a new OS thread (`std::thread::spawn`) for every cache
+miss. During keyboard navigation while hovering, `cursor_index` changes every
+frame, and each new index is a miss. This means dozens of thread spawns per
+second, each doing a full `image::open()` on a 4K image. The thread spawn
+overhead is the problem.
+
+The sync path (`d3e9f10`) didn't have this issue because it blocked and returned
+in one call -- no thread management overhead.
+
+### Fix plan: persistent thumbnail worker thread
+
+Replace `std::thread::spawn` per thumbnail with a single persistent worker
+thread that receives requests via a channel. When a new hover position arrives,
+the worker processes the latest request. This eliminates per-frame thread spawn
+overhead and avoids queuing up stale requests for positions the user has already
+moved past.
+
+### Hybrid sync/async thumbnail loading (2026-05-24)
+
+After extensive testing, settled on a hybrid approach:
+
+- **Sync for files <= 20MB**: `current_thumbnail_for` calls `image::open()` +
+  `image_to_thumbnail()` directly on the main thread. Returns the correct
+  thumbnail in the same frame. Tested with 10MB 4K PNGs -- no perceptible
+  lag even during fast hover scrubbing.
+- **Async for files > 20MB**: sends request to a persistent worker thread.
+  Returns the previous thumbnail as a placeholder until the new one is ready.
+  No spinner, no empty frame.
+
+**File size threshold**: measured decode times using PIL as a rough proxy:
+- 10MB 4K PNG: ~150ms -- feels instant to the user
+- 98MB PNG: ~2000ms -- would block the UI unacceptably with sync
+
+20MB threshold covers all typical images (JPEGs, standard PNGs) with sync while
+pushing giant PNGs and future archived/compressed files to async.
+
+**Previous frame display**: when async returns `None` for the requested index,
+`current_thumbnail_for` returns the last successfully displayed thumbnail
+(`thumb_texture`) instead. The preview always shows an image -- the previous
+one until the new one arrives. No spinner, no black background.
+
+**Single reusable GPU texture**: instead of creating a new `TextureHandle` per
+thumbnail (which grows GPU memory), a single `thumb_texture` is reused.
+`tex.set()` swaps the pixel data in place without allocating a new GPU texture.
+
+### Disable preview during keyboard navigation
+
+Preview is hidden while nav keys (A/D/arrows) are held. The preview exists for
+browsing the slider -- during keyboard nav, the main image already shows what
+the user is looking at. This also avoids the fps interference from thumbnail
+loading during rapid navigation.
+
+### Bugs fixed in contributor's async thumbnail code
+
+**Missing `request_repaint` in `spawn_thumbnail_thread`**
+
+After the thumbnail background thread finishes decoding and sends its result
+into the channel, nothing tells egui to render a new frame. egui only renders
+when there's a reason to -- user input (mouse, keyboard) or an explicit
+`request_repaint()` call. If the user's cursor is sitting still on the slider
+waiting for a thumbnail to load, there's no input, so egui has no reason to
+render. The decoded thumbnail sits in the channel until the user happens to
+move the mouse or something else triggers a frame.
+
+The full-image `spawn_thread` already calls `ctx.request_repaint()` after
+sending its result. The contributor just missed doing the same in
+`spawn_thumbnail_thread`.
+
+Fix: clone `ctx` into the thread and call `ctx.request_repaint()` after
+`tx.send()`.
+
+**Wrong function in `poll()` thumbnail queue drain**
+
+In `poll()`, when draining `pending_generates` (thumbnail requests that were
+queued because the thread limit was hit), the code called `self.spawn_thread`
+(the full-image decode function) instead of `self.spawn_thumbnail_thread`.
+
+`spawn_thread` decodes the image at full resolution via `image_to_color_image`
+and sends the result through `tx` (the full-image channel). The result ends up
+in `pending_uploads` and gets uploaded as a full-size GPU texture -- not a
+thumbnail. So any thumbnail request that got queued (because thread slots were
+full) would decode the entire image at full resolution, send it through the
+wrong channel, and never appear as a thumbnail. Only the first batch of
+requests that fit within the thread limit actually produced thumbnails.
+
+Fix: `self.spawn_thread(idx, &path)` -> `self.spawn_thumbnail_thread(idx, &path)`.
+
+### CJK font loading is needed
+
+Tested by disabling the CJK font loading code and viewing images with Japanese
+filenames. The window title renders correctly (OS-level text rendering) but the
+footer (`src/menu.rs:377`, `paint_pane_footer`) shows missing-glyph squares
+because egui's built-in fonts don't include CJK glyphs. The contributor's
+hardcoded-path approach works -- NotoSansCJK on this Linux system is at
+`/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc`.
+
+### Preview scaling should use window size
+
+The contributor's scaling uses `ui.ctx().screen_rect()` which in egui returns
+the window rect, not the monitor. However, the preview still felt too large at
+typical window sizes. The `.max(THUMBNAIL_WIDTH/HEIGHT)` floor was removed in
+`d3e9f10`, which helps. Further tuning may be needed.
+
+### Thumbnail cache has no eviction
+
+The `thumbnails: HashMap` grows without bound during a session. Unlike the
+sliding window cache which evicts at the edges, thumbnails are never removed
+(except on `initialize()` which clears the whole map). A cap or LRU eviction
+should be added.
+
+### PNG partial-resolution decoding is not possible
+
+Researched whether PNG can be decoded at reduced resolution (like JPEG's 1/8
+decode). It cannot -- PNG requires full decode then resize. Same for BMP, WebP,
+TIFF. JPEG is the only common format supporting reduced-resolution decode, but
+special-casing one format isn't worth it. The current approach (full
+`image::open()` then downscale) is the only option for format-agnostic
+thumbnails.

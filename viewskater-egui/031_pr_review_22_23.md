@@ -131,4 +131,82 @@ rest of the code.
 
 ### Status
 
-Code reviewed. Behavior tested. Ready to merge.
+Code reviewed. Behavior tested. Merged.
+
+---
+
+## PR #24 -- Add sorting options (+291 / -39)
+
+### What it does
+
+Adds sort options to settings: sort by name, modified date, created date,
+file size, or extension, with ascending/descending direction. Settings
+persist to `settings.yaml`. Changing sort re-enumerates all panes while
+preserving current image, zoom, and pan.
+
+Files touched: `app.rs`, `app/handlers.rs`, `file_io.rs`, `pane.rs`,
+`settings.rs`, `theme.rs`.
+
+### Sorting logic (file_io.rs)
+
+Clean separation: `sort_paths` for name/extension (no metadata needed),
+`sort_files` for date/size (reads metadata once per entry via `ImageFile::new`).
+All sort modes fall back to `compare_names` as a tiebreaker via `.then_with()`.
+Uses `natord::compare` for natural sorting (already used in the original code).
+
+### Settings changes (settings.rs)
+
+`SettingsChanges` struct replaces the old bool return from `show_settings_modal`.
+Uses the existing `snapshot` for comparison instead of individual `prev_*`
+values. Backdrop layer moved from `Foreground` to `Middle`, modal from
+`Tooltip` to `Foreground` to fix dropdowns being hidden. Selection stroke
+color set to dark gray for readable dropdown text.
+
+### UX discussion: View menu vs settings
+
+We asked the contributor to add a Sort By submenu to the View menu for
+quick access, since most image viewers (IrfanView, Gwenview, gThumb,
+Geeqie) put sort options in a menu, not buried in settings.
+
+Sorting has two use cases:
+1. Temporary: sort to find something, then stop caring
+2. Persistent: always want a specific sort for your workflow
+
+For case 1, persisting the View menu sort is problematic because you might
+forget you changed it and the next session starts with an unintended order.
+For case 2, having a persistent default in settings makes sense.
+
+Final design: View menu sort is session-only (writes to `current_sort`,
+resets to settings default on restart). Settings modal defines the persistent
+default. "Reset to Default" in the View menu submenu resets to the user's
+configured default from settings, not a hardcoded value.
+
+### Design note: View menu writing to settings
+
+The existing View menu toggles (Footer, FPS, Cache Overlay) write directly
+to `settings` fields and persist via the snapshot comparison in `app.rs`.
+This means the View menu is coupled to the persistence layer, which is
+not ideal. Sorting avoids this by using a separate `current_sort` field,
+but this creates extra plumbing (the field on App, a `MenuBarState` wrapper
+struct to stay under clippy's argument limit, snapshot comparisons for both
+settings and current_sort).
+
+The root issue is that View menu items shouldn't write to settings at all.
+The existing toggles persisting from the View menu is a pre-existing design
+issue. Cleaning this up (separating session state from persisted settings
+for all View menu items) is out of scope for this PR but worth addressing
+later.
+
+### Our local commits
+
+1. Radio button accent flash fix in Sort By submenu (set
+   `widgets.active.bg_fill` to transparent)
+2. Hint text under Files section in settings ("Default sorting for newly
+   opened folders")
+3. Session-only View menu sorting with Reset to Default, bundled into
+   `MenuBarState` struct
+
+### Status
+
+Code reviewed. View menu added. Waiting on contributor response regarding
+session vs persistent sorting design.

@@ -206,7 +206,20 @@ later.
 3. Session-only View menu sorting with Reset to Default, bundled into
    `MenuBarState` struct
 
+### Bug: tiebreaker ignores sort direction
+
+Sorting by modified date ascending then switching to descending leaves the
+last chunk of images in the original ascending order. The cause is in
+`sort_files` and `sort_paths` (`file_io.rs:99-101` and `86-88`): the
+`compare_names` tiebreaker is always ascending. When files share the same
+modified time, flipping the direction doesn't affect their order.
+
+The fix is to wrap the tiebreaker with `apply_sort_direction` too:
+```rust
+.then_with(|| apply_sort_direction(compare_names(&a.path, &b.path), sort_direction))
+```
+
 ### Status
 
-Code reviewed. View menu added. Waiting on contributor response regarding
-session vs persistent sorting design.
+Code reviewed. View menu added. Sorting tiebreaker bug found. Waiting on
+contributor response.

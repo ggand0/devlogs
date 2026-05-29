@@ -583,3 +583,197 @@ TIFF. JPEG is the only common format supporting reduced-resolution decode, but
 special-casing one format isn't worth it. The current approach (full
 `image::open()` then downscale) is the only option for format-agnostic
 thumbnails.
+
+## Contributor response and follow-up (2026-05-25 -- 2026-05-29)
+
+### Contributor's `e1758d8` commit
+
+The contributor pushed a commit addressing the feedback from our review. Changes:
+
+- Removed piggybacked thumbnail generation from `spawn_load`, `decode_sync`,
+  `DecodeResult`, and the `poll()` upload path. Same fix we identified.
+- Added hybrid sync/async with the same 20MB threshold we suggested
+  (`BACKGROUND_FILE_SIZE = 20_971_520`).
+- Restored `generate_thumbnail_sync` for the sync path.
+- Moved `THUMBNAIL_WIDTH/HEIGHT` constants from `app.rs` to `decode.rs`.
+- Added early return in `image_to_thumbnail` to skip resize for images already
+  smaller than 400x300.
+
+Remaining issue: `decode_sync` still had `img.clone()` even though thumbnails
+are no longer generated alongside. The clone copied ~32MB of pixel data per
+4K image for no reason.
+
+### Contributor's comment
+
+The contributor confirmed they found the spinner annoying too, and that the fps
+drop from piggybacked thumbnail generation was unexpected. They tested sync
+loading with `4k_PNG_10MB` images and 7z files and saw the fps drop with sync
+on large files, which is why they switched to async. They suggested a config
+toggle for the preview.
+
+### Our follow-up commits
+
+**`def8362` -- Remove redundant image clone and hide preview during keyboard nav**
+
+- Removed the unnecessary `img.clone()` in `decode_sync`. Now that thumbnails
+  are not generated alongside full-image decodes, the clone serves no purpose.
+  For 4K images this was copying ~32MB of pixel data per decode.
+- Added `nav_active` check in `paint_nav_slider`: the preview is hidden while
+  keyboard nav keys (A/D/Left/Right) are held down. The preview exists for
+  browsing via the slider; during keyboard nav the main image already shows
+  what the user is looking at. This also avoids any fps interference from
+  thumbnail loading during rapid navigation.
+
+**`aec9760` -- Previous-frame fallback and single reusable texture**
+
+- When `current_thumbnail_for` has an async cache miss (file > 20MB), it returns
+  the last displayed thumbnail instead of `None`. The preview always shows an
+  image -- the previous one stays visible until the new one arrives. No spinner,
+  no black background, no empty frame.
+- Instead of creating a new GPU texture per thumbnail (which grows GPU memory
+  unbounded), a single `thumb_texture` is reused. `tex.set()` swaps the pixel
+  data in place without allocating a new GPU texture. Only one texture exists
+  at a time.
+- Removed `generate_thumbnail_sync` (sync path is now inline in
+  `current_thumbnail_for`) and the spinner rendering code from
+  `paint_nav_slider`.
+
+**Persistent worker thread (not yet committed)**
+
+A single persistent worker thread design was implemented and saved in
+`tmp/cache_with_worker.rs` for reference. It replaces the per-request
+`std::thread::spawn` with a long-lived thread that blocks on a channel, drains
+to the latest request (discards stale ones), and calls `request_repaint()` when
+done. This was identified as a fix for fps drops during hover + keyboard nav
+(dozens of thread spawns per second), but needs isolated performance testing
+before committing. The preview is hidden during keyboard nav anyway, so the
+urgency is low.
+
+### Performance testing summary
+
+All tests on Linux, NVMe SSD, 24-core CPU, RTX 3090, 4K PNG images (~10MB each).
+
+| Scenario | main branch | PR (piggybacked) | PR (fixed) |
+|---|---|---|---|
+| Keyboard nav only | >60fps | 30-35fps | >60fps |
+| Hover only | N/A | ~60fps | ~60fps |
+| Keyboard nav + hover | N/A | 30-35fps | 50-60fps |
+
+The remaining 50fps during keyboard nav + hover is from the preview rendering
+code itself (layer_painter, galley layout, style lookups). Hiding the preview
+during keyboard nav sidesteps this entirely.
+
+### Thumbnail decode timing measurements
+
+Measured with Python PIL as a rough proxy (Rust `image` crate is typically
+faster):
+
+| File size | Decode + downscale to 400x300 |
+|---|---|
+| 10MB 4K PNG | ~150ms |
+| 98MB PNG | ~2000ms |
+
+10MB feels instant with sync. 98MB would block the UI for 2 seconds. The 20MB
+threshold covers all typical images with sync while pushing giant files to
+async.
+
+### Preview FPS benchmarks (using preview-specific counter)
+
+Measured with a dedicated preview FPS counter that only ticks when the hover
+cursor moves to a new image index. Tested on 4K PNG images (~10MB each), with
+async threshold lowered to 1MB to force all images through the async path.
+
+| Configuration | Preview FPS |
+|---|---|
+| Sync thumbnail loading | 10-11 |
+| Async (per-request thread spawn) | 30-35 |
+| Async (persistent worker thread) | 37-42 |
+
+Sync is slower per-frame because it blocks until the thumbnail is ready. Async
+is faster because it returns immediately (showing the previous thumbnail) and
+decodes in the background. The persistent worker gives a modest improvement
+over per-request spawning.
+
+### First-5-seconds sluggishness investigation
+
+On the original async system (`ac85d5e`), the slider preview is noticeably
+sluggish for the first ~5 seconds after loading images, then smooths out.
+
+Tested by reproducing the original async code at `ac85d5e` with only the
+previous-frame fallback added. The sluggishness was present both WITH and
+WITHOUT piggybacked thumbnail generation, ruling that out as the cause.
+
+**Isolation testing to find the root cause:**
+
+Tested on `ac85d5e` base with previous-frame fallback, piggybacked thumbnails
+removed, and spinner removed. Applied changes incrementally:
+
+1. Capping `poll()` thumbnail `load_texture` to 1 per frame -- still sluggish.
+2. Replacing per-request `std::thread::spawn` with persistent worker -- not
+   tested in isolation on this base (was tested on later code where
+   sluggishness was already gone).
+3. Replacing per-thumbnail `ctx.load_texture()` (creates a new GPU texture each
+   time) with a single reusable `TextureHandle` updated via `tex.set()` (swaps
+   pixel data in an existing texture) -- **sluggishness gone.**
+
+**Instrumentation results:**
+
+- `ctx.load_texture()` takes 2-9 microseconds per call. Constant, does not
+  grow with texture count.
+- `device.poll(Maintain::Wait)` takes a consistent 6-7ms regardless of
+  thumbnail texture count. The spikes continue even after thumbnail uploads
+  stop -- this is baseline GPU sync cost for rendering 4K images, not caused
+  by thumbnails.
+- Thumbnail uploads are 1 per frame (occasionally 2). Never batched.
+- Sliding window cache loads within ~1.5 seconds (cache overlay), but
+  sluggishness lasts ~5 seconds.
+
+**What we know:**
+
+- Per-thumbnail `ctx.load_texture()` (new GPU texture each time): sluggish
+  for ~5 seconds.
+- Single reusable texture via `tex.set()`: no sluggishness.
+- Capping `load_texture` to 1 per frame: still sluggish.
+- Neither `load_texture` call time nor `device.poll` time increases with
+  texture count.
+
+**egui internals (epaint/src/textures.rs):**
+
+`ctx.load_texture()` calls `TextureManager::alloc` which creates a new texture
+ID and pushes an `ImageDelta::full` onto `delta.set`. Each new ID creates a
+new wgpu texture in the renderer (`device.create_texture()` +
+`device.create_bind_group()` + `queue.write_texture()`). These textures are
+never freed (stored in HashMap, no eviction).
+
+`tex.set()` calls `TextureManager::set` which reuses the same ID. Line 62:
+`self.delta.set.retain(|(x, _)| x != &id)` discards previous enqueued deltas
+for this ID. In the renderer, the old wgpu texture is dropped (freed) when
+`self.textures.remove(&id)` replaces it. Only 1 wgpu texture exists at a time.
+
+The exact mechanism causing the sluggishness with per-thumbnail texture
+allocation is unclear from our measurements. The measurable costs (egui-side
+`load_texture`, GPU-side `device.poll`) don't account for it. The fix
+(single reusable texture) is confirmed effective.
+
+The thumbnail logic doesn't belong in `SlidingWindowCache` or its `poll()` at
+all. `SlidingWindowCache` manages preloaded images for keyboard navigation.
+Thumbnails are a separate concern for the slider preview feature. The
+contributor put them there because that's where the image decoding code lived,
+but they should be independent.
+
+Our fix uses a single reusable `TextureHandle` (`thumb_texture`) updated via
+`tex.set()` inside `upload_thumbnail()`. The `poll()` thumbnail drain calls
+`upload_thumbnail` instead of `ctx.load_texture`, and `current_thumbnail_for`
+returns `thumb_texture` directly. Only one GPU texture exists for the preview
+at any time.
+
+### Remaining items
+
+- **Settings toggle**: add a preference to enable/disable the slider preview.
+  Default to enabled.
+- **Thumbnail cache eviction**: `thumbnail_images` HashMap (CPU side) still
+  grows unbounded. The GPU side is now a single texture, but decoded ColorImages
+  accumulate. A simple cap or LRU eviction should be added.
+- **Future preloading**: could preload thumbnails in the background starting from
+  the current position outward, so they're cached before the user hovers. The
+  persistent worker thread is already in place for this.

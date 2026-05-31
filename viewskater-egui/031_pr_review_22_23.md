@@ -208,18 +208,170 @@ later.
 
 ### Bug: tiebreaker ignores sort direction
 
-Sorting by modified date ascending then switching to descending leaves the
-last chunk of images in the original ascending order. The cause is in
-`sort_files` and `sort_paths` (`file_io.rs:99-101` and `86-88`): the
-`compare_names` tiebreaker is always ascending. When files share the same
-modified time, flipping the direction doesn't affect their order.
+#### Symptom
 
-The fix is to wrap the tiebreaker with `apply_sort_direction` too:
+Sorting by modified date ascending, then switching to descending: the last
+chunk of images stays in the original ascending order instead of reversing.
+Tested with `/home/gota/ggando/rust_gui/data/demo/small_images/`. Every
+file in that directory has the same modified date (Jun 5, 2020), which means
+the date comparison returns `Equal` for all pairs and the tiebreaker decides
+the entire order.
+
+#### How the sorting code works
+
+The sorting happens in `sort_files` (`file_io.rs:93-104`):
+
 ```rust
-.then_with(|| apply_sort_direction(compare_names(&a.path, &b.path), sort_direction))
+fn sort_files(
+    entries: Vec<DirEntry>,
+    sort_direction: SortDirection,
+    compare: impl Fn(&ImageFile, &ImageFile) -> Ordering,
+) -> Vec<PathBuf> {
+    let mut images: Vec<ImageFile> = entries.into_iter().map(ImageFile::new).collect();
+    images.sort_by(|a, b| {
+        apply_sort_direction(compare(a, b), sort_direction)
+            .then_with(|| compare_names(&a.path, &b.path))  // BUG: not wrapped
+    });
+    images.into_iter().map(|image| image.path).collect()
+}
 ```
+
+`sort_files` takes three arguments:
+- `entries`: the list of files to sort
+- `sort_direction`: ascending or descending (from the user's choice)
+- `compare`: a comparison function passed in from the call site
+
+The call site for modified date sorting (`file_io.rs:48-50`):
+
+```rust
+ImageSortKey::Modified => {
+    sort_files(entries, sort_order.direction, |a, b| a.modified.cmp(&b.modified))
+}
+```
+
+The third argument `|a, b| a.modified.cmp(&b.modified)` becomes the `compare`
+parameter inside `sort_files`. It compares two files by their modified time.
+
+#### Key functions
+
+**`cmp`**: Rust's comparison method. Compares two values and returns
+`Ordering`: `Less`, `Equal`, or `Greater`. `cmp` itself doesn't know about
+ascending or descending. It just answers "which value is smaller?"
+`a.modified.cmp(&b.modified)` returns `Less` if `a` was modified earlier.
+
+**`Ordering`**: an enum with three values.
+- `Less`: first item is smaller than second
+- `Equal`: both are the same
+- `Greater`: first item is larger than second
+
+`sort_by` uses `Ordering` to arrange items. When it gets `Less`, it puts
+`a` before `b`. When it gets `Greater`, it puts `b` before `a`.
+
+**`apply_sort_direction`** (`file_io.rs:106-111`):
+
+```rust
+fn apply_sort_direction(ordering: Ordering, sort_direction: SortDirection) -> Ordering {
+    match sort_direction {
+        SortDirection::Ascending => ordering,
+        SortDirection::Descending => ordering.reverse(),
+    }
+}
+```
+
+Ascending: returns the ordering as-is. Descending: calls `.reverse()` which
+flips `Less` to `Greater` and vice versa. This is the only thing that makes
+sorting respect the user's direction choice. `cmp` and `compare_names` don't
+know about direction -- they always compare the same way for the same inputs.
+
+**`compare_names`** (`file_io.rs:113-118`):
+
+```rust
+fn compare_names(a: &Path, b: &Path) -> Ordering {
+    natord::compare(
+        &a.file_name().unwrap_or_default().to_string_lossy(),
+        &b.file_name().unwrap_or_default().to_string_lossy(),
+    )
+}
+```
+
+Compares two filenames using natural ordering (`natord::compare`). Natural
+ordering means `img_2` comes before `img_10`, unlike alphabetical ordering
+which would put `img_10` first (because "1" < "2"). `compare_names` has no
+direction parameter. It always returns the same result for the same two
+filenames.
+
+**`then_with`**: a method on `Ordering`. Only runs the closure when the
+ordering is `Equal`. If the ordering is already `Less` or `Greater`, it
+skips the closure and returns as-is.
+
+```
+Equal.then_with(|| some_comparison)    // runs the closure
+Less.then_with(|| some_comparison)     // skips, returns Less
+Greater.then_with(|| some_comparison)  // skips, returns Greater
+```
+
+The name reads as: "then, with this closure, decide the order." The `_with`
+suffix is a Rust convention meaning "lazy/deferred via a closure." It appears
+throughout the standard library: `unwrap_or` vs `unwrap_or_else`, `or` vs
+`or_else`, `then` vs `then_with`. The version without the suffix evaluates
+immediately; the version with it only runs when needed. This avoids
+unnecessary work (e.g., string comparison) when the primary comparison
+already decided the order.
+
+#### Why `compare_names` is used during modified date sorting
+
+When sorting by modified date, some files can have the same date. For those
+files, `a.modified.cmp(&b.modified)` returns `Equal`. `sort_by` can't decide
+their order from dates alone. Without a tiebreaker, their order would depend
+on whatever `std::fs::read_dir` returns, which isn't guaranteed to be
+consistent between runs.
+
+The contributor used `compare_names` as a tiebreaker: when dates are equal,
+fall back to comparing filenames. Filenames are unique within a directory so
+they always produce a definite, stable order.
+
+In the test directory, ALL files have the same modified date (Jun 5, 2020),
+so the date comparison returns `Equal` for every pair. The entire order is
+decided by `compare_names`. This made the bug affect all files, not just a
+subset.
+
+#### The bug
+
+The contributor wrapped `compare` (the date comparison) with
+`apply_sort_direction` so it reverses in descending mode. But he didn't wrap
+`compare_names` (the tiebreaker). He said this was intentional.
+
+Before the fix:
+
+```rust
+apply_sort_direction(compare(a, b), sort_direction)   // wrapped, reverses
+    .then_with(|| compare_names(&a.path, &b.path))    // NOT wrapped, always ascending
+```
+
+When sorting descending:
+- Files with different dates: `apply_sort_direction` flips the result.
+  Correct.
+- Files with the same date: `compare` returns `Equal`, `then_with` runs
+  `compare_names`. `compare_names("img_01", "img_02")` returns `Less`
+  (01 before 02). This goes to `sort_by` as-is. `img_01` comes first.
+  That's ascending. Wrong for descending mode.
+
+#### The fix
+
+Wrap the tiebreaker with `apply_sort_direction` too:
+
+```rust
+apply_sort_direction(compare(a, b), sort_direction)
+    .then_with(|| apply_sort_direction(compare_names(&a.path, &b.path), sort_direction))
+```
+
+Now in descending mode: `compare_names("img_01", "img_02")` returns `Less`.
+`apply_sort_direction(Less, Descending)` flips it to `Greater`. `sort_by`
+puts `img_02` first. Correct.
+
+Same fix applied in both `sort_files` (line 101) and `sort_paths` (line 88).
 
 ### Status
 
-Code reviewed. View menu added. Sorting tiebreaker bug found. Waiting on
-contributor response.
+Code reviewed. View menu added. Sorting tiebreaker bug found and fixed
+locally. Waiting on contributor response.

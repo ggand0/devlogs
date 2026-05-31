@@ -896,7 +896,7 @@ and `020f06b`, now `cd296aa` and `324ec90`). Verified the subsequent
 commits are patch-identical to their originals (only line number offsets
 differ due to the added `thumb_cache` context lines).
 
-### Revisit jitter fix (2026-05-30)
+### Revisit jitter investigation (2026-05-30)
 
 During slider scrubbing, the persistent worker thread drains to the latest
 request for responsiveness, skipping intermediate positions. This creates
@@ -919,7 +919,7 @@ image via `tex.set()`, while uncached gaps show the fallback
    3-5 apart cause the preview to jump ahead discontinuously while gaps
    show the previous hit's image.
 
-**Fix (forward-only uploads in poll):** `poll()` now only uploads a
+**Attempt 1: forward-only uploads in poll.** `poll()` only uploads a
 thumbnail if its position advances forward (`idx >= thumb_texture_idx`).
 Backfill completions behind the cursor are cached in `thumb_cache` but
 don't update `thumb_texture`. This eliminates backward jumps. Forward
@@ -938,27 +938,27 @@ thumb[23] cache_hit (showing 20 -> 23)   ← +3, forward only
 thumb[28] cache_hit (showing 23 -> 28)   ← +5, forward only
 ```
 
+Smooth enough for photos, but forward jumps of 3-5 positions still
+visible for video frames. Code backed up in
+`tmp/backfill_forward_only_4df88fe/`.
+
 **Worker backfill mechanism:** when the worker drains to the latest
 request, skipped positions are pushed onto a backfill stack. When idle
 (no new requests), the worker pops from the backfill and decodes. If a
 new request arrives during backfill, it takes priority. This gradually
 fills cache gaps so subsequent revisits have fewer misses.
 
-The forward-only poll and backfill were reverted. They added complexity
-without fixing the core issue: forward jumps of 3-5 positions were still
-visible for video frames. Code backed up in
-`tmp/backfill_forward_only_4df88fe/`.
+**Attempt 2: don't upload on cache hits.** Removed `upload_thumbnail`
+from cache hit path so `thumb_texture` only advanced via `poll()`. This
+made the preview smooth but also meant cache hits didn't show their exact
+image -- the preview showed only progressive worker completions, same as
+the initial pass. Defeated the purpose of the cache.
 
-### Actual fix: nearest-neighbor fallback on cache miss (2026-05-30)
-
-The core problem was simpler than the above investigation assumed. On a
-cache miss, `current_thumbnail_for` returned `thumb_texture` (whatever
-was last uploaded) without looking at `thumb_cache` at all. During revisit
-scrubbing through a sparsely cached region, misses showed an image from a
-distant position instead of the closest cached neighbor.
-
-The fix: on a miss, search `thumb_cache` for the nearest position and
-upload that:
+**Actual fix: nearest-neighbor fallback on cache miss.** The core problem
+was that on a cache miss, `current_thumbnail_for` returned `thumb_texture`
+(whatever was last uploaded) without checking `thumb_cache` for a closer
+neighbor. The fix: on a miss, search `thumb_cache` for the nearest
+position and upload that:
 
 ```rust
 if let Some(&nearest_idx) = self.thumb_cache.keys()
@@ -971,79 +971,10 @@ if let Some(&nearest_idx) = self.thumb_cache.keys()
 }
 ```
 
-**Before (last decoded fallback), moving forward through positions 10-18
-where 10, 12, 18 are cached:**
-
-- Position 10: cache hit, uploads 10, preview shows 10.
-- Position 11: miss. `poll()` uploaded a worker result for position 8
-  (decoded late). Preview shows 8. Jumped backward.
-- Position 12: cache hit, uploads 12. Preview jumps forward from 8 to 12.
-- Position 13: miss. `poll()` uploaded worker result for position 11
-  (just finished decoding). Preview shows 11. Jumped backward again.
-- Position 18: cache hit. Preview jumps from 11 to 18.
-
-Preview goes: 10, 8, 12, 11, 18. Forward-backward-forward-backward.
-That's the jitter.
-
-**After (nearest-neighbor fallback), same scenario:**
-
-- Position 10: cache hit, shows 10.
-- Position 11: miss. `poll()` uploaded position 8, but nearest-neighbor
-  finds position 10 in cache (closer to 11 than 8). Overwrites `poll()`'s
-  upload. Preview shows 10.
-- Position 12: cache hit, shows 12.
-- Position 13: miss. `poll()` uploaded position 11, but nearest-neighbor
-  finds position 12 (closer to 13 than 11). Overwrites it. Preview
-  shows 12.
-- Position 18: cache hit, shows 18.
-
-Preview goes: 10, 10, 12, 12, 18. Always forward. The nearest-neighbor
-overwrites `poll()`'s backward uploads before they reach the screen.
-
-Note: `poll()` still calls `upload_thumbnail` (needed for the initial
-scrub when the cache is empty), but on revisit the nearest-neighbor in
-`current_thumbnail_for` overwrites it before the frame renders. The
-`poll()` upload is effectively just a cache write in this case.
-
-### How the fallback chain works after the fix
-
-`current_thumbnail_for` has three paths:
-
-1. **Exact hit** (`thumb_texture_idx == thumb_index`): GPU texture already
-   shows this position. Return it, no work.
-2. **Cache hit** (`thumb_cache` has this position): upload the exact decoded
-   pixels to the GPU texture via `tex.set()`. Return it.
-3. **Cache miss**: find the nearest entry in `thumb_cache` and upload that
-   to `thumb_texture`. Then send the request to the worker (or sync decode
-   for small files). Return `thumb_texture`.
-
-The nearest-neighbor lookup in step 3 overwrites `thumb_texture` before
-returning, so the old `self.thumb_texture.clone()` at the end of the
-function now returns the nearest cached image, not a stale "last image."
-The only time `thumb_texture` is truly stale is when `thumb_cache` is
-empty (the first few frames before any decode completes).
-
-During forward scrubbing where every position is a miss, the nearest
-cached entry is always the most recent cache hit behind the cursor. This
-is effectively the same as "show the last thumb." The nearest-neighbor
-only differs from last-thumb when there's a closer cached entry ahead of
-the cursor, which happens on revisit or direction change.
-
-### Why the spinner replacement works (single GPU texture)
-
-The preview uses a single GPU texture (`thumb_texture`). When a new
-thumbnail is ready, `upload_thumbnail` calls `tex.set()` to swap the
-pixels on that texture. The preview keeps showing whatever is already on
-the GPU texture until `tex.set()` is called with new pixels. No copying
-or cloning of pixel data is involved -- `self.thumb_texture.clone()` just
-copies the handle (a pointer), not the image. When `tex.set()` uploads
-new pixels, every clone of the handle automatically shows the new image
-because they all point to the same GPU texture.
-
-This is why the spinner replacement is free: on a miss, we just return the
-handle as-is. The GPU texture still has the previous thumbnail's pixels on
-it. The preview shows that until a new decode completes and `tex.set()`
-swaps in the new pixels.
+The preview now always shows the closest available thumbnail. Gaps between
+cached positions show the nearest neighbor (1-2 positions away) instead of
+a potentially distant stale image. No jitter, no complexity in the worker
+or poll paths. The backfill and forward-only changes were reverted.
 
 ### Remaining items
 
@@ -1054,10 +985,3 @@ swaps in the new pixels.
 - **Future preloading**: could preload thumbnails in the background starting from
   the current position outward, so they're cached before the user hovers. The
   persistent worker thread is already in place for this.
-- **Nearest-neighbor search is O(n)**: `thumb_cache.keys().min_by_key()`
-  iterates all keys per miss. Fine for now but a `BTreeMap` would give
-  O(log n) nearest lookup via `range()` if the cache grows large.
-- **Extract ThumbnailCache struct**: thumbnail fields (`thumb_texture`,
-  `thumb_cache`, `thumb_req_tx`, `thumb_res_rx`) are bolted onto
-  `SlidingWindowCache` which manages the sliding window for keyboard nav.
-  Should be a separate struct.

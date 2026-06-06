@@ -85,9 +85,21 @@ let wgpu_options = egui_wgpu::WgpuConfiguration {
 };
 ```
 
+### Fix verified
+
+Added `on_surface_error` override in `WgpuConfiguration` (src/main.rs) to return `RecreateSurface` for `Outdated` instead of `SkipFrame`. With a `tracing::warn!` log to confirm it fires:
+
+```
+2026-06-05T22:30:13.167610Z  WARN viewskater_egui: wgpu: surface Outdated, recreating
+```
+
+The race condition still occurs (the WARN fired), but the surface recovers instead of entering the infinite skip loop. No transparent window.
+
+FPS with fix: 60fps on 4K images without debug logging (normal). ~50fps with `RUST_LOG=viewskater=debug` due to per-frame string formatting/IO overhead, not the fix itself. The WARN fires once, not every frame.
+
 ### Why PR #30 avoids it
 
-With `WgpuSetupCreateNew`, the surface is created later in eframe's lifecycle (after the window exists and is sized). The initial configure likely happens at the correct 1280x720 size from the start, so no resize race occurs. This is a timing side-effect, not a deliberate fix - the underlying `on_surface_error` bug remains.
+With `WgpuSetupCreateNew`, the surface is created later in eframe's lifecycle (after the window exists and is sized). The initial configure likely happens at the correct 1280x720 size from the start, so no resize race occurs. This is a timing side-effect, not a deliberate fix - the `on_surface_error` fix is the real solution.
 
 ## How WgpuSetupCreateNew works (eframe lifecycle)
 
@@ -137,6 +149,40 @@ Source files:
 - `crates/egui-wgpu/src/winit.rs` - Painter::new(), set_window(), add_surface()
 - `crates/egui-wgpu/src/lib.rs` - RenderState::create()
 - `crates/egui-wgpu/src/setup.rs` - WgpuSetupCreateNew struct and new_instance()
+
+## CreateNew vs Existing: when to use which
+
+Default to `CreateNew`, reach for `Existing` only when you have a concrete reason.
+
+### Use CreateNew when:
+
+- Standard eframe app (egui owns the GPU context)
+- You need custom features, limits, or memory hints (the `device_descriptor` closure covers this)
+- You want egui to handle adapter selection and surface compatibility
+- You need `adapter.limits()` to avoid crashes on constrained hardware (VMs, WSL, old GPUs)
+
+Real-world examples:
+- Rerun: custom adapter selector via `native_adapter_selector` - https://github.com/rerun-io/rerun/blob/a05a4f8bb018063e4a63b62036e447df0801fa28/crates/viewer/re_viewer/src/lib.rs
+- Bitang: requests specific wgpu features for demoscene shaders - https://github.com/aedm/bitang/blob/33c467ff42a7ad8ae6b45d6b7b349ee587bd469e/crates/bitang/src/tool/runners/window_runner.rs
+- Brush: requests adapter.features() + adapter.limits() for ML compute shaders - https://github.com/ArthurBrussee/brush/blob/6decd108d70f60af536bb804b9bc20f47ddcda6f/apps/brush-app/src/ui/mod.rs
+- fractal-renderer: uses adapter.limits() to avoid crashes on constrained hardware - https://github.com/MatthewPeterKelly/fractal-renderer/blob/9c104603830cfc86377fe922b9e94f9a6e0f16c5/src/core/eframe_support.rs
+
+### Use Existing when:
+
+- Multiple subsystems share one device (e.g. path tracer + GUI on same device)
+- You need Vulkan extensions egui doesn't expose (e.g. DMA-BUF for zero-copy video)
+- You need to validate GPU capabilities before egui starts
+- Background GPU init for faster startup
+- Egui is a debug overlay on your own rendering engine
+
+Real-world examples:
+- vfx-rs: shares one device across path tracer, USD delegate, and OIDN denoiser - https://github.com/ssoj13/vfx-rs/blob/478bd8b6c02d4c3cfca1a0a8622ad17458d4c6ab/crates/view/vfx-view/src/gpu_ctx.rs
+- iroh-live: needs DMA-BUF Vulkan extensions for zero-copy hardware decoder on Linux - https://github.com/n0-computer/iroh-live/blob/772bbdfbbb384f841ef788324fa9b736ca202caa/moq-media-egui/src/lib.rs
+- SuiSuiView: prewarms GPU on background thread, hands off to egui via Existing - https://github.com/BK927/SuiSuiView/blob/44c5e0b18a3cc678950cebb36418a4a7b924d57f/src/app/handoff_preview.rs
+
+### Viewskater conclusion
+
+We only customize memory hints and limits. `CreateNew` with the `device_descriptor` closure is the right fit. We don't need `Existing` - we were only using it because `CreateNew` didn't have the `device_descriptor` closure when the code was first written (added in egui 0.31).
 
 ## References
 

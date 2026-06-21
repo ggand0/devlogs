@@ -1061,3 +1061,144 @@ swaps in the new pixels.
   `thumb_cache`, `thumb_req_tx`, `thumb_res_rx`) are bolted onto
   `SlidingWindowCache` which manages the sliding window for keyboard nav.
   Should be a separate struct.
+
+## Stale thumbnail indicator experiments (2026-06-19)
+
+When the displayed thumbnail doesn't match the hovered position (stale), we need
+a signal that the correct frame is loading. A time-based grace period (150ms)
+prevents any indicator from showing during fast scrubbing.
+
+### Approaches tested
+
+1. **"?" text on label** (contributor's `4d6ee15`): Appended " ?" to the index
+   label. Visually annoying and draws attention to something the user wouldn't
+   notice otherwise.
+
+2. **Opacity dim (instant)**: `egui::Color32::from_white_alpha(180)` as image
+   tint when stale. Flickers because exact/stale state toggles rapidly during
+   scrubbing.
+
+3. **Dark overlay with grace period** (committed as `f8fece1`): Draw the sharp
+   image normally, then overlay `from_black_alpha` that fades in after 150ms.
+   Timer resets when exact frame arrives. No flicker during scrubbing, clear
+   signal on long decodes. **Current choice.**
+
+   ```rust
+   if is_exact {
+       *preview_stale_since = None;
+       painter.image(tex.id(), img_rect, uv, egui::Color32::WHITE);
+   } else {
+       let since = preview_stale_since.get_or_insert_with(Instant::now);
+       let elapsed = since.elapsed().as_secs_f32();
+       const GRACE: f32 = 0.15;
+       const FADE_DURATION: f32 = 0.3;
+       const MAX_ALPHA: f32 = 120.0;
+       if elapsed < GRACE {
+           painter.image(tex.id(), img_rect, uv, egui::Color32::WHITE);
+           ui.ctx().request_repaint();
+       } else {
+           painter.image(tex.id(), img_rect, uv, egui::Color32::WHITE);
+           let t = ((elapsed - GRACE) / FADE_DURATION).min(1.0);
+           let alpha = (MAX_ALPHA * t) as u8;
+           painter.rect_filled(img_rect, 0.0, egui::Color32::from_black_alpha(alpha));
+           if t < 1.0 { ui.ctx().request_repaint(); }
+       }
+   }
+   ```
+
+4. **CPU box blur**: Blur the stale thumbnail on the CPU (400x300 = sub-ms) and
+   upload the blurred version after the grace period. Looks correct but
+   conceptually confusing: blurring an already-loaded (wrong) image doesn't
+   communicate "loading the right one." Would only make sense for progressive
+   loading of the actual target image, which PNG doesn't support.
+
+   ```rust
+   // In cache.rs -- two-pass separable box blur on ColorImage
+   fn box_blur(img: &egui::ColorImage, radius: usize) -> egui::ColorImage {
+       let w = img.width();
+       let h = img.height();
+       let r = radius as isize;
+       let mut buf = vec![[0u32; 4]; w * h];
+
+       // Horizontal pass
+       for y in 0..h {
+           let row = y * w;
+           let mut sum = [0u32; 4];
+           let mut count = 0u32;
+           for x in 0..=(radius.min(w - 1)) {
+               let c = img.pixels[row + x].to_array();
+               for i in 0..4 { sum[i] += c[i] as u32; }
+               count += 1;
+           }
+           buf[row] = [sum[0]/count, sum[1]/count, sum[2]/count, sum[3]/count];
+           for x in 1..w {
+               let add = x as isize + r;
+               if add < w as isize {
+                   let c = img.pixels[row + add as usize].to_array();
+                   for i in 0..4 { sum[i] += c[i] as u32; }
+                   count += 1;
+               }
+               let rem = x as isize - r - 1;
+               if rem >= 0 {
+                   let c = img.pixels[row + rem as usize].to_array();
+                   for i in 0..4 { sum[i] -= c[i] as u32; }
+                   count -= 1;
+               }
+               buf[row + x] = [sum[0]/count, sum[1]/count, sum[2]/count, sum[3]/count];
+           }
+       }
+
+       // Vertical pass (same pattern, iterating columns)
+       // ... (symmetric to horizontal)
+   }
+
+   // In cache.rs -- lazy blurred texture
+   pub fn blurred_thumbnail(&mut self) -> Option<egui::TextureHandle> {
+       let current_idx = self.thumb_texture_idx?;
+       if self.blurred_thumb_idx == Some(current_idx) {
+           return self.blurred_thumb_texture.clone();
+       }
+       let img = self.thumb_cache.get(&current_idx)?;
+       let blurred = box_blur(img, 8);
+       match &mut self.blurred_thumb_texture {
+           Some(tex) => tex.set(blurred, egui::TextureOptions::LINEAR),
+           None => {
+               self.blurred_thumb_texture = Some(self.ctx.load_texture(
+                   "thumb_preview_blur", blurred, egui::TextureOptions::LINEAR,
+               ));
+           }
+       }
+       self.blurred_thumb_idx = Some(current_idx);
+       self.blurred_thumb_texture.clone()
+   }
+   ```
+
+5. **Placeholder icon** (mountain/sun silhouette): Gray background with a
+   generic image-placeholder icon drawn via `painter` shapes. Reads as
+   "loading" but feels like a visual glitch in practice since it fully replaces
+   the stale thumbnail.
+
+   ```rust
+   painter.rect_filled(img_rect, 0.0, egui::Color32::from_gray(50));
+   let cx = img_rect.center().x;
+   let cy = img_rect.center().y;
+   let s = img_rect.width().min(img_rect.height()) * 0.2;
+   let icon_color = egui::Color32::from_gray(90);
+   let mountain = vec![
+       egui::pos2(cx - s, cy + s * 0.6),
+       egui::pos2(cx - s * 0.3, cy - s * 0.4),
+       egui::pos2(cx + s * 0.1, cy + s * 0.1),
+       egui::pos2(cx + s * 0.4, cy - s * 0.7),
+       egui::pos2(cx + s, cy + s * 0.6),
+   ];
+   painter.add(egui::Shape::convex_polygon(mountain, icon_color, egui::Stroke::NONE));
+   painter.circle_filled(egui::pos2(cx - s * 0.5, cy - s * 0.5), s * 0.2, icon_color);
+   ```
+
+### Key insight
+
+Any indicator that reacts to a binary stale/exact state will flicker during
+scrubbing because the state toggles every few frames. The grace period timer
+solves this: the indicator only appears after sustained staleness, which only
+happens on genuinely slow decodes (large files). The dark overlay won because
+it preserves the stale image as context while clearly signaling "not final."

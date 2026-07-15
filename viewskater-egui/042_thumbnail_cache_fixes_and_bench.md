@@ -176,6 +176,32 @@ request waited behind it); the fix has no race to lose, hence the tight
 spread. Single runs are misleading: medians quantize to 4 or 5 frames
 (~27.8 vs ~34.7 ms) and flip between runs on both branches.
 
+## Real 4K results (140 x ~10 MB PNGs, 2 runs each)
+
+At 4K the thumbnail decode (~100 ms) exceeds the 5-frame dwell, so on
+main the redundant decode collides with the next request nearly every
+time — the contention hits even hover-and-pause, and the fix becomes a
+directly user-visible speedup rather than just a CPU saving:
+
+```
+                          main               fix/thumbnail-cache
+hover-and-pause avg       142 ms             98 ms
+hover-hop avg             175 ms             99 ms
+overlay FPS (hover/hop)   4.9 / 5.0          6.8 / 8.3
+process CPU               35.0 s             20.5 s
+total wall                28.0 s             19.7 s
+```
+
+Run-to-run spread was tiny (e.g. main hover 140.2/144.0, fix 97.5/99.2).
+No timeouts. All rows from one session: four consecutive full-report
+runs (2 per branch) under identical conditions. Two earlier sessions
+(one with a game running during the fix runs, one that re-measured only
+latency and CPU) produced the same numbers within 1-2%. Both branches ran with `preview_budget_mb: 10` left in
+settings.yaml from the eviction test (~28 of 140 thumbnails fit), which
+explains the low sweep exact rate (18-19% on both); the A/B is fair since
+both read the same config. Main baseline obtained by cherry-picking the
+bench commit (21fdd68) onto a detached HEAD at main.
+
 ## Analysis of run-to-run variance
 
 Latencies are quantized to whole frames (~7 ms at ~142 fps); medians land
@@ -214,3 +240,13 @@ algorithmic cost. Sweep throughput and exactness are identical.
   cherry-picks onto main for future baselines; the simulation test
   references `pending_idx` and is branch-only.
 - PR draft: `tmp/drafts/pr_thumbnail_cache.md`.
+
+## Follow-up (pre-existing, found during final testing)
+
+On the first hover after opening a folder, the preview popup paints its
+dark frame with no image inside (no exact thumbnail yet, no nearest
+neighbor to fall back on), which reads as a black rectangle until the
+first thumbnail decodes — a few hundred ms on 4K sources. Dates to
+PR #18 (`paint_preview_popup` paints nothing when `tex_opt` is None),
+reproduces on main. Fix idea: skip the popup until the first thumbnail
+exists, or paint a "Loading…" label in the empty frame.

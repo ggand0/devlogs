@@ -119,6 +119,42 @@ PNG decode is unaffected (still uses full thread count, ~35-43ms per decode).
    pixel extraction another ~40-67ms. This is ~5x slower than PNG and likely
    irreducible without switching to libjxl (C bindings).
 
+## libjxl (C) Benchmark Comparison
+
+Benchmarked `jpegxl-rs` (Rust bindings to libjxl C++ reference decoder) with
+multithreaded `ThreadsRunner`, against jxl-oxide via both the `image` crate
+integration and the direct API. 10 iterations, single-threaded, opt-dev profile.
+
+```
+--- JXL lossless 1080p ---
+  image+jxl-oxide:      min=99.3ms  avg=103.5ms max=108.4ms
+  jxl-oxide direct:     min=112.6ms avg=126.7ms max=158.8ms
+  libjxl (C, threaded): min=75.4ms  avg=88.3ms  max=119.2ms
+
+--- JXL lossy 1080p ---
+  image+jxl-oxide:      min=95.4ms  avg=106.6ms max=123.2ms
+  jxl-oxide direct:     min=94.4ms  avg=104.3ms max=121.3ms
+  libjxl (C, threaded): min=44.1ms  avg=50.2ms  max=61.3ms
+
+--- PNG 1080p (baseline) ---
+  image crate:          min=18.2ms  avg=21.7ms  max=46.5ms
+```
+
+libjxl is ~2x faster for lossy (50ms vs 104ms) and ~15-30% faster for lossless
+(88ms vs 104ms). Not a dramatic enough improvement to justify adding a C build
+dependency to a pure-Rust project. The `jpegxl-rs` dev-dependency was removed
+after benchmarking.
+
+## Conclusion
+
+JXL decode performance at 1080p (~100ms per image with jxl-oxide) is inherently
+~5x slower than PNG (~20ms). This caps skating FPS at ~15. No optimization on
+our side can close this gap without replacing jxl-oxide, and libjxl (C) only
+offers a ~2x improvement which doesn't justify the build complexity tradeoff.
+
+The PR is correct and the concurrency fix reduces per-decode latency. JXL images
+load and render correctly; skating is slower than PNG but functional.
+
 ## Test Data
 
 Converted 25 JXL test images at `/home/gota/ggando/rust_gui/data/demo/1080p_JXL_converted/`:
@@ -127,3 +163,133 @@ Converted 25 JXL test images at `/home/gota/ggando/rust_gui/data/demo/1080p_JXL_
 - 5 lossy (from small JPGs, `-j 0 -d 1.0 -e 7`): varied sizes
 
 Conversion command: `cjxl input.png output.jxl -d 0 -e 7` (lossless)
+
+## Follow-up Review: Auditing the Concurrency Cap (2026-07-16)
+
+A second review pass before the merge decision, re-examining commit 2654d85
+(`MAX_JXL_CONCURRENT = 2`) with fresh benchmarks. The result contradicts the
+earlier conclusion: the cap does reduce throughput, and the "both yield ~13-15
+images/sec" claim above was wrong.
+
+### Method
+
+Two benchmarks, both on the Ryzen 9 3900X (12c/24t):
+
+1. **Standalone throughput bench** (`examples/bench_jxl_throughput.rs`):
+   replicates the app's decode path from `cache.rs::spawn_thread` (one std
+   thread per decode, `open_image()` + rgba8 conversion), pulling from a
+   shared queue of the 20 1080p test JXLs. Sweeps worker-thread count and
+   measures aggregate images/sec.
+
+2. **In-app skate simulation**: built a 400-image directory of symlinks
+   cycling through the 20 test JXLs, launched the real app with
+   `RUST_LOG=viewskater=debug`, held Shift+Right for 12s via
+   `xdotool keydown`, and computed decode completions per second from the
+   `bg decode` log lines. In steady-state skating the advance rate equals the
+   decode completion rate, so this measures skating FPS. The cap was made
+   env-overridable via a temporary patch (reverted after benching).
+
+### Standalone results (JXL-only)
+
+```
+concurrency= 1  throughput=10.1 img/s  avg_latency=99ms
+concurrency= 2  throughput=15.9 img/s  avg_latency=126ms
+concurrency= 4  throughput=20.8 img/s  avg_latency=193ms
+concurrency= 8  throughput=23.7 img/s  avg_latency=337ms
+concurrency=12  throughput=23.6 img/s  avg_latency=509ms
+```
+
+Restricting jxl-oxide's internal rayon pool instead (parallelize across
+images, not within) collapses throughput: `RAYON_NUM_THREADS=1` yields
+3.8 img/s at any concurrency because all decodes serialize through the shared
+global pool. The default pool size is correct.
+
+### In-app skate results (JXL-only, 400 images)
+
+```
+cap=2 (current)  ~15 img/s   decode p50=121ms p90=150ms max=222ms
+cap=4            ~20 img/s   decode p50=179ms p90=244ms max=296ms
+cap=6            ~20 img/s   decode p50=226ms p90=287ms max=399ms
+cap=8            ~21 img/s   decode p50=208ms p90=276ms max=404ms
+cap=10 (no cap)  ~20 img/s   decode p50=214ms p90=298ms max=546ms
+```
+
+Totals cross-check: 12s x 20/s + ~11 initial window fills = 251, observed
+255-269 per run. The cap=2 run: 12 x 15 + 11 = 191, observed 200.
+
+Uncapped skating is ~20 img/s, not 13-15. The earlier "throughput is about
+the same" conclusion came from comparing per-decode latencies and inferring
+throughput, not from measuring it. The ~300ms per-decode latency at 10
+in-flight decodes is queueing on the shared rayon pool, not wasted work:
+the pool stays saturated either way, so total throughput is unharmed.
+
+### Mixed PNG/JXL directory
+
+The cap logic special-cases JXL in the shared `pending_decodes` queue, so a
+mixed directory is the interesting case for regressions. Test: 400 symlinks
+alternating 1080p PNG / 1080p JXL, same 12s skate.
+
+```
+                 advance rate   PNG decode p50   JXL decode p50
+cap=2            ~28 img/s      30.1ms           128ms
+cap=10 (no cap)  ~35 img/s      28.8ms           143ms
+```
+
+The uncapped run swept all 400 images before the 12s hold ended, so its
+steady-state rate (35-39/s mid-run) is a lower bound. Two findings:
+
+- PNG decode latency is unchanged with or without the cap (~29-30ms p50).
+  The cap protects PNGs from nothing measurable; jxl-oxide's rayon work does
+  not meaningfully starve PNG decode threads at this image size.
+- Uncapped mixed skating is ~20-25% faster because JXL delivery, which gates
+  the advance rate, is no longer throttled.
+
+### Code audit of the cap logic
+
+Two latent defects found in the `MAX_JXL_CONCURRENT` implementation, both
+consequences of bolting a per-format limit onto the shared FIFO queue:
+
+1. **Head-of-line blocking** (`cache.rs` poll refill loop): when the front of
+   `pending_decodes` is a JXL at the cap, the loop `break`s instead of
+   scanning past it, stalling any queued PNGs behind it even with free
+   global slots. Rarely triggered at the default `decode_threads = 10`
+   (PNGs only queue when 8+ non-JXL decodes are in flight), but plausible at
+   low `decode_threads` settings (the slider allows 1-16).
+
+2. **Stale-result counter skew**: `initialize()` resets `jxl_in_flight = 0`
+   while previously spawned threads may still be running. When such a stale
+   decode completes, `poll()` decrements the counter for a decode that was
+   never counted in the new epoch. `saturating_sub` prevents underflow, but
+   if new-epoch JXLs are in flight the decrement lands on them, letting the
+   effective cap drift above 2 until the next `initialize()`.
+
+### Revised conclusion
+
+The contention diagnosis behind commit 2654d85 was mistaken: the latency
+inflation at high concurrency is benign queueing, and capping concurrency at
+2 costs ~25% skating throughput in JXL-only directories (15 vs 20 img/s) and
+~20-25% in mixed directories (28 vs 35+ img/s) while leaving PNG latency
+unchanged. The cap's only benefit is a smaller latency tail (nearest
+neighbors fill slightly sooner after a jump), which does not justify the
+added state, the head-of-line blocking hazard, or the counter skew.
+
+Recommendation: drop the concurrency cap (revert 2654d85) and merge the
+upstream PR as-is. The realistic skating ceiling for 1080p JXL on this
+machine is ~20 img/s vs 60+ for PNG, inherent to jxl-oxide's decode cost.
+
+### Verification after dropping the cap
+
+Commit 2654d85 was dropped from the branch (backed up as a format-patch in
+`tmp/jxl_pr27_backup/`, restorable via `git am`). Re-ran the same 12s skate
+tests on the new HEAD (576e928, upstream PR only), with the mixed directory
+enlarged to 900 images so it could not be exhausted mid-run:
+
+```
+                    advance rate   vs cap=2 baseline
+JXL-only (400)      ~22 img/s      ~15 img/s  (+45%)
+mixed PNG/JXL (900) ~34 img/s      ~28 img/s  (+20%)
+```
+
+Mixed-run PNG decode latency p50=29.1ms (unchanged), JXL p50=145.7ms.
+Totals cross-check: JXL-only 277 decodes = 12s x 22 + 11 window fills;
+mixed 411 = 12s x 33 + 11. Matches the cap=10 predictions from the sweep.

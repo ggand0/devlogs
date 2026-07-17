@@ -293,3 +293,10 @@ mixed PNG/JXL (900) ~34 img/s      ~28 img/s  (+20%)
 Mixed-run PNG decode latency p50=29.1ms (unchanged), JXL p50=145.7ms.
 Totals cross-check: JXL-only 277 decodes = 12s x 22 + 11 window fills;
 mixed 411 = 12s x 33 + 11. Matches the cap=10 predictions from the sweep.
+
+Repeated with real file copies instead of symlinks
+(`data/demo/skate_test_jxl_400/`, 219MB, and `data/demo/skate_test_mixed_900/`,
+1.5GB, built by cycling the 20 test JXLs and 101 test PNGs) to rule out any
+symlink artifact: JXL-only ~22 img/s (282 decodes, latency p50=192ms), mixed
+~33 img/s (407 decodes, PNG p50=28.1ms, JXL p50=148.1ms). Identical to the
+symlink runs within noise.

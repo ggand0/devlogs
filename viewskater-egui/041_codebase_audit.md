@@ -115,11 +115,19 @@ layout block could move into a helper.
 
 ## Notes for the jxl-support rebase
 
-- The thumbnail worker calls `image::open` directly (`src/cache.rs:39`), not
+- ~~The thumbnail worker calls `image::open` directly (`src/cache.rs:39`), not
   `file_io::open_image`. On `jxl-support` the JXL decoding hook is registered
   lazily inside `open_image`, so JXL thumbnails would only work because some
   `open_image` call happened to run first. Route the worker through
-  `open_image`, or register the hook once in `main()`.
+  `open_image`, or register the hook once in `main()`.~~
+  **Correction (2026-09-07, Claude Fable 5.1):** wrong. Opening a folder
+  always decodes the current image through `open_image` (`pane.rs`) before
+  any thumbnail is requested, and the hook registration is process-global
+  behind a `Once`. The lazy registration always works; no change needed.
+  This note was written while the (also wrong) decode-thread-contention
+  theory in devlog 040 was live, and was carried into the 2026-09-07 rebase
+  plan without being checked against the code. Verify devlog claims against
+  the code before acting on them.
 - `jxl-support`'s `poll()` re-queue logic (`push_front` + `break` when at the
   JXL limit) diverges from main's simpler skip-stale loop; that hunk needs
   care in the rebase. The branch predates the ThumbnailCache entirely.

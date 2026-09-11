@@ -1,5 +1,9 @@
 # Paid build cosmetics
 
+Update 2026-09-11: item 3 (accent presets) shipped as PR #35, with a
+custom color picker on top. See devlog 048. The empty-state animation was
+prototyped and parked on feat/official-empty-state.
+
 Date: 2026-09-09. Ideas from a planning conversation, not decisions. The
 constraint from the plan docs still applies: the store build is a thank-you
 for buyers, not a reason to buy. Everything here must have a plain fallback
@@ -29,9 +33,10 @@ a license check in the app.
    and a "Thank you for your purchase" line with the channel (Steam or
    Microsoft Store) and version. On Steam, optionally the buyer's name via
    the `steamworks` crate. Free builds show the current text-only modal.
-3. Accent theme preset. The slider accent color is already editable
-   (`accent_slider` setting). The store build adds one or two named presets
-   in the settings that match the icon palette. Free builds keep the picker.
+3. Accent theme preset. (Correction 2026-09-11: the accent was never user
+   editable; it was hardcoded in `UiTheme::teal_dark`, and `accent_slider`
+   is the name of a slider widget.) The store build adds a setting with
+   named presets that match the icon palette. Free builds stay teal.
 
 Rejected:
 

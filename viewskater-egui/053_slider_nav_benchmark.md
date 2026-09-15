@@ -1,9 +1,9 @@
 # Slider navigation benchmark: --bench-slider
 
-Date: 2026-09-14
+Date: 2026-09-14, updated 2026-09-15
 Context: second half of plan 010, on branch feat/nav-bench after the
-keyboard bench (devlog 052). Commit 991996c on top of the five
-keyboard-bench commits.
+keyboard bench (devlog 052). Nine commits, 991996c to 1b3a02a, on top
+of the five keyboard-bench commits; the branch has fourteen in all.
 Numbers from gota-home, warm page cache, default settings, 4k_PNG_10MB
 (140 images). Not verified claims are marked as such.
 
@@ -22,25 +22,42 @@ Phases, after the same settle wait as the keyboard bench:
 1. Sweep. t from 0 to 1 over `--bench-sweep-secs` (default 4), one
    position per frame, release, wait for the window to refill, then
    back from 1 to 0 and release again. Both directions, both refills.
-2. Scrub. `--bench-scrub-anchors` (default 3) positions spaced evenly
-   along the rail, so three anchors sit at 25, 50 and 75 percent of the
-   folder. At each: press, drag back and forth across
-   `--bench-scrub-span` of the rail (default 0.2, a tenth each side),
-   `--bench-scrub-passes` times (default 3) over `--bench-scrub-secs`
+2. Scrub. `--bench-scrub-anchors` (default 5) positions spaced evenly
+   from the first image to the last, so five anchors sit at 0, 25, 50,
+   75 and 100 percent of the folder. At each: press, drag right by half
+   of `--bench-scrub-span` (default 0.1, so 5 percent of the rail),
+   left to the same distance before the anchor, back to the anchor,
+   `--bench-scrub-passes` times (default 2) over `--bench-scrub-secs`
    (default 2), release, wait for refill. A person hunting for a frame;
    the return passes revisit what was just loaded, so the decode LRU
-   shows here. The first version moved 5 percent once at the two ends of
-   the folder, because the anchors came from the preview bench's
-   scrambled order; the owner rejected both.
-3. Jump. `--bench-jumps` (default 20) targets. Candidates are twice as
-   many evenly spaced positions over the whole rail, minus any inside a
-   scrubbed region, visited first, last, second, second to last so
-   consecutive clicks are far apart. With three anchors and a 0.2 span,
-   60 percent of the rail is scrubbed and only 16 candidates remain, so
-   the default run does 16 jumps. Lower the span or the anchor count to
-   get 20. Targets stay out of scrubbed regions because otherwise they
-   hit images the scrub just put in the LRU (16 of 20 in the first run)
-   and the phase measures cache hits instead of clicks.
+   shows here. History: the first version moved 5 percent once at ten
+   anchors taken from the preview bench's scrambled order, which put
+   them all at the two ends. A second version widened it to 10 percent
+   each side, three passes, still at the ends. A third moved three
+   anchors to 25, 50 and 75. The owner settled on the 5 percent motion
+   with two passes at 0, 25, 50, 75 and 100.
+3. Jump. `--bench-jumps` (default 20) positions spaced evenly over the
+   rail, visited first, last, second, second to last so consecutive
+   clicks are far apart. Each is a press and release in one frame.
+
+Any of skate left, sweep, scrub and jump can be left out with
+`--bench-skip skate-left,sweep,scrub,jump` (comma separated, any
+subset). Skate right cannot be skipped, since skate left needs it to
+reach the far end, and the tap phase is opt-in through
+`--bench-tap-steps`. With the sweep skipped, settle goes straight to
+the scrub; with everything skipped the slider bench reports settle only.
+
+The phases are independent. The driver empties the decode LRU
+(`Pane::clear_decode_lru`) when the slider bench starts and whenever a
+phase ends, so nothing one phase loaded can turn the next phase's loads
+into cache hits. History: the first version instead kept jump targets
+out of the regions the scrubs had covered, which made the jump count
+depend on the scrub flags (16 instead of 20 with wide scrubs) and was
+the wrong fix; the owner pointed out the phases have nothing to do with
+each other. LRU hits inside a phase are still counted and reported, and
+now come only from that phase's own revisits. Emptying a 1 GB LRU frees
+about 31 4K textures on the GPU at the next frame; that frame belongs
+to the wait after the last release, not to a gesture.
 
 Per phase: how many images the handle pointed at and how many of those
 were displayed, sync loads with the time each blocked the frame (decode
@@ -63,8 +80,15 @@ decode times, CPU seconds, peak RSS and GPU memory.
   about 60.
 - "displayed (x%)": of those asks, how many put the image on screen.
   The only way one does not: `SliderLoader::should_load` refuses a
-  decode less than 10 ms after the previous one. 100% means it never
-  refused. It says nothing about the images the handle moved past.
+  load less than 10 ms after the previous one. 100% means it never
+  refused. It says nothing about the images the handle moved past. In
+  practice a refusal follows an LRU hit: the hit costs nothing, the
+  frame finishes in 7 ms, the next frame already points at another
+  image, and it is inside the 10 ms. A sweep with 6 hits had 1 refusal,
+  a scrub with 88 hits had 1; jumps never, the clicks are seconds apart.
+  Small app detail: `should_load` is consulted before `load_sync` looks
+  in the LRU, so a hit arms the throttle although it decoded nothing.
+  Fix would be to check the LRU first. Not changed in this branch.
 - "sync block": how long `load_sync` held the main thread per load,
   decode plus convert. This is the frame hitch a person feels while
   dragging.
@@ -108,21 +132,22 @@ every frame it is asked. A release returns early from `tick` so the frame
 that shows the image is observed on the next tick, where the sync
 decode has already run inside the release frame. Landing and Refilling
 are checked in sequence in one tick because a click that hits the LRU
-can land and be settled on the same frame. Anchors are `i / (k + 1)` for `k` anchors; jump targets are described
-above.
+can land and be settled on the same frame. Anchors are `i / (k - 1)` for `k` anchors, so the first and last image
+are always included; jump targets are `(i + 0.5) / jumps` in scrambled
+order.
 
 Timeouts: refill or landing waits longer than 10 s mark the phase timed
 out and move on; settle 60 s. Same constants as the keyboard bench.
 
-Samples. `Pane::sync_samples: Option<(Vec<SyncSample>, usize)>` is Some
-only between `set_sync_sampling(true)` and `(false)`; `load_sync`
-pushes decode, convert and upload times on a miss and bumps the hit
-count on an LRU hit. The driver drains it and the background
-`decode_samples` sink at each `PhaseEnd` so samples land in the phase
-that produced them. `start_slider_bench` clears the background sink
-first, because the keyboard bench's last phase may have left decodes in
-it. `upload_ms` is the `ctx.load_texture` call, which egui queues; it
-reads 0.0 and is in the JSON only.
+Recorded times. `Pane::sync_load_times: Option<(Vec<SyncLoadTiming>,
+usize)>` is Some only between `record_sync_load_times(true)` and
+`(false)`; `load_sync` pushes decode, convert and upload times on a
+miss and bumps the hit count on an LRU hit. The driver drains it and the
+cache's `decode_times_ms` list at each `PhaseEnd` so the times land in
+the phase that produced them. `start_slider_bench` drops what the
+keyboard bench's last phase left in the cache's list. `upload_ms` is the
+`ctx.load_texture` call, which egui queues; it reads 0.0 and is in the
+JSON only. Pane owns the cache, so the pane methods just forward to it.
 
 Run sequencing (`src/app/bench.rs`). `start_run(run_start)` turns on
 decode sampling and starts nav if asked, else slider. `finish_nav_bench`
@@ -156,7 +181,7 @@ markdown row.
 |---|---|---|---|---|---|---|---|
 | sweep, both ways | 129 | 127 (98%) | 63.0 / 70.4 (n=100) | 7 | 292 (2 releases) | | 7.2 / 117.6 |
 | scrub x3 | 166 | 136 (82%) | 63.3 / 73.9 (n=69) | 67 | 262 (3 releases) | | 6.9 / 91.3 |
-| jump x16 | 16 | 16 (100%) | 65.1 / 75.7 (n=16) | 0 | 308 (16 releases) | 178.1 | 7.0 / 190 |
+| jump x16 (before the count fix) | 16 | 16 (100%) | 65.1 / 75.7 (n=16) | 0 | 308 (16 releases) | 178.1 | 7.0 / 190 |
 
 Reading the sweep: two passes over 140 images pointed at 129 new
 images in total, about 64 per pass. Each sync decode blocks the frame
@@ -201,9 +226,71 @@ whichever loaded slots still fall inside the new window. Expected effect
 on 4K: click-to-image halves, refill shrinks to the slots that actually
 moved.
 
+## Finding: a throttled request leaves the index ahead of the picture
+
+`apply_slider_target` sets `current_index` to the new image before it
+asks `should_load`. When the throttle refuses, the index has moved and
+the texture has not. On the next frame the slider's index equals the
+pane's, so nothing is requested, and the refused image is never loaded
+during the drag: the screen shows the previous picture under the new
+position until the handle reaches the image after it. The release fixes
+it, since `jump_to` decodes whatever `current_index` says. One frame or
+so per refusal, and refusals are rare (one per sweep, one per scrub in
+the runs above), so nobody has noticed. Fix: move the index only when a
+texture was found or a load was made. Not changed in this branch.
+
+## What the slider numbers say about the app
+
+- Dragging through large images blocks the main thread on every
+  uncached position. The throttle only spaces loads 10 ms apart, and a
+  4K decode is 65 ms, so during a first pass the drag is a chain of
+  blocking decodes: sync block p50 63 ms, frame p99 90 to 117 ms, frame
+  max up to 190 ms. The throttle does nothing for heavy images; it only
+  ever fires after a cache hit. The structural fix is to stop decoding
+  on the slider path and request the image from a decode thread,
+  showing the nearest available image until it lands. Its own branch,
+  measured with this bench: sync block count should go to zero and
+  frame p99 to the vsync interval.
+- Every release decodes the current image again and rebuilds the whole
+  window (finding above). Click-to-image 175 ms on 4K is two decodes.
+- Displayed under 100 percent is the throttle rejecting a request that
+  followed a cache hit within 10 ms. Rare, and it also causes the
+  index-ahead-of-picture glitch above.
+
+## Changes after the first version, 2026-09-14 to 2026-09-15
+
+In order, each its own commit:
+
+- Report counts renamed from an invented word to what is counted:
+  "pointed at a new image on N frames (folder: M images), K displayed".
+- Scrub widened to 10 percent each side, three passes, then set back to
+  the original 5 percent motion with two passes, at 0, 25, 50, 75 and
+  100 percent of the folder. Anchors had been at the two ends because
+  they came from the preview bench's scrambled order.
+- Sweep goes both ways, with a release and a refill wait at each end.
+- Jump targets first avoided the scrubbed regions (which made the jump
+  count depend on the scrub flags and gave 16 instead of 20), then the
+  coupling was removed: the LRU is emptied when the slider bench starts
+  and at every phase end, and jump targets are 20 evenly spaced
+  positions in the far-apart order.
+- `--bench-skip skate-left,sweep,scrub,jump`, any subset.
+- Every scrub parameter is a flag: anchors, span, passes, seconds.
+- Refactor before the PR (c7972ef): shared `PhaseStats` and `FrameTimer` in
+  bench/phase.rs, the flags as a `BenchArgs` struct in the bench module
+  flattened into the app's `Args`, one `BenchState` on `App` instead of
+  eight fields, and the recorded-time lists named for what they hold
+  (`decode_times_ms`, `sync_load_times`) instead of "samples". Net minus
+  sixty lines, numbers unchanged.
+
 ## Not done
 
-- Runner scripts and the cold-cache option (plan 010 section 9).
+- Runner scripts from plan 010 section 9. `--bench-dir`, `--bench-runs`
+  and the in-process summary do what `bench_nav.sh` was for; a compare
+  script against main is worth writing when the first before-and-after
+  branch needs it. The cold-cache option stays manual: drop caches by
+  hand and tag the run with `--bench-label cold`.
 - Baseline rows for FPS_BASELINES.md; macOS and Windows runs.
 - Preview bench report is still its own text, not in the JSON.
-- The `jump_to` fix above, as its own branch measured with this bench.
+- The three app findings above, each its own branch measured with this
+  bench: `jump_to` rebuilding the window, the index moving on a refused
+  load, and the synchronous decode on the slider path.

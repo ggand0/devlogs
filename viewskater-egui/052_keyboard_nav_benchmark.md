@@ -68,8 +68,8 @@ RSS and wgpu memory. Every "p50" is the median; the report says so.
   `Instant` from the caller, so it is unit tested with a fake clock:
   settle gating, skip-then-count rate, stall counting, no-progress
   timeout, tap scheduling and latency, image cap, tap skip. Nine tests.
-- `SlidingWindowCache` collects `decode_ms` into `decode_samples` only
-  while `set_decode_sampling(true)`; the driver drains it at each phase
+- `SlidingWindowCache` records each `decode_ms` into `decode_times_ms`
+  only while `record_decode_times(true)`; the driver drains it at each phase
   end so samples land in the right phase. `is_settled()` is
   `running_decodes`, `pending_decodes` and `pending_uploads` all empty.
 - `LatencyStats` gained `count`, `p95_ms`, `p99_ms` (nearest rank; every
@@ -170,6 +170,16 @@ timestamps inside each phase and never reads the overlay. The preview
 bench does sample the overlay's frame rate at phase ends, and clears the
 window first for exactly this reason. When eyeballing, wait two seconds
 of steady skating before trusting the overlay.
+
+## Formatting, 2026-09-15
+
+Do not run `cargo fmt` in this repo. `cargo fmt -- <files>` formats the
+whole crate, not the named files, and the crate is not rustfmt-clean:
+menu.rs, settings.rs, about.rs and a dozen more come out different. The
+2026-09-14 handoff's line that `cargo fmt --check` was clean on tracked
+files was wrong. A run of it on 2026-09-15 changed 23 files and was
+undone with `git checkout` on the owner's say-so; the benchmark code is
+hand formatted like the rest.
 
 ## Not done
 

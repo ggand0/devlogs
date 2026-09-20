@@ -1,11 +1,13 @@
 # EXIF orientation: the fix, the JXL exception, what the turn costs
 
 Date: 2026-09-19
-Context: branch fix/exif-orientation, two commits on top of main
+Context: branch fix/exif-orientation, three commits on top of main
 915f9ea. 6b062cb is the fix and was pushed to origin the same day.
-9443449 puts the panel's Orientation row back (section 2) and is not
-pushed yet. No PR yet. Numbers from gota-home (Linux, RTX 3090,
-144 Hz). Started from
+9443449 puts the panel's Orientation row back (section 2) and was
+pushed by the owner. 0b02d6c adds one comment (section 9). PR #46,
+opened by the owner from tmp/drafts/2026-09-20_pr_exif_orientation.md,
+merged into main on 2026-09-20 as 060fb12. Numbers from gota-home
+(Linux, RTX 3090, 144 Hz). Started from
 tmp/handoffs/2026-09-19_metadata_panel_merged_orientation_next.md.
 Section 7 lists which of its claims held.
 
@@ -310,3 +312,81 @@ prints the tag text and loaded.orientation.
   session scratchpad, which is gone with the session.
 - Temporary probe and timing tests lived between TEMP-PROBE markers in
   file_io.rs and were removed before the commit.
+
+## 9. After the first push, 2026-09-19 and 2026-09-20
+
+The two EXIF reads. parse_exif (kamadak) parses the whole block for
+the panel and the image crate scans the same bytes for tag 0x112. The
+file is read once. Timed in the app's build on the 8604-byte block of
+an orientation-6 iPhone photo: Orientation::from_exif_chunk 19 ns,
+PNG decoder.orientation() (fetches the chunk from the decoder a second
+time) 98 ns, parse_exif 4506 ns, the decode about 85 ms. JPEG and WebP
+store the value during the exif_metadata() call that decode_into makes
+anyway, on main too. The value is not taken from our own parse because
+the record holds display strings, the picture would then only be
+upright when the panel's parse succeeds, and TIFF has no record EXIF.
+0b02d6c puts one line above the call in decode_into saying so.
+
+The slider preview and wrong extensions. The content sniffing is
+with_guessed_format() in decode_into (file_io.rs 207, from d9c14ce in
+PR #45), not new code. image::open is ImageReader::open(path)
+.decode(), extension only. One of the owner's JPEGs copied as
+jpeg_named.png: image::open fails with "Invalid PNG signature",
+load_image gives 4032x3024, format JPEG, Rotate90. So on main such a
+file has a main image and no preview, on the branch both. It is the
+same change as the iced fix a71aaf3. A JXL named .jpg already worked,
+jxl-oxide registers its two signatures with the image crate's format
+detection (integration/image.rs 487 and 488).
+
+Still open in that area: may_have_animation (file_io.rs 29) goes by
+extension. A two-frame GIF copied as gif_named.jpg loads as a still
+(format GIF), may_have_animation is false, and open_animation_frames
+would return both frames if it were asked. No error, it just never
+plays. The record already has the real format, so start_animation
+could ask that.
+
+Iced issue ggand0/viewskater#65 "Error on mismatched file extensions"
+(eye-wave, 2025-11-30, open, the owner answered with a71aaf3). Left
+in the iced repo on 2026-09-11 on purpose. Decision on 2026-09-20:
+transfer it to the egui repo after the PR for this branch is open,
+then add "Resolves #N" to the PR body. The iced README's "Issues moved
+to the egui version" table (data-viewer clone) needs a row then.
+
+More pixel checks for the PR text. rot6.tiff against `convert
+-auto-orient`: RMSE 0. rot6.webp against `convert -rotate 90`
+(ImageMagick 6 reports no orientation for the WebP either): RMSE 0.
+
+Windows. The owner tested in the app on Linux and macOS and skips the
+Windows test. The diff has no cfg, no path handling and no new file
+system call. `cargo check --target x86_64-pc-windows-gnu
+--all-targets` passes on a scratch export of c0333cd with the winres
+`if` in build.rs skipped. c0333cd was the comment commit before the
+owner reworded the comment. It was amended into 0b02d6c, which has the
+same code.
+
+The rule "read every file in tmp/drafts before a draft" is now "the
+five most recent", in docs/internal/pr_draft_guidelines.md and in
+memory, at the owner's request (17 drafts by now).
+
+The cost sentence, checked on 2026-09-20. The owner asked whether
+"adds about 27 ms to the 93 ms" was measured. It was put together from
+two runs of section 5: 93 is load_image 84.7 plus the plain conversion
+8.6, and 27 is 35 minus 8 from the run where the test called
+apply_orientation by hand. The committed image_to_color_image had not
+been timed as a whole. Timed now, same 30 photos, opt-dev build, load
+average 7.5, three runs, medians in ms:
+
+| | run 1 | run 2 | run 3 |
+|---|---|---|---|
+| load_image | 81.6 | 80.6 | 84.4 |
+| image_to_color_image, NoTransforms | 8.6 | 8.2 | 8.4 |
+| image_to_color_image, Rotate90 | 37.6 | 35.9 | 38.2 |
+| per photo, load plus convert, no turn | 89.8 | 88.9 | 93.3 |
+| per photo, load plus convert, turned | 119.4 | 117.9 | 124.5 |
+
+The turn adds 29 to 31 ms on 89 to 93 ms. The PR draft now says about
+30 ms on 90 ms. The commit message of 6b062cb on origin says 27 and
+93 and was left alone. Still not measured: skate mode images per
+second and the slider's UI block on a folder of turned photos, main
+against the branch (--bench-nav and --bench-slider, which open a
+window).

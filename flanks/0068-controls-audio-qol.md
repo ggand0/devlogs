@@ -67,3 +67,12 @@ the M2TW read and the reposition-or-force choice it creates.
 cargo build --profile opt-dev + clippy: zero warnings at every step.
 Owner play-test pending for: drag-hand facing feel, archer hold-fire
 feel in symmetric fights, war cry timing, box select feel.
+
+## Addendum 2026-09-20: UI click onset padding
+
+The first few selection/order clicks of a battle (most audibly in
+deployment) lost their sound. Owner re-authored ui_select1/ui_order0
+with ~70-80 ms of lead-in silence (Audacity) and the clicks became
+reliable (5315f2e). Empirical read: a transient at sample zero gets
+swallowed while the fresh sink spins up; the pad rides it out. Any
+FUTURE short UI clip should carry the same small lead-in.

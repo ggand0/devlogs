@@ -2,6 +2,7 @@
 
 **Date:** 2026-09-20
 **Branch:** none (nothing in the game changed). Follow-up to 0051.
+**Claude Code conversation:** `ubuntu-stutter-appindicator-leak`
 
 ## Summary
 

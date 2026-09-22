@@ -337,7 +337,8 @@ There is one finder per container, each `find(source) ->
 io::Result<Option<Found>>` with `None` for "not my container":
 src/raw/tiff.rs, src/raw/cr3.rs, src/raw/raf.rs. `contents` tries them
 in that order. `Found` carries the EXIF block in place of the TIFF
-header, so `contents` does not know which format it read. The check
+header, so `contents` does not know which format it read. `Found` was
+renamed `JpegsAndExif` on 2026-09-22 after review. The check
 that a candidate lies inside the file moved from the TIFF walk into
 `contents` and covers every finder.
 

@@ -1,8 +1,9 @@
 # Camera RAW through the embedded JPEG: the walker, the EXIF block, a navigation bug
 
 Date: 2026-09-20
-Context: branch feat/raw-embedded-jpeg, nine commits on top of main
-060fb12, none pushed. The research and the plan are in
+Context: branch feat/raw-embedded-jpeg on top of main 060fb12. Merged
+as PR #47 on 2026-09-23 (7a3c4e5) with 11 commits, tip d27771d. The
+table below has the first nine. The research and the plan are in
 docs/plans/011_raw_support.md. This is PR 1 of that plan. Numbers from
 gota-home (Linux, RTX 3090, 144 Hz), files in the OS file cache.
 

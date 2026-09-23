@@ -1,0 +1,17 @@
+# 0097: MAA/spearman faces and closed heater shields
+
+2026-09-23, GPT-6 Astra.
+
+Applied the archer's generated-albedo face technique to MAA and spearman in separate v3 folders, preserving all v2 assets and the pre-existing articulated spearman v3. Extended the concealed facial perimeter to fill the wider mail coif; an initial close-up exposed gaps around the narrower archer jaw, which were corrected without adding triangles or changing the coif.
+
+Read `tmp/notes/astra-shield-back-2026-09-23.md`. The source had separate front/back panels and rim pieces; the back's vertex winding was not reversed correctly, and disconnected normal recalculation produced forward-facing rear surfaces. Rebuilt each shield as one connected 23 mm solid with opposite front/back winding, joined rim, wood-backed material, capped rivets and leather enarmes. The rawhide front border moved from a floating mesh strip into the baked material, keeping the new faces and closed fittings within budget. All 30 shield front vertices match the shipped positions. Added the shield repair to the knight as well.
+
+Final L0 counts: MAA 2,998 (+18), spearman 2,972 (+18), knight 2,730 (+14). Source/exported vertices: MAA 1,870/3,643; spearman 1,880/3,592; knight 1,775/3,749. Human height 1.80 m. Same one-opaque-material, 2048² RGBA color/AO/team atlas contract, VEC4 color and UV1 part/pivot pairs.
+
+Independent GLB/texture checks and per-part coverage pass. Shield boards, rivets and straps have zero open edges, nonmanifold edges or inconsistent winding. Board forward/back projected area is 0.180417/0.180417 m² for MAA and spearman, 0.208381/0.208381 m² for knight. Actual front/back area is 0.212838/0.212838 and 0.245254/0.245254 m² respectively. Viewed isolated front/back/edge and on-arm rear renders with back-face culling; exported materials also enable culling.
+
+Added acceptance item 9 and `tools/blender/inspect_surfaces.py`. The inspector reads the GLB directly and accounts for UV/normal seam splits. Fixed a source-manifest matching issue at float32 rounding boundaries in the knight and corrected old copied texture validators to recognize the current knight/spearman part IDs. Per-part and component reports expose existing non-shield openings: 468 MAA, 500 spearman, 522 knight. These were preserved along with other non-shield geometry; not every hidden-overlap exception has been certified, so full-model surface acceptance is not claimed. Details are in each output folder's `surface_audit.md`.
+
+Spearman exported pivots/joints match the shipped model exactly, and unchanged limb/weapon position sets match byte-decoded coordinates. Its motion.py and runtime spearman.stab.json are byte-identical. Existing motion checks pass over 2,504 poses: 0.494869 m thrust travel, 0.002030 m vertical deviation, joint/contact/edge errors below 1.1e-15 m. Saved 96-frame animation matrices match within 1.54e-7. Rendered side/oblique sequences, examined a temporal contact sheet and encoded a review MP4. No runtime motion or performance claim was added.
+
+All 371 recorded inputs remain byte-identical. Output paths and integration details: `tmp/drafts/handoff-faces-and-shield-backs-v3-gpt6-astra.md`. Combined review: `assets_dev/_shared/face_shield_v3/v3_review.png`. Corrected the flagged MAA handoff wording. Recorded the archer's future articulated-arm requirement without changing its accepted face model or adding animation. No game-code edits, Cargo runs, final asset replacement or commits.

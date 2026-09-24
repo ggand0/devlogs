@@ -4,6 +4,8 @@ Written by GPT-6 Astra.
 
 2026-09-23. The user resumed animation work after the continuation handoff. Authored the next stage only: a 0.6-second release and follow-through beginning at the accepted 35-degree raise endpoint. This release is awaiting user review. The 35-degree raise remains accepted and its 65 table rows match the frozen baseline exactly.
 
+Subsequent review: Gota explicitly accepted `assets_dev/archer/release_v5/archer_release.mp4`, saying "release motion looks good," and authorized proceeding with reload. The release is now accepted. Its source and table were frozen in `assets_dev/archer/reload_v6/accepted_release_source/` and `accepted_raise_release.json` before extending the motion.
+
 The string returns to its braced position over 75 ms. The held arrow disappears at the shot event, leaving the game's separate projectile to take over. The drawing hand moves 40 mm outward, 20 mm up and 25 mm backward in the pre-lean shot frame over 220 ms. A first, larger backward motion folded the elbow past 150 degrees and failed validation; the revised path keeps draw-elbow flexion within 143.194–143.681 degrees. The final world-space hand displacement, including the settling torso, is 45.647 mm.
 
 The bow arm holds aim for 180 ms. Over the remainder of follow-through, torso lean decreases from 25 to 23 degrees and bow-arm pitch from 10 to 8 degrees. The side-on stance and shared elbow hinge solver remain. No separate pulling motion was added.

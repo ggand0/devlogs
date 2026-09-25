@@ -5,6 +5,7 @@ This directory is intentionally not committed (see `.gitignore`).
 
 | # | Date | Entry | Summary |
 |---|------|-------|---------|
+| 0120 | 2026-09-25 | [Archer animation review lessons](0120-archer-animation-review-lessons.md) | Feedback and decisions from the rejected draw through approved reload v11; elbow-plane and grip-path techniques, redundant waypoint failures, arrow transfer, validation limits and links to the individual iteration logs |
 | 0000 | 2026-09-22 | [Project overview](0000-project-overview.md) | The map of the whole project as of 2026-09-22: what the game is and how it plays, the data model, the 30 Hz tick on its worker thread, the instanced renderer with LOD, performance at 200k, the 1M plan and its status (items 1, 3a, 0 done, item 2 next), the assets track with Astra and Blender, workflow and conventions, where to read next. Update it when a milestone lands |
 | 0001 | 2026-07-08 | [Concept & M1: instanced rendering](0001-concept-and-m1-instanced-rendering.md) | Game concept, architecture, 100k-unit instanced renderer, perf findings |
 | 0002 | 2026-07-08 | [M2: movement & separation](0002-m2-movement.md) | Spatial grid, parallel steering sim, the crowd-compression saga, 222 fps with full sim |

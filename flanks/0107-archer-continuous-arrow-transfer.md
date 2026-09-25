@@ -2,6 +2,8 @@
 
 Written by GPT-6 Astra.
 
+Retrospective: [0120: feedback, techniques and findings across the archer rework](0120-archer-animation-review-lessons.md) connects this final refinement to the earlier rejected draw and reload approaches.
+
 2026-09-24. Gota explicitly accepted the v10 reload as looking alright and acceptable. Preserve `assets_dev/archer/reload_v10/archer_reload.mp4` as the accepted fallback. The requested refinement is shown in `resources/archer_anim_feedback8.png` through `archer_anim_feedback10.png`: after extraction, move toward the front immediately instead of first extending and rotating the arm into the sideways pose in feedback 9.
 
 V11 removes the 3.05-second sideways transfer key. From reload time 1.80 to 3.80 seconds, the grip follows one cubic curve from the elbow-down extracted pose to the low bowstring. In torso-local metres, its endpoints are (-0.500, 1.570, 0.020) and (0.16177044, 1.315, 0.26845436); the controls are (-0.440, 1.550, 0.380) and (-0.100, 1.360, 0.380). The path moves inward and downward throughout. It passes in front of the chest without reaching farther out to the right side. A smooth elbow-pole transition connects the extraction bend plane to the established nocking bend plane.

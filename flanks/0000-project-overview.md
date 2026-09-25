@@ -47,7 +47,7 @@ Rules that hold the whole thing together:
 - Every task scope reachable from the job goes through `util::sim_scope`. A plain Bevy scope on the worker steals `step_sim` and deadlocks (devlog 0079).
 - Orders quantize to one tick (33 ms). `FL_PIPELINE=0` runs the tick inline, bit-identical to the pre-PR-#6 sim.
 - The sim is bit-deterministic run to run, archery and AI included. `FL_HASH=n` proves it (devlog 0079).
-- Melee: the M2TW model behind `FL_RECTFIGHT` (default on). Formations keep their grid, everyone pushes and fights, friendly blocks are solid, broken men pass through seams (devlogs 0035, 0036). "Simulate, never fake" is the design principle: physical events, no stance flags.
+- Melee: every regiment's slot grid is driven into the enemy (an attack order centers it on the target's live center of mass) and bodies stop the men; whoever has an enemy in weapon reach fights. The M2TW model from devlogs 0035 to 0042 sits behind `FL_RECTFIGHT`, which is OFF by default and which Gota prefers off: with it on, blocks flock oddly some time after engaging and soldiers die too fast (devlog 0119). "Simulate, never fake" is the design principle: physical events, no stance flags.
 - Morale: a per-tick recomputed level with signed factors, values read from live M2TW memory (devlogs 0055 to 0057). Fatigue: six M2TW states. Breaks land at 81 to 98 percent losses.
 - Archery: regiment fire solutions, per-soldier aim, flat or lofted arc that clears friendly blocks, range-independent scatter, its own damage curve (devlogs 0060 to 0065).
 

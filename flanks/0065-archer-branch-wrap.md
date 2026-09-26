@@ -18,7 +18,7 @@ Absolute numbers shifted with the c0ecffb revert (expected); the acceptances are
 
 ## Branch summary (23 commits)
 
-Evidence (0060) -> design doc (docs/plans/archers.md, local) -> KIND_ARCHER + arrow SoA pool + orders/HUD (0061) -> no-fire engaged-flag fix + art rounds (0062-0063, kimi k3 landed the Sherwood hooded longbowman) -> HP-placeholder revert + damage calibration vs the Withwnar anchor + per-team cloth + fixed-2-regiments + AI soft-targeting + terrain LOS + arrow stagger + volley screams (0064) -> audio suite, indicator, war-cry gating (0065). PR draft: tmp/drafts/pr-archers.md.
+Evidence (0060) -> design doc (docs/plans/006-archers.md, local) -> KIND_ARCHER + arrow SoA pool + orders/HUD (0061) -> no-fire engaged-flag fix + art rounds (0062-0063, kimi k3 landed the Sherwood hooded longbowman) -> HP-placeholder revert + damage calibration vs the Withwnar anchor + per-team cloth + fixed-2-regiments + AI soft-targeting + terrain LOS + arrow stagger + volley screams (0064) -> audio suite, indicator, war-cry gating (0065). PR draft: work/drafts/pr-archers.md.
 
 Deferred to future branches (owner-directed): balance iteration from playtests, AI positioning (screen archers behind the line), flaming arrows, plaque ammo readout, stakes (with cavalry), META kind-field widen for a 5th kind (longbow/crossbow elite — the AP counter to arrow-proof plate).
 

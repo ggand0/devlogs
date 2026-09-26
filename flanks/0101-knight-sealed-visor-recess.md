@@ -12,4 +12,4 @@ Independent GLB, channel, texture-payload and per-triangle part checks pass. The
 
 Other pre-existing open boundaries remain: 490 non-shield edges and 12 winding inconsistencies outside the closed shell/interior. Full-model and authored lower-LOD acceptance are not claimed. The shield closure checks still pass. All 237 recorded prior files are byte-identical.
 
-Updated `tmp/drafts/handoff-faces-and-shield-backs-v3-gpt6-astra.md` with the knight path and counts. No src/, renderer, Cargo or animation work. No production asset replacement or commit by this task. Tracked asset modifications present at the start no longer appeared in git status at the end; their content hashes remained unchanged.
+Updated `work/handoffs/handoff-faces-and-shield-backs-v3-gpt6-astra.md` with the knight path and counts. No src/, renderer, Cargo or animation work. No production asset replacement or commit by this task. Tracked asset modifications present at the start no longer appeared in git status at the end; their content hashes remained unchanged.

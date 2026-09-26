@@ -101,4 +101,4 @@ charges (devlog 0069); the same recipe covers everything below.
 4. Rout panic yells + running-feet wash.
 
 Prompt sheet for the whole asset batch: next session, same format as
-tmp/charge-sfx-prompts.md, once the owner picks scope.
+work/audio/charge-sfx-prompts.md, once the owner picks scope.

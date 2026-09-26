@@ -12,7 +12,7 @@ injection handshake) crashes under Proton, and a hand-written handshake
 replacement did not take either. The winning route needs no injection
 at all — read the game's memory from Linux:
 
-- `m2tw_probe.py` (backed up in `tmp/m2tw-extraction/`) is inserted by
+- `m2tw_probe.py` (backed up in `work/research/m2tw-extraction/`) is inserted by
   a Steam launch shim INTO the pressure-vessel container, after the
   `_v2-entry-point --verb=... --` boundary. Outside that boundary the
   container's PID namespace hides the game entirely (first failure).
@@ -261,12 +261,12 @@ always the evidenced bit.
 All extraction data lives in the REPO (gitignored `tmp/`, same
 convention as the handoff files), NOT in a volatile /tmp:
 
-- `tmp/m2tw-extraction/probe-battle1-20260726-0330.csv` (2583 rows,
+- `work/research/m2tw-extraction/probe-battle1-20260726-0330.csv` (2583 rows,
   184 s) and `.log` — the first successful capture, effect table
-- `tmp/m2tw-extraction/probe-battle2-routs-0418.csv` (13950 rows,
+- `work/research/m2tw-extraction/probe-battle2-routs-0418.csv` (13950 rows,
   855 s) and `.log` — the rout capture: casualty ladder, state bands,
   rout lock, contagion scaling, fatigue anchor
-- `tmp/m2tw-extraction/m2tw_probe.py` (the working probe)
+- `work/research/m2tw-extraction/m2tw_probe.py` (the working probe)
 - Live copies: game folder `probe.csv` / `probe.log`; shim at
   `/data2/SteamLibraryFlatpak/eop_launch.sh`
 - Cleanup when done: clear the Steam launch options, delete the shim +

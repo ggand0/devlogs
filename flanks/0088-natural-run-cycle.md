@@ -4,7 +4,7 @@ Branch `feat/knight-model`, commit ccec1ea. The cadence from 0087 is unchanged. 
 
 ## What was awkward
 
-An offline viewer (tmp/scripts/gait_view.py) poses the knight GLB with a Python port of the shader and renders one stride from the side and three quarters, plus the sole paths in the ground frame. tmp/scripts/gait_curves.py plots hip, knee and foot angles. Both run from pose modules: gait_pose_current.py is the committed shader, gait_pose_new.py is the new one.
+An offline viewer (work/scripts/gait_view.py) poses the knight GLB with a Python port of the shader and renders one stride from the side and three quarters, plus the sole paths in the ground frame. work/scripts/gait_curves.py plots hip, knee and foot angles. Both run from pose modules: gait_pose_current.py is the committed shader, gait_pose_new.py is the new one.
 
 - The sword arm pitched ±27° at a run. With the blade held forward from the hand, the tip swept from level to straight down every stride.
 - The rear leg locked fully straight for about a tenth of every cycle, knee at 0°, thigh held at -33°.

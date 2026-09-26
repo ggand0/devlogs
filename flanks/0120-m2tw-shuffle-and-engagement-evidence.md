@@ -13,11 +13,11 @@ Gota asked for (1) a way to see M2TW's left/right shuffle animations, as referen
 - Skeleton payload: per bone a 76-byte record before its name: offset from the parent (3 floats) and the parent index, plus an inverse bind matrix. After the bones comes the animation state table.
 - Axes: x = the soldier's right, y = up, z = forward. 20 fps. Human skeleton of 20 bones (thigh 0.46 m, shin 0.40 m, upper arm 0.30 m).
 
-Scripts: `tmp/scripts/m2tw_anim/m2anim.py` (readers + forward kinematics) and `render_shuffle.py` (reference sheets and GIFs).
+Scripts: `work/scripts/m2tw_anim/m2anim.py` (readers + forward kinematics) and `render_shuffle.py` (reference sheets and GIFs).
 
 ## The shuffles
 
-Reference sheets and GIFs: `resources/m2tw_shuffle_refs/`, for the Mace skeleton (one-handed weapon + shield, the M2TW body closest to our knights and men-at-arms), the Spear skeleton and the Bowman skeleton, left and right, plus the Mace's at-ease `stand_A_step_left/right`. Each sheet: back view (the RTS camera), rear three-quarter view, a top-view strobe with the planted footprints and their time spans, foot lift and pelvis bob, and the sideways travel of each foot.
+Reference sheets and GIFs: `resources/animation/m2tw_shuffle_refs/`, for the Mace skeleton (one-handed weapon + shield, the M2TW body closest to our knights and men-at-arms), the Spear skeleton and the Bowman skeleton, left and right, plus the Mace's at-ease `stand_A_step_left/right`. Each sheet: back view (the RTS camera), rear three-quarter view, a top-view strobe with the planted footprints and their time spans, foot lift and pelvis bob, and the sideways travel of each foot.
 
 | clip | length | travel | speed |
 |---|---|---|---|

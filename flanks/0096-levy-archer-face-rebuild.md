@@ -6,7 +6,7 @@ Created `assets_dev/archer/textured_v2/` without modifying v1. Rebuilt the face 
 
 Result: 2,985 L0 triangles, including 250 face triangles; 1.80 m; 1,887 source and 3,655 exported vertices. Same material/atlas/part/pivot contract. Independent GLB inspection, image payload, color alpha, UV1 parts, triangle membership and scope checks pass. Verified unchanged 31 other geometry components, 18 source tiles and 59 old revision files. Examined exported front/three-quarter/profile and full-unit renders; generated matching before/after sheet and RTS scale checks.
 
-Review files: `face_comparison.png`, `face_front.png`, `archer_review.png`, `validation.json`, README. Handoff: `tmp/drafts/handoff-levy-archer-face-v2-gpt6-astra.md`. Gota responded positively to the revised face and subsequently reported that it apparently works. No transfer to other units, lower LODs, animation, engine changes, Cargo run, final promotion or commit was performed in this pass.
+Review files: `face_comparison.png`, `face_front.png`, `archer_review.png`, `validation.json`, README. Handoff: `work/handoffs/handoff-levy-archer-face-v2-gpt6-astra.md`. Gota responded positively to the revised face and subsequently reported that it apparently works. No transfer to other units, lower LODs, animation, engine changes, Cargo run, final promotion or commit was performed in this pass.
 
 ## Why this worked better than the earlier faces
 

@@ -10,6 +10,6 @@ Final export: 2,941 L0 triangles, 1,865 source vertices, 3,637 exported vertices
 
 Raw GLB inspection and embedded-image/part checks pass: COLOR_0 VEC4, retained team alpha, correct TEXCOORD_1 and pivots, one full-weight part per source vertex, one part per exported triangle, embedded/external image equality and preserved RGB at zero alpha. Recorded prior unit inputs remain byte-identical. Reviewed actual GLB front/back/side/detail renders and 60/20/8/3-pixel checks.
 
-README, validation and review sheets are beside the asset; Claude handoff is `tmp/drafts/handoff-levy-archer-gpt6-astra.md`. Stop for appearance review. Bow animation, string deformation, nocked arrow, additional variants and lower LODs were not attempted. The thin bow/string become subpixel at small sizes; final ranged-unit readability remains a lower-LOD task.
+README, validation and review sheets are beside the asset; Claude handoff is `work/handoffs/handoff-levy-archer-gpt6-astra.md`. Stop for appearance review. Bow animation, string deformation, nocked arrow, additional variants and lower LODs were not attempted. The thin bow/string become subpixel at small sizes; final ranged-unit readability remains a lower-LOD task.
 
 Claude's active integration edits were left alone. No source/renderer/Cargo-file edits, Cargo commands, live Blender access, commits or asset promotion.

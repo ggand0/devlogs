@@ -3,7 +3,7 @@
 Commits `da8f988` + `cb1e48e` on `feat/battle-feel`. Owner generated two
 ElevenLabs batches (`assets/*.mp3`, `assets/sfx_new/*.mp3`); the mixer
 plays them from aggregate sim signals. Full asset list + prompts + retry
-notes: `tmp/audio-plan.md`.
+notes: `work/audio/audio-plan.md`.
 
 ## Architecture (`src/audio.rs`)
 

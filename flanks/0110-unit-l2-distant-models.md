@@ -11,6 +11,6 @@ Raw GLB checks show VEC4 colours, whole-number part IDs, matching pivot heights 
 
 Promoted the builders and supporting tools to `tools/blender/lods/`. They use installed GLBs plus compact source component labels, without requiring WIP scenes. Independent rebuilds from those inputs are byte-identical to all three candidates. Python compilation and formatting checks pass. Final videos and review-page links were verified.
 
-Combined review: `assets_dev/lod_l2_review/index.html`. Candidate GLBs are under `assets_dev/<kind>/lod_l2_v1/`. Detailed delivery note, per-part counts, pivot positions, hashes and validation limitations: `tmp/notes/unit-l2-other-models-for-claude-2026-09-24.md`.
+Combined review: `assets_dev/lod_l2_review/index.html`. Candidate GLBs are under `assets_dev/<kind>/lod_l2_v1/`. Detailed delivery note, per-part counts, pivot positions, hashes and validation limitations: `work/notes/unit-l2-other-models-for-claude-2026-09-24.md`.
 
 Existing L0 topology defects and the archer's double-sided material remain unchanged; new L2 geometry is closed, with review renders explicitly enabling culling. This finishes the requested L2 stage. Candidates remain uninstalled for Claude's integration under the original handoff. No src/ or renderer edits, staging or commits were made. The approved knight candidate was unchanged.

@@ -1,6 +1,6 @@
 # 0085: the generated knight goes in the game (2026-09-22)
 
-Working from `main` a197872, uncommitted at the time of writing. Inputs: the asset track's handoff (tmp/drafts/handoff-knight-l0-gpt6-astra.md), devlog 0084 (how the model was built), docs/plans/unit-asset-spec.md (the contract), `assets_dev/knight/knight.glb`.
+Working from `main` a197872, uncommitted at the time of writing. Inputs: the asset track's handoff (work/handoffs/handoff-knight-l0-gpt6-astra.md), devlog 0084 (how the model was built), docs/plans/009-unit-asset-spec.md (the contract), `assets_dev/knight/knight.glb`.
 
 Asked for: use the model for the knight kind, and a read on whether it works. Performance, animation, the look.
 
@@ -46,7 +46,7 @@ One line per fault, never one per vertex.
 
 ## Measurements
 
-Recipe: `tmp/scripts/gpu-pass-measure.sh`, 200k soldiers (`FL_UNITS=100000`), all knights (`FL_HEAVY_FRAC=1 FL_SPEAR_FRAC=0 FL_ARCHER_FRAC=0`), the locked views of devlog 0077, muted, 26 s each. Loadavg 3.4 before the sweep. Core clocks logged per sample, and they differ between runs, so the pass times below are quoted with them.
+Recipe: `work/scripts/gpu-pass-measure.sh`, 200k soldiers (`FL_UNITS=100000`), all knights (`FL_HEAVY_FRAC=1 FL_SPEAR_FRAC=0 FL_ARCHER_FRAC=0`), the locked views of devlog 0077, muted, 26 s each. Loadavg 3.4 before the sweep. Core clocks logged per sample, and they differ between runs, so the pass times below are quoted with them.
 
 | View | Drawn | Levels | Imported pass | Code pass |
 |---|---|---|---|---|

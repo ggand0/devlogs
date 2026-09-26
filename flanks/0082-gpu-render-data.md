@@ -1,6 +1,6 @@
 # 0082: Item 2, the unit render data moves to the GPU (2026-09-22)
 
-Branch `perf/gpu-render-data`, from `main` 347bc5a. Plan: docs/plans/gpu-render-data-item2.md, approved by the owner the same day. Background: devlog 0081 (where the CPU frame went), devlog 0078 (vertex pulling), docs/plans/scale-to-1m.md items 2 and 3. Reference code absorbed: `exp/vertex-pull` (47f658a), unmerged.
+Branch `perf/gpu-render-data`, from `main` 347bc5a. Plan: docs/plans/011-gpu-render-data-item2.md, approved by the owner the same day. Background: devlog 0081 (where the CPU frame went), devlog 0078 (vertex pulling), docs/plans/010-scale-to-1m.md items 2 and 3. Reference code absorbed: `exp/vertex-pull` (47f658a), unmerged.
 
 ## Commits
 
@@ -84,7 +84,7 @@ Scaling on the GPU path, 900 m, culling off: main thread update and post-update 
 
 ### The indexed pull is not built
 
-The design gated it on the 40 m close-up: build it only if it could save over 0.5 ms there. Measured with tmp/scripts/gpu-pass-measure.sh on the GPU path, 200k battle, 2.9k to 5.4k soldiers drawn in the view:
+The design gated it on the 40 m close-up: build it only if it could save over 0.5 ms there. Measured with work/scripts/gpu-pass-measure.sh on the GPU path, 200k battle, 2.9k to 5.4k soldiers drawn in the view:
 
 | 40 m close-up | Unit pass | GPU clock during the samples |
 |---|---|---|
@@ -95,7 +95,7 @@ The whole pass sits under 0.6 ms at a third of the full clock, so under 0.3 ms a
 
 ### The contaminated runs
 
-Three GPU runs between the good ones sat at exactly 60 fps with frames of 11.6 and 21.9 ms. During them three Blender python processes of the owner's model generation track used about ten cores (load average 5.5 to 6). The owner confirmed the timing. Three repeats after they finished read 101 to 155 fps. Rule from now on: log `/proc/loadavg` next to every measurement, and never quote a number from a run without it. tmp/scripts/gpu-pass-measure.sh prints it now.
+Three GPU runs between the good ones sat at exactly 60 fps with frames of 11.6 and 21.9 ms. During them three Blender python processes of the owner's model generation track used about ten cores (load average 5.5 to 6). The owner confirmed the timing. Three repeats after they finished read 101 to 155 fps. Rule from now on: log `/proc/loadavg` next to every measurement, and never quote a number from a run without it. work/scripts/gpu-pass-measure.sh prints it now.
 
 ### A hazard worth knowing: the pipelined handoff steals sim work
 
@@ -103,10 +103,10 @@ Bevy's pipelined renderer makes the main thread wait for the render world, and t
 
 ## State
 
-- MERGED as PR #7 on 2026-09-22, `main` = a197872. Eight commits: the validation fix, the GPU path, the render thread timer, the bodies, the readback and check mode, the camera sweep knob, the default flip, a field trim. Build and clippy clean at every commit. Handoff for the next agent: tmp/handoffs/HANDOFF-after-item2-2026-09-22.md.
-- The owner's feel pass was positive (above), so the GPU path is the default and `FL_GPU_SYNC=0` is the fallback. Archery on the GPU path: fingerprints equal the baseline 19 of 19, 11,700 check frames with no difference. Ready for the PR draft in tmp/drafts/pr-gpu-render-data.md.
+- MERGED as PR #7 on 2026-09-22, `main` = a197872. Eight commits: the validation fix, the GPU path, the render thread timer, the bodies, the readback and check mode, the camera sweep knob, the default flip, a field trim. Build and clippy clean at every commit. Handoff for the next agent: work/handoffs/HANDOFF-after-item2-2026-09-22.md.
+- The owner's feel pass was positive (above), so the GPU path is the default and `FL_GPU_SYNC=0` is the fallback. Archery on the GPU path: fingerprints equal the baseline 19 of 19, 11,700 check frames with no difference. Ready for the PR draft in work/drafts/pr-gpu-render-data.md.
 - The 40 byte record (yaw pair and color packed) waits for the feel pass.
-- Backup of the branch before a history fix of two broken commits: ref `refs/backup/gpu-render-data-pre-fix-20260922`, bundle tmp/backups/gpu-render-data-pre-fix-20260922.bundle, verified. The two commits had been made from zero-context patch splits that landed lines in the wrong places. They were replaced by commits made from exact file states, each checked to compile.
+- Backup of the branch before a history fix of two broken commits: ref `refs/backup/gpu-render-data-pre-fix-20260922`, bundle work/backups/gpu-render-data-pre-fix-20260922.bundle, verified. The two commits had been made from zero-context patch splits that landed lines in the wrong places. They were replaced by commits made from exact file states, each checked to compile.
 
 ## Commands
 
@@ -115,5 +115,5 @@ FL_GPU_SYNC=1 cargo run --profile opt-dev                       # the GPU path
 FL_GPU_SYNC=1 FL_GPU_CHECK=1 cargo run --profile opt-dev        # both paths, counts compared per frame
 FL_GPU_SYNC=1 FL_LOD_DEBUG=1 cargo run --profile opt-dev        # tint by level, now in the vertex shader
 WGPU_VALIDATION_INDIRECT_CALL=1 FL_GPU_SYNC=1 cargo run --profile opt-dev   # the slow validation back on
-FL_GPU_SYNC=1 tmp/scripts/hashrun.sh dir-gpu 40 FL_TEST_DIR=1   # render only, hashes must equal the baseline
+FL_GPU_SYNC=1 work/scripts/hashrun.sh dir-gpu 40 FL_TEST_DIR=1   # render only, hashes must equal the baseline
 ```

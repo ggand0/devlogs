@@ -18,7 +18,7 @@ the unit_run footstep bank.
 - vox_rout_04/05: extend the break-edge crowd pool (01..03 kept at
   owner's call).
 - 8 single/two-man footstep source loops. ElevenLabs would not
-  produce a massed wash, so `tmp/build-feet-wash.sh` layers 12
+  produce a massed wash, so `work/scripts/build-feet-wash.sh` layers 12
   jittered copies (asetrate pitch/tempo, delays, per-layer volume,
   soft fades) into feet_run_wash_mass_01/02 (6 s, -12/-14 dB mean).
   Rerun the script after regenerating sources.

@@ -12,6 +12,6 @@ Parts: body 1,466 triangles; weapon arm 430; each leg 320; shield arm 462. Pivot
 
 Independent GLB/channel checks, embedded texture checks, per-triangle part checks, closed face/neck and shield checks pass. The crown has no new opening or winding error. Viewed front, angled and low-front renders; the face follows the approved spearman contour. The pre-existing 468 non-shield open boundaries remain documented; full-model surface acceptance is not claimed. Only L0 is authored here.
 
-Verified all 190 recorded prior files unchanged, including MAA v2/v3, the approved spearman face_fit folder and shipped assets. Source images also match. Updated `tmp/drafts/handoff-faces-and-shield-backs-v3-gpt6-astra.md` with the latest MAA/spearman paths, crown budget adjustment, part contract and verification results. Updated the earlier spearman handoff to point there.
+Verified all 190 recorded prior files unchanged, including MAA v2/v3, the approved spearman face_fit folder and shipped assets. Source images also match. Updated `work/handoffs/handoff-faces-and-shield-backs-v3-gpt6-astra.md` with the latest MAA/spearman paths, crown budget adjustment, part contract and verification results. Updated the earlier spearman handoff to point there.
 
 No src/, renderer or Cargo work, no runtime launch, no asset promotion or commit. All output remains in the new ignored WIP folder. Reproduction commands and measurements are in its README; exported scope checks are in verify_export.py and validation.json.

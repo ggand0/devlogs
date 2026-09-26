@@ -16,8 +16,8 @@ Gota: the stab slid the whole arm off the shoulder, and the spear was gripped at
 - Sword stab: the hand pulls back, then thrusts along the blade with the wrist keeping the point near level. Classic swing, cheer and carry turn the whole chain about the shoulder.
 - Archer draw hand (code-built only): pulls to the jaw by bending the elbow, no slide.
 - Rigs: models carry them as the `weapon` part plus `pivot_weapon` and `joint_elbow` empties. Code-built kinds get theirs from builder constants. A model without them falls back to a rigid arm with no translation and a warning.
-- Knight and spearman re-exported from the generators with `--reuse-bake`. Geometry, UVs, colours and atlas byte-identical to the approved files, only the part ids of 328 sword and 185 spear vertices and the two new empties differ. Knight generator changed in `tools/blender/knight/`. Spearman from a copy of Astra's scripts in `assets_dev/spearman/weapon_rebuild/`, Astra's files untouched. Note for Astra: tmp/drafts/handoff-weapon-rig-astra.md. The man-at-arms needs the same.
-- Checked with an offline port (tmp/scripts/arm_view.py, side and front views of rest, level, draw and thrust) and in game in the charge test. Fingerprints 19 of 19, GPU check 0 of 13,800 frames.
+- Knight and spearman re-exported from the generators with `--reuse-bake`. Geometry, UVs, colours and atlas byte-identical to the approved files, only the part ids of 328 sword and 185 spear vertices and the two new empties differ. Knight generator changed in `tools/blender/knight/`. Spearman from a copy of Astra's scripts in `assets_dev/spearman/weapon_rebuild/`, Astra's files untouched. Note for Astra: work/handoffs/handoff-weapon-rig-astra.md. The man-at-arms needs the same.
+- Checked with an offline port (work/scripts/arm_view.py, side and front views of rest, level, draw and thrust) and in game in the charge test. Fingerprints 19 of 19, GPU check 0 of 13,800 frames.
 
 ## Open
 

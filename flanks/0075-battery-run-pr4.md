@@ -49,5 +49,5 @@ Cleared: batteries green, build + clippy clean at all 17 commits,
 every audio system owner-approved, controls exercised through a
 month of live play. Merge via PR #4; the local branch gets deleted
 after (owner permission, as always). Next thread after merge:
-scenario format (tmp/handoffs/HANDOFF-scenario-format-2026-07-30.md)
+scenario format (work/handoffs/HANDOFF-scenario-format-2026-07-30.md)
 toward itch 0.1.0; death-pool regen rides its own later branch.

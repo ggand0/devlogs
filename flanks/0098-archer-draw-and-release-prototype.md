@@ -31,10 +31,10 @@ The installed archer remains v2. The renderer cannot read this new part/table co
 
 The unchanged body/leg components retain surface exceptions from v2: body has 333 open edges, 4 nonmanifold edges and 3 winding disagreements; each leg has 40 open edges. Some boundaries are hidden garment/component seams, but the full exception audit has not been completed. This is not final asset acceptance. Keep the GLB out of `assets/units/` until the requested stages and acceptance checks are complete.
 
-A return handoff records the part IDs, transforms, integration requirements and remaining work: `tmp/handoffs/HANDOFF-archer-draw-prototype-for-claude-2026-09-23.md`.
+A return handoff records the part IDs, transforms, integration requirements and remaining work: `work/handoffs/HANDOFF-archer-draw-prototype-for-claude-2026-09-23.md`.
 
 ## Review status correction
 
 I incorrectly recorded Gota's "Ok good" as approval in the return message. Gota explicitly said it was not approval and reported impossible right-arm rotations, the hand entering the body during the lift and a motion that does not read as drawing. Corrected the message and handoff to mark the prototype unapproved and unsuitable for integration. The earlier geometry/contact checks did not test anatomical motion.
 
-References: `resources/archer_anim_feedback0.png` and `resources/braveheart_archer_ref.png`. The next requested pass holds a believable drawn-bow pose horizontally and raises it to about 45 degrees, without a separate draw or release.
+References: `resources/archer/archer_anim_feedback0.png` and `resources/archer/braveheart_archer_ref.png`. The next requested pass holds a believable drawn-bow pose horizontally and raises it to about 45 degrees, without a separate draw or release.

@@ -1,6 +1,6 @@
 # 0032 — Phase A: M2TW stat model + directional defense (2026-07-14)
 
-Formation combat v2 (docs/plans/formation-combat-v2.md, research 0031),
+Formation combat v2 (docs/plans/002-formation-combat-v2.md, research 0031),
 phase A of four. Owner answered the plan's open questions before work
 started: YES to the M2TW TTK texture (elite frontal fights get grindy,
 rear kills get lethal), NO levy kind for now (keeps the last 2-bit grid

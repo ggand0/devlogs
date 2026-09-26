@@ -1,7 +1,7 @@
 # 0059 — feat/deployment-phase: TW-style pre-battle deployment
 
 **Date:** 2026-07-26
-**Branch:** `feat/deployment-phase` (design in docs/plans/deployment-phase.md)
+**Branch:** `feat/deployment-phase` (design in docs/plans/005-deployment-phase.md)
 
 ## What landed
 

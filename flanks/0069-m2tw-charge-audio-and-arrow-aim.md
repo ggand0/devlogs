@@ -4,7 +4,7 @@ Owner played live M2TW and flagged two divergences from our build.
 Both confirmed against local data: the SSHIP mod in the owner's M2TW
 install ships the unpacked vanilla-derived sound configs
 (`mods/sship/data/descr_sounds_*.txt`), and the M2TWEOP struct dump
-was already cached at `tmp/archer-evidence/eop_unit.h` (devlog 0060).
+was already cached at `work/research/archer-evidence/eop_unit.h` (devlog 0060).
 
 ## Charge audio: two layers, not one roar
 
@@ -28,7 +28,7 @@ Our single loud crowd clip at the charge edge matched neither layer;
 the loudness hierarchy was inverted.
 
 REBUILT (2026-07-31, audio.rs::charge_vox). Owner generated the pool
-on ElevenLabs (prompts: `tmp/charge-sfx-prompts.md`): 29 single-man
+on ElevenLabs (prompts: `work/audio/charge-sfx-prompts.md`): 29 single-man
 yells + 3 group sheets in `assets/sfx_charge/` (all ~-11 dB mean,
 0 dB peak — hotter than the old warcry's -14.8, hierarchy lives in
 the code gains). Two layers, driven by `GroupData::charging`, both

@@ -1,7 +1,7 @@
 # Knight slash finish grip roll
 Written by GPT-6 Astra.
 
-2026-09-24. V3 was accepted as an overall upper-body motion, with a further request to turn the blade edge toward the oblique camera near frame 071. Reference: `resources/knight_slash_review4.png`. After reviewing v4, Gota said the motion itself looks good. The awkward default ready/rest pose is explicitly deferred. Claude note: `tmp/notes/knight-diagonal-slash-v4-for-claude-2026-09-24.md`.
+2026-09-24. V3 was accepted as an overall upper-body motion, with a further request to turn the blade edge toward the oblique camera near frame 071. Reference: `resources/knight/knight_slash_review4.png`. After reviewing v4, Gota said the motion itself looks good. The awkward default ready/rest pose is explicitly deferred. Claude note: `work/notes/knight-diagonal-slash-v4-for-claude-2026-09-24.md`.
 
 ## Change
 

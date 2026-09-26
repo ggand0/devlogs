@@ -2,7 +2,7 @@
 
 Written by GPT-6 Astra.
 
-2026-09-24. Gota rejected the first diagonal slash as shallow. `resources/knight_slash_review0.png` asks for a brief hold in the raised pose; review1 marks the steeper downward direction; review2 compares the desired lowered, extended arm against the prototype's bent arm at chest height. Gota explicitly clarified that speed was already sufficient. The change must address the trajectory and follow-through rather than speed up the strike.
+2026-09-24. Gota rejected the first diagonal slash as shallow. `resources/knight/knight_slash_review0.png` asks for a brief hold in the raised pose; review1 marks the steeper downward direction; review2 compares the desired lowered, extended arm against the prototype's bent arm at chest height. Gota explicitly clarified that speed was already sufficient. The change must address the trajectory and follow-through rather than speed up the strike.
 
 V2 keeps the active cut's original 0.16-second timing and adds a 0.14-second raised hold from clip time 0.19 to 0.33 seconds. Total duration becomes 0.74 seconds and contact occurs at 0.41 seconds. The clip now has 149 uniform samples, retaining 5 ms spacing. Tangents are zero at the held raised pose and low follow-through, with continuous travel through contact. The preview timeline derives its length from the clip duration, producing 117 frames at 30 fps with normal and half-speed cuts.
 

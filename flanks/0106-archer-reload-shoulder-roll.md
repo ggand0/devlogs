@@ -2,7 +2,7 @@
 
 Written by GPT-6 Astra.
 
-2026-09-24. The v7 elbow-plane correction was rejected after video review, with `resources/archer_anim_feedback4.png` through `archer_anim_feedback6.png`. The low quiver reach was acceptable, but the forearm still folded behind the upper arm near the head. Passing hinge checks did not make the overall shoulder motion acceptable.
+2026-09-24. The v7 elbow-plane correction was rejected after video review, with `resources/archer/archer_anim_feedback4.png` through `archer_anim_feedback6.png`. The low quiver reach was acceptable, but the forearm still folded behind the upper arm near the head. Passing hinge checks did not make the overall shoulder motion acceptable.
 
 The v8 source separates upper-arm swing, signed shoulder roll and elbow flexion. It interpolates those components between the released pose, quiver grip, an elbow-down extraction pose and the existing high extraction pose. The held arrow tilts backward by up to 24 degrees during the early extraction to clear the forearm. Quiver geometry is unchanged; its orientation is deferred to another thread.
 
@@ -12,7 +12,7 @@ The v8 numerical check passes 3,003 sampled poses. Minimum drawing-hand clearanc
 
 After reviewing v8, the user requested removal of the redundant arm raising around video time 00:02 while retaining the roll. This is a refinement request, not approval of the complete reload. The next revision is being prepared in `assets_dev/archer/reload_v9/`, which contains a snapshot of the v8 source and tables. No engine or installed asset changes were made.
 
-`resources/archer_anim_feedback7.png` identifies the above-head pose as the redundant lift. V9 removes the high extraction key at reload time 2.30 seconds. From the elbow-down key at 1.80 seconds, the shoulder swing, roll and elbow flexion interpolate directly to the existing outside-transfer pose at 2.65 seconds. The hand no longer detours above the head. The motion duration remains 5.8 seconds.
+`resources/archer/archer_anim_feedback7.png` identifies the above-head pose as the redundant lift. V9 removes the high extraction key at reload time 2.30 seconds. From the elbow-down key at 1.80 seconds, the shoulder swing, roll and elbow flexion interpolate directly to the existing outside-transfer pose at 2.65 seconds. The hand no longer detours above the head. The motion duration remains 5.8 seconds.
 
 V9 passes the motion check with the accepted raise/release baseline and the v8 reload baseline. Reload samples from row 117 (2.65078125 seconds) retain equivalent rotations and identical scalar and arrow channels. Maximum later posed-vertex difference is 1.333e-15 m. Minimum held-arrow clearance against the checked body-part envelopes is 7.845 mm, and maximum free-arrow grip error is 0.898 mm. The reviewed mesh, bow motion, pickup timing and later nock/draw sequence are preserved. The current review target is `assets_dev/archer/reload_v9/archer_reload.mp4`; it requires user playback review before proceeding to another animation.
 

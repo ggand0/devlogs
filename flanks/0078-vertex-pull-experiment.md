@@ -1,6 +1,6 @@
 # 0078: Vertex pulling experiment, step 3a. Result: POSITIVE (2026-09-20)
 
-Branch `exp/vertex-pull`, from `main` e80dbe8. Plan: docs/plans/scale-to-1m.md, item 3. Background: devlog 0077, which measured a GPU cost per drawn soldier that mesh simplification could not remove.
+Branch `exp/vertex-pull`, from `main` e80dbe8. Plan: docs/plans/010-scale-to-1m.md, item 3. Background: devlog 0077, which measured a GPU cost per drawn soldier that mesh simplification could not remove.
 
 ## Question
 
@@ -33,7 +33,7 @@ Bevy 0.19 is the latest stable release. 0.20 is at rc.1. The owner is open to an
 
 ## Measurement method, and what was wrong with it before
 
-Recipe as in the handoff: muted, scripted battle, locked camera, read `main_transparent_pass_3d`. New this time: `nvidia-smi` logs power state and core clock twice a second next to the game log. The script is tmp/scripts/gpu-pass-measure.sh. It prints each pass sample with the drawn counts and the clock at that moment.
+Recipe as in the handoff: muted, scripted battle, locked camera, read `main_transparent_pass_3d`. New this time: `nvidia-smi` logs power state and core clock twice a second next to the game log. The script is work/scripts/gpu-pass-measure.sh. It prints each pass sample with the drawn counts and the clock at that moment.
 
 What the clock log showed:
 - In a light view the 3090 sits in P3 or P5 at 700 to 1400 MHz. Under a heavier unit pass it holds P0 at 1935 MHz.
@@ -116,7 +116,7 @@ Reading: instancing costs about 8 ns per soldier on this GPU whatever the mesh. 
 FL_PULL=1 cargo run --profile opt-dev     # L3 pulled
 FL_PULL=2 cargo run --profile opt-dev     # L2 and L3 pulled
 FL_PULL=4 cargo run --profile opt-dev     # every level pulled
-tmp/scripts/gpu-pass-measure.sh far_pull1 FL_UNITS=100000 FL_NO_CULL=1 FL_CAM_DIST=900 FL_PULL=1
+work/scripts/gpu-pass-measure.sh far_pull1 FL_UNITS=100000 FL_NO_CULL=1 FL_CAM_DIST=900 FL_PULL=1
 ```
 
 ## Open

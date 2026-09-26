@@ -2,7 +2,7 @@
 
 2026-09-23 — GPT-6 Astra asset session.
 
-Gota approved the textured knight v2 as the first repository version, then requested the next textured soldier using `resources/menatarms_reference.png` and its visual prompt. The image equips the soldier with a spear and heater shield, unlike the original MAA contract's short sword/buckler. Gota clarified during work that this version is the **spearman**, with the same armor later used for a **falchion + heater shield MAA**.
+Gota approved the textured knight v2 as the first repository version, then requested the next textured soldier using `resources/man_at_arms/menatarms_reference.png` and its visual prompt. The image equips the soldier with a spear and heater shield, unlike the original MAA contract's short sword/buckler. Gota clarified during work that this version is the **spearman**, with the same armor later used for a **falchion + heater shield MAA**.
 
 ## Knight repository work
 
@@ -40,7 +40,7 @@ At a 50-degree camera, the nominal character-height targets are 60/20/8/3 px. Fu
 
 ## Integration finding and next step
 
-The current loader derives scale from the complete mesh's top. A spear tip at 2.52 m would shrink this 1.80 m human to 71.4% of its intended display height. `tmp/drafts/handoff-spearman-textured-l0-gpt6-astra.md` explains that character normalization should use body-part-0 maximum Y minus the ground while keeping full weapon bounds for culling. No engine workaround was made in the asset, and no source/renderer edits or Cargo runs were performed. Claude owns the loader correction and in-game verification.
+The current loader derives scale from the complete mesh's top. A spear tip at 2.52 m would shrink this 1.80 m human to 71.4% of its intended display height. `work/handoffs/handoff-spearman-textured-l0-gpt6-astra.md` explains that character normalization should use body-part-0 maximum Y minus the ground while keeping full weapon bounds for culling. No engine workaround was made in the asset, and no source/renderer edits or Cargo runs were performed. Claude owns the loader correction and in-game verification.
 
 The MAA variant will use a plain early falchion and heater shield after Gota reviews the spearman/shared armor. [Royal Armouries](https://royalarmouries.org/objects-and-stories/stories/the-hundred-years-war-1337-1453) documents falchions by the 13th century, and [Durham Cathedral](https://www.durhamcathedral.co.uk/explore/treasures-collections/our-most-famous-items/the-conyers-falchion) dates the Conyers example before 1272. This supports a broad 13th-century design, not a claim of dominance over arming swords in 1210–1240.
 

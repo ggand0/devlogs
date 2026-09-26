@@ -11,4 +11,4 @@ Ran both requested GLB inspectors, the setup-smoke inspector and a raw-byte cont
 
 Rendered the exported geometry from the side, top and rear, plus close-ups of the head, fletching and nock. Added a native 10-pixel-long view, the current three-box projectile for comparison, and an unchanged 1.80 m archer beside the arrow for scale. At 10 pixels, the true-scale arrow has subpixel thickness and is faint; the comparison documents the need for the engine's readability scaling without changing the asset's true scale. Combined review: `assets_dev/arrow/review.html` and `review.png`.
 
-Delivery note: `tmp/notes/arrow-projectile-for-claude-2026-09-24.md`. Stopped for review. No installed assets, archer quiver arrows, src/ or renderer files were changed. Nothing was staged or committed.
+Delivery note: `work/notes/arrow-projectile-for-claude-2026-09-24.md`. Stopped for review. No installed assets, archer quiver arrows, src/ or renderer files were changed. Nothing was staged or committed.

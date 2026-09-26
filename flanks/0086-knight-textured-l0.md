@@ -1,6 +1,6 @@
 # 0086: Textured knight L0 review (2026-09-23)
 
-Gota reported that the first knight integrates well with no observed performance drop. New art target is between M2TW's dismounted feudal knight and Chivalry's Vanguard, guided by `resources/knight_reference.png`. He explicitly excluded symbols and sigils.
+Gota reported that the first knight integrates well with no observed performance drop. New art target is between M2TW's dismounted feudal knight and Chivalry's Vanguard, guided by `resources/knight/knight_reference.png`. He explicitly excluded symbols and sigils.
 
 Created a separate material review under `assets_dev/knight/textured_v1/`. The original `knight.glb`, `knight.blend` and `build_knight.py` are unchanged, verified by SHA-256 before and after. Worked on `feat/knight-model` without switching branches, editing source or renderer files, running Cargo, staging or committing. Existing concurrent source changes were left alone. No subagents, external image service, downloaded materials or live Blender operations were used. Background Blender ran with four CPU threads and the approved script prefix.
 
@@ -29,6 +29,6 @@ Linear float bake data needs explicit sRGB encoding when written into a byte ima
 
 Textures use neutral RGB in team regions and a linear alpha mask. The preview formula is `atlas.rgb * mix(white, team_tint, atlas.a)` in linear color space. Team alpha is not opacity. The current shader's replacement blend would erase cloth detail at mask 1. The current loader also does not retain atlas UVs or images. This work is an asset preview, not a renderer integration.
 
-Handoff is `tmp/drafts/handoff-knight-textures-gpt6-astra.md`. It covers atlas loading, UV retention, fragment sampling, sRGB, tinting, mipmaps and the need to include atlas color in the visibility-based derived LOD calculation. White `COLOR_0.rgb` must not be used as the new far-color source.
+Handoff is `work/handoffs/handoff-knight-textures-gpt6-astra.md`. It covers atlas loading, UV retention, fragment sampling, sRGB, tinting, mipmaps and the need to include atlas color in the visibility-based derived LOD calculation. White `COLOR_0.rgb` must not be used as the new far-color source.
 
 Stop for the owner's material and shape review. L1 to L3, the silhouette overlay, rotation checks and full acceptance remain pending. No final asset or tools promotion yet.

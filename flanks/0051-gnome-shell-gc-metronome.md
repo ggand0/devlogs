@@ -79,9 +79,9 @@ stutter is 100% environmental; (3) correlation now 6/6 (metronome
 firing = stutter, quiet = clean). Prime suspect for the ~21:20
 quieting: the ubuntu-dock disable/enable cycle (dash-to-dock GC-leak
 class); secondary: Chromium YouTube tab Playing->Paused same window.
-Watchdog armed: tmp/gc_watchdog.sh (nohup, 2 s shell-CPU sampling;
+Watchdog armed: tmp/2026-07-21-lag-spikes/gc_watchdog.sh (nohup, 2 s shell-CPU sampling;
 on burst >=30% snapshots MPRIS states + active window + top procs to
-tmp/gc_watchdog.log). If stutter returns, the log names the culprit.
+tmp/2026-07-21-lag-spikes/gc_watchdog.log). If stutter returns, the log names the culprit.
 
 ## Shipped (uncommitted, pending owner call)
 
@@ -128,7 +128,7 @@ matched (tick spikes ≤28 ms watched = unfelt, pipeline absorbs them);
 garbage driver (ubuntu-dock prime suspect — storm died during its
 restart; Chromium-tab pause secondary). Verification protocol when a
 storm returns: pidstat 60 s → cycle suspect extension → pidstat 60 s.
-Watchdog (tmp/gc_watchdog.sh) arms the detection.
+Watchdog (tmp/2026-07-21-lag-spikes/gc_watchdog.sh) arms the detection.
 
 ## Owner rules that bit this session
 

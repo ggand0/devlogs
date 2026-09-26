@@ -20,4 +20,4 @@ Validation across 2,002 poses reports zero boundary difference apart from the in
 
 Reload, archer melee, all four cheers, L1–L3 and runtime integration remain separate stages. No `src/`, renderer or installed assets were edited by this work. `assets/units/knight.glb` changed concurrently and was left alone. No commit, staging or push was performed.
 
-While recording completion, the previous `tmp/messages/` and `tmp/handoffs/` directories were no longer present. The attempted multi-file documentation patch failed without changing its targets. Their removal was not performed by this work, and their contents were not recreated over concurrent changes. This devlog records the continuation status instead.
+While recording completion, the previous `tmp/messages/` and `work/handoffs/` directories were no longer present. The attempted multi-file documentation patch failed without changing its targets. Their removal was not performed by this work, and their contents were not recreated over concurrent changes. This devlog records the continuation status instead.

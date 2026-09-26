@@ -2,7 +2,7 @@
 
 Owner signed off on the phase-A + facing state (sees ~100-man
 depletion gaps front vs rear in play) and green-lit phase B
-(docs/plans/formation-combat-v2.md). Commit d517823. Stagger visual
+(docs/plans/002-formation-combat-v2.md). Commit d517823. Stagger visual
 stays physics-only for now (plan open question 3 unanswered — the
 knockback displacement itself is visible).
 

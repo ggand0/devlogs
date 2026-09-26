@@ -10,6 +10,6 @@ Final measurements: 2,998 L0 triangles (+37), 2,028 source vertices, 3,622 expor
 
 Independent GLB inspection and embedded-image/part checks pass: VEC4 COLOR_0, correct TEXCOORD_1 IDs/heights, one part per triangle, one opaque material and a matching embedded/external RGBA atlas. Source checks prove the other 23 geometry components and fourteen non-face texture files are identical to v1. SHA-256 checks preserve the recorded v1 inputs and committed knight asset.
 
-Reviewed matching front, three-quarter, low and profile renders of the actual old/new GLBs, plus full-unit and 60/20/8/3-pixel L0 renders. Comparisons are in the revision directory. README contains reproduction commands and full counts; handoff is `tmp/drafts/handoff-spearman-face-v2-gpt6-astra.md`.
+Reviewed matching front, three-quarter, low and profile renders of the actual old/new GLBs, plus full-unit and 60/20/8/3-pixel L0 renders. Comparisons are in the revision directory. README contains reproduction commands and full counts; handoff is `work/handoffs/handoff-spearman-face-v2-gpt6-astra.md`.
 
 No engine/source changes, Cargo commands, live Blender access, commits, animation or LOD work. The face remains pending Gota's approval before the MAA variant. Full per-kind acceptance (authored lower LODs, silhouette comparison and rotation checks) remains pending.

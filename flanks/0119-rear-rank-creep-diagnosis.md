@@ -1,6 +1,6 @@
 # 0119 — Rear-rank creep: diagnosis
 
-Written by Claude Opus 5.5. Date: 2026-09-25. Main at cc7b08b, diagnostic uncommitted (`tmp/backups/rear-diag-2026-09-25.patch`).
+Written by Claude Opus 5.5. Date: 2026-09-25. Main at cc7b08b, diagnostic uncommitted (`work/backups/rear-diag-2026-09-25.patch`).
 
 Gota's report (resources/unit_movements_debug0/1_092426.png): soldiers in the rear ranks of a fighting regiment keep making tiny adjustment moves with a small walk cycle, in loops and S-curves.
 

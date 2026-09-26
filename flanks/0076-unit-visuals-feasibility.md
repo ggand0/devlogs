@@ -115,7 +115,7 @@ Ladder (estimates): today about 200k to 250k at 60 fps. With 1 to 3 the render s
 
 ## CORRECTION (same day, after reading devlogs 0020, 0049, 0050 and the source)
 
-Three statements in the addendum above are wrong. The full plan with the fixes is docs/plans/scale-to-1m.md.
+Three statements in the addendum above are wrong. The full plan with the fixes is docs/plans/010-scale-to-1m.md.
 
 - The sim does NOT run on a worker thread on `main`. The pipelined tick (d64e6d4), the catch-up clamp, the hitch attribution and `FL_HASH` exist only on the shelved `perf/spikes` branch. `step_sim` runs inline in `FixedUpdate`, inside the frame.
 - So an over-budget tick DOES stretch frames on `main`. It does not turn into slow motion.

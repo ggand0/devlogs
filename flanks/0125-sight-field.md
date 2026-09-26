@@ -15,19 +15,19 @@ Its cost grows with the square of the sight range. A 1 s cadence for the whole s
 
 ## The approach: three ranges
 
-Picture: tmp/notes/vis/perception-tiers.png (today on the left, proposed in the middle).
+Picture: work/notes/vis/004-perception-tiers.png (today on the left, proposed in the middle).
 
 - Touch, every tick (unchanged): the separation scan, bodies and an enemy in weapon reach. Its neighbors, every 8 ticks: lanes (way blocked, open sides, comrade ahead, mark blocked) and comrades running close by.
 - Near, job 2: the existing 4 m approach scan (WIDE_ACQUIRE_R, about 50 units), run only when the far look says an enemy may be within 4 m. It picks the actual nearest enemy.
 - Far, job 1: a coarse field of 4.5 m cells, rebuilt once per tick, in which every cell stores the nearest living soldier of each team and the nearest comrade running out of formation of each team. A man reads the cells around him: the nearest enemy and how far, whatever the sight range.
 
-Picture of the field: tmp/notes/vis/sight-field-proposal.png. The center man of a wide line reads an enemy 5 m ahead (in sight; his near look then picks the man); a flank man reads 25 m (beyond sight; he joins when he sees comrades run, or when his patience runs out, as before).
+Picture of the field: work/notes/vis/003-sight-field-proposal.png. The center man of a wide line reads an enemy 5 m ahead (in sight; his near look then picks the man); a flank man reads 25 m (beyond sight; he joins when he sees comrades run, or when his patience runs out, as before).
 
 It stays local perception: a man reads only the spot he stands on, the precomputed answer to "where is the nearest enemy from here". Nothing regiment-wide.
 
 ## Cell size
 
-Picture: tmp/notes/vis/perception-tiers.png, right panel.
+Picture: work/notes/vis/004-perception-tiers.png, right panel.
 
 - 4.5 m is 3 x 3 of the 1.5 m neighbor-grid cells, so the field is built from the grid's sorted cells without another sort.
 - A cell stores the soldier nearest its center. For a man off-center that soldier can be up to one cell diagonal (6.4 m) further than his true nearest. Fine for job 1; job 2 is the near look's.
@@ -37,9 +37,9 @@ It is a trade-off, not a derived number: build time and pick error at 4.5 m and 
 
 ## Concerns and fixes
 
-Picture: tmp/notes/vis/sight-field-boundaries.png.
+Picture: work/notes/vis/005-sight-field-boundaries.png.
 
-1. Two men side by side across a cell line would head for different enemies if each read only his own cell (left panel: 5.0 and 5.2 m while the true nearest is at 3.2 m). Fix: read the 3 x 3 cells around him and take the stored soldier nearest to himself (middle panel); both find the same man. Measured on 6,000 random placements behind a ragged enemy line (tmp/scripts/viz/boundary.py; the pictures come from the other scripts in tmp/scripts/viz/):
+1. Two men side by side across a cell line would head for different enemies if each read only his own cell (left panel: 5.0 and 5.2 m while the true nearest is at 3.2 m). Fix: read the 3 x 3 cells around him and take the stored soldier nearest to himself (middle panel); both find the same man. Measured on 6,000 random placements behind a ragged enemy line (work/scripts/viz/boundary.py; the pictures come from the other scripts in work/scripts/viz/):
 
    | cell | own cell only | 3 x 3 read |
    |---|---|---|
@@ -54,7 +54,7 @@ Picture: tmp/notes/vis/sight-field-boundaries.png.
 
 ## Build
 
-Built as described (uncommitted working tree on top of bee555e; patch in tmp/patches/sight-field.patch):
+Built as described (uncommitted working tree on top of bee555e; patch in work/backups/patches/sight-field.patch):
 
 - spatial.rs: the grid origin snaps to world multiples of FAR_CELL; META_RUNNER (bit 7, out of formation and faster than 1 m/s; the regiment moves up to bit 8); `build_far` at the end of every rebuild: parallel seeding over bands of 8 coarse rows (each coarse cell takes the unit nearest its center per layer from its own 3 x 3 grid cells), then per layer a forward and a backward raster sweep over the 4 visited neighbors (the 4 layers in parallel); `far_nearest(layer, p)` reads the 3 x 3 cells around p.
 - movement.rs: a man of an engaged regiment on his far look (the acquisition's 1-in-8 rhythm, same gates) reads the enemy layer; within sight the named enemy becomes his target, and when it may be within the 4 m approach scan's reach (4 m plus a far cell diagonal) that scan picks the actual nearest. The approach (not engaged) keeps the old 4 m scan. The far comrade-running check reads the runner layer (within 6 m, not himself); the close-by check on the touch neighbors uses the same META_RUNNER. FL_JOIN_OWN_REG=1 restricts both to his own regiment; default per team.

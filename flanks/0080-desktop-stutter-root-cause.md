@@ -20,7 +20,7 @@
 
 ## Measurements (desktop near idle, game not running)
 
-New probe, `tmp/scripts/shell-stall-probe.py <shell pid> <seconds>`: samples per-thread on-CPU nanoseconds from `/proc/PID/task/TID/schedstat` every 4 ms and reports contiguous runs where the shell main thread is pegged. Passive, no root, replaces pidstat's 1 s resolution with real stall lengths.
+New probe, `work/scripts/shell-stall-probe.py <shell pid> <seconds>`: samples per-thread on-CPU nanoseconds from `/proc/PID/task/TID/schedstat` every 4 ms and reports contiguous runs where the shell main thread is pegged. Passive, no root, replaces pidstat's 1 s resolution with real stall lengths.
 
 | state | main-thread stall | cadence |
 |---|---|---|
@@ -40,7 +40,7 @@ Shell RSS 1319 MB before, 875 MB after MEGAsync quit: 444 MB released by destroy
 
 ## Reproduction outside the shell
 
-`tmp/scripts/appindicator-leak-fix/repro.js` (plain `gjs -m`, the class extracted verbatim): N completed operations against one parent, no references kept.
+`work/scripts/appindicator-leak-fix/repro.js` (plain `gjs -m`, the class extracted verbatim): N completed operations against one parent, no references kept.
 
 | | N | steady full GC | RSS | parent teardown |
 |---|---|---|---|---|
@@ -54,7 +54,7 @@ A first liveness check using `WeakRef` reported the patched children as still al
 
 ## The fix
 
-`tmp/scripts/appindicator-leak-fix/cancellable-leak.patch` (28 changed lines, 3 files). Same pattern GLib uses: connect, run the operation, disconnect when it is over.
+`work/scripts/appindicator-leak-fix/cancellable-leak.patch` (28 changed lines, 3 files). Same pattern GLib uses: connect, run the operation, disconnect when it is over.
 
 - `util.js`: `CancellableChild.release()` unlinks from the parent without cancelling.
 - `appIndicator.js`: `release()` in a `finally` in `refreshProperty`, `refreshAllProperties` and both icon-loading paths.
@@ -64,10 +64,10 @@ Syntax-checked with `node --check`. Not yet run inside the shell.
 
 ## Install (needs the owner)
 
-A patched full copy of the extension is staged at `tmp/scripts/appindicator-leak-fix/ubuntu-appindicators@ubuntu.com/`. The shell scans the user data dir first and skips a system copy with the same UUID (checked in the shell's own `extensionSystem.js` and `fileUtils.js`), so a per-user copy overrides the packaged one with no sudo:
+A patched full copy of the extension is staged at `work/scripts/appindicator-leak-fix/ubuntu-appindicators@ubuntu.com/`. The shell scans the user data dir first and skips a system copy with the same UUID (checked in the shell's own `extensionSystem.js` and `fileUtils.js`), so a per-user copy overrides the packaged one with no sudo:
 
 ```
-cp -r tmp/scripts/appindicator-leak-fix/ubuntu-appindicators@ubuntu.com ~/.local/share/gnome-shell/extensions/
+cp -r work/scripts/appindicator-leak-fix/ubuntu-appindicators@ubuntu.com ~/.local/share/gnome-shell/extensions/
 ```
 
 then Alt+F2, `r`, Enter (X11 restart, windows survive), then start MEGAsync. Revert by moving that directory away and restarting the shell again. The agent's attempt to install it was blocked as a persistent change to the desktop, which is the right call for the owner to make.
@@ -81,7 +81,7 @@ then Alt+F2, `r`, Enter (X11 restart, windows survive), then start MEGAsync. Rev
 
 ## Verification after install
 
-Run `python3 tmp/scripts/shell-stall-probe.py $(pgrep -x gnome-shell) 60` on day 0 and again after 3+ days of MEGAsync uptime. Pass: stalls stay in the 20 ms class and shell RSS stays flat. Fail: stalls grow by tens of ms per day, meaning another leaking path exists.
+Run `python3 work/scripts/shell-stall-probe.py $(pgrep -x gnome-shell) 60` on day 0 and again after 3+ days of MEGAsync uptime. Pass: stalls stay in the 20 ms class and shell RSS stays flat. Fail: stalls grow by tens of ms per day, meaning another leaking path exists.
 
 ## Corrections to 0051
 

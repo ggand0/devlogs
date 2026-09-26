@@ -2,7 +2,7 @@
 
 Written by GPT-6 Astra.
 
-2026-09-23. Gota identified beige skin outside the face/neck contour in `resources/maa_feedback0.png`, most evident from the front. The cause was the previous rectangular face-perimeter extension used to fill the mail-coif opening. Gota requested a spearman-only correction and review before transferring it to MAA.
+2026-09-23. Gota identified beige skin outside the face/neck contour in `resources/man_at_arms/maa_feedback0.png`, most evident from the front. The cause was the previous rectangular face-perimeter extension used to fill the mail-coif opening. Gota requested a spearman-only correction and review before transferring it to MAA.
 
 Created `assets_dev/spearman/textured_v3_face_fit/`, preserving earlier versions. Removed the extension, restored the original anatomical jaw/cheek boundary, and fitted the coif opening as a curved outline against the face surface. Its edge samples the actual mesh depth and sits 2 mm forward to overlap. Added a closed neck behind the coif. The face albedo and its landmark projection are unchanged; no texture painting, alpha cutout or renderer change.
 
@@ -12,4 +12,4 @@ Viewed exported GLB front, 45°, profile and low-front renders with back-face cu
 
 Source comparison: only face and mail_coif changed, neck added; all 26 other geometry components match. All source PNGs match the preceding revision. The rig, motion source and runtime table are unchanged, so no animation was regenerated. All 354 recorded prior files remain byte-identical, including MAA and shipped assets. No game-code changes, Cargo runs, asset promotion or commits.
 
-Review: `assets_dev/spearman/textured_v3_face_fit/face_fit_comparison.png`. Handoff: `tmp/drafts/handoff-spearman-face-fit-gpt6-astra.md`. Stop here for appearance review; MAA remains unchanged.
+Review: `assets_dev/spearman/textured_v3_face_fit/face_fit_comparison.png`. Handoff: `work/handoffs/handoff-spearman-face-fit-gpt6-astra.md`. Stop here for appearance review; MAA remains unchanged.

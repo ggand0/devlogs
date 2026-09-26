@@ -2,7 +2,7 @@
 
 Written by GPT-6 Astra.
 
-2026-09-25. Built a knight-only side-shuffle candidate from `tmp/handoffs/HANDOFF-side-shuffle-2026-09-25.md`. The stage ends at motion review; Gota has not accepted this candidate yet. No `src/` or renderer edits, asset replacement, attack-table changes, commits or pushes.
+2026-09-25. Built a knight-only side-shuffle candidate from `work/handoffs/HANDOFF-side-shuffle-2026-09-25.md`. The stage ends at motion review; Gota has not accepted this candidate yet. No `src/` or renderer edits, asset replacement, attack-table changes, commits or pushes.
 
 The existing knight has square symmetric legs and hip pivots at (+/-0.115, 0.910, 0) in glTF metres. The M2TW mace reference instead crosses feet from a bladed fighting stance. The new motion takes the leading foot outward, plants it, then brings the trailing foot across to recover the original stance. The direction is mirrored in the leg/pelvis curves while the equipment stays on its original side. Facing never changes.
 
@@ -18,6 +18,6 @@ Rendered two complete cycles at 24 fps from back and rear-oblique fixed cameras,
 
 Files are in `assets_dev/knight/shuffle_v1/`. Entry point for review: `knight_shuffle_review.mp4`; pose table: `knight.shuffle.json`; playable scenes: `knight_shuffle_left.blend` and `knight_shuffle_right.blend`. Reproducible scripts are promoted to `tools/blender/knight/{shuffle,build_shuffle,review_shuffle,compose_shuffle}.py`. Python compilation, promoted-script table regeneration, numerical validation and `git diff --check` pass.
 
-Integration details and checksums are in `tmp/notes/knight-side-shuffle-for-claude-2026-09-25.md`. Two details matter: cycle distance must be scaled with the model (0.366667 world units for a 1.8 m mesh shown at 1.1 units tall), and an arbitrary mid-cycle stop needs step completion or a settling transition. Fading the full motion table to standing while the sim continues to move cannot preserve foot contact. L3 should keep its all-body silhouette static relative to the moving root, avoiding pelvis dip on unsplit feet.
+Integration details and checksums are in `work/notes/knight-side-shuffle-for-claude-2026-09-25.md`. Two details matter: cycle distance must be scaled with the model (0.366667 world units for a 1.8 m mesh shown at 1.1 units tall), and an arbitrary mid-cycle stop needs step completion or a settling transition. Fading the full motion table to standing while the sim continues to move cannot preserve foot contact. L3 should keep its all-body silhouette static relative to the moving root, avoiding pelvis dip on unsplit feet.
 
 User-visible result is a review candidate only. Other kinds, runtime wiring, arbitrary-distance transitions and art acceptance remain separate stages.

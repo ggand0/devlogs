@@ -41,7 +41,7 @@ The code kinds hold the ground too, but at 9.5 m/s their stance is 8 per cent of
 
 - A temporary trace of one knight through a formed march on the CPU path: cadence follows speed with no jumps, 3.8 steps/s at 5.6 m/s, easing down on arrival. The measured phase advance matched the formula every half second.
 - Screens of the march and the arena charge, in tmp/shots/gait-rewrite/.
-- DIR and ARCHERY fingerprints 19 of 19 equal to tmp/hash-baselines. `FL_GPU_CHECK=1` on DIR: 1 of 18,300 frames off by one soldier, the frustum-edge rounding case devlog 0082 already recorded.
+- DIR and ARCHERY fingerprints 19 of 19 equal to work/baselines. `FL_GPU_CHECK=1` on DIR: 1 of 18,300 frames off by one soldier, the frustum-edge rounding case devlog 0082 already recorded.
 - Build and clippy clean on every commit of the rewritten branch.
 
 ## History rewrite
@@ -55,10 +55,10 @@ Gota asked for concise commit messages and for every comment written by the prev
 Backups, made before the ref move:
 
 - `backup/knight-model-c37ced8`: the old tip.
-- `backup/knight-model-wip`: the old tip plus the previous thread's uncommitted diff, also saved as tmp/backups/knight-model-uncommitted-2026-09-23.patch (blob hashes checked against the original diff).
+- `backup/knight-model-wip`: the old tip plus the previous thread's uncommitted diff, also saved as work/backups/knight-model-uncommitted-2026-09-23.patch (blob hashes checked against the original diff).
 - `backup/knight-model-rewrite-worktree`: this rewrite before it was committed.
-- tmp/backups/knight-model-2026-09-23.bundle, all refs, verified.
-- `backup/knight-model-11b9b3e` and tmp/backups/knight-model-2026-09-23b.bundle: the tip with a fourth commit that reworded nine older comments on main that credit decisions to a person. Gota dropped it. Those comments come from commits already on public main (febfc22, fde230d, 20ba17e, e30beec, 0807bb6, 948f763), so they cannot be amended without rewriting main.
+- work/backups/knight-model-2026-09-23.bundle, all refs, verified.
+- `backup/knight-model-11b9b3e` and work/backups/knight-model-2026-09-23b.bundle: the tip with a fourth commit that reworded nine older comments on main that credit decisions to a person. Gota dropped it. Those comments come from commits already on public main (febfc22, fde230d, 20ba17e, e30beec, 0807bb6, 948f763), so they cannot be amended without rewriting main.
 
 ## Open
 

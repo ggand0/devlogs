@@ -2,7 +2,7 @@
 
 Written by GPT-6 Astra.
 
-2026-09-24. Gota requested an M2TW-like diagonal sword slash, knight first, using `resources/knight_diagonal-slash_ref.png`. The motion should be reusable for MAA and future sword-bearing units. Archer ranged animation work is complete for now, and its celebration rework remains deferred.
+2026-09-24. Gota requested an M2TW-like diagonal sword slash, knight first, using `resources/knight/knight_diagonal-slash_ref.png`. The motion should be reusable for MAA and future sword-bearing units. Archer ranged animation work is complete for now, and its celebration rework remains deferred.
 
 Authored the first knight preview in `assets_dev/knight/diagonal_slash_v1/`. `knight_diagonal_slash.mp4` and `review.html` show an oblique and a 50-degree gameplay-camera view. The 108-frame, 30 fps preview contains one normal-speed cut followed by one half-speed cut. The clip itself lasts 0.60 seconds: low ready, high right guard, diagonal cut toward the left hip, low follow-through and recovery. Contact is at 0.27 seconds. The feet stay planted while the torso twists about 9 degrees each way and the shield turns clear of the cut. This is an asset-side preview awaiting review, not a runtime change.
 

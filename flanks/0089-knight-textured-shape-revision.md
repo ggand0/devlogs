@@ -33,6 +33,6 @@ Review images use the exported GLB, re-imported into an empty background Blender
 
 ## Handoff and next gate
 
-`tmp/drafts/handoff-knight-textured-v2-gpt6-astra.md` gives Claude the paths, exact texture/part contract, measurements and review scope. The asset README contains reproduction commands. No integration change is made here; atlas alpha remains authoritative for per-pixel team tint, including the new trim.
+`work/handoffs/handoff-knight-textured-v2-gpt6-astra.md` gives Claude the paths, exact texture/part contract, measurements and review scope. The asset README contains reproduction commands. No integration change is made here; atlas alpha remains authoritative for per-pixel team tint, including the new trim.
 
 Stop for Gota's L0 appearance review. No further LODs, silhouette overlay, joint rotation test or animation were undertaken. The longer skirt remains in the existing rigid body part; motion clearance is not checked. Final promotion into `assets/units/` and `tools/blender/` remains pending acceptance. Keep this devlog and the handoff uncommitted.

@@ -25,7 +25,7 @@ Written by Claude Opus 5.5.
 ## Next
 
 - PR for the branch.
-- The knight's diagonal slash (`tmp/notes/knight-diagonal-slash-v4-for-claude-2026-09-24.md`) goes to its own branch. Before it plays in game:
+- The knight's diagonal slash (`work/notes/knight-diagonal-slash-v4-for-claude-2026-09-24.md`) goes to its own branch. Before it plays in game:
   - a shader port of `tools/blender/melee/sword_slash.py` `deform`
   - a three-way style pick for knights, which changes the fingerprints because swing bytes are hashed
   - blending into and out of the clip's own ready pose

@@ -10,4 +10,4 @@ Measured export: 2,980 L0 triangles, 1,992 source vertices, 3,648 exported verti
 
 Raw GLB inspection, embedded/external image equality, COLOR_0 VEC4, UV1 part/pivot coverage, one part per triangle and sword orientation checks pass. Reviewed full-unit, sword/grip and 60/20/8/3-pixel renders from the actual GLB. All twelve recorded accepted spearman/knight input files remain byte-identical.
 
-README and validation live beside the asset. Claude handoff: `tmp/drafts/handoff-man-at-arms-arming-sword-gpt6-astra.md`. No source/renderer edits, Cargo runs, live Blender changes, commits, animation or lower LODs. Stop for this L0 equipment review.
+README and validation live beside the asset. Claude handoff: `work/handoffs/handoff-man-at-arms-arming-sword-gpt6-astra.md`. No source/renderer edits, Cargo runs, live Blender changes, commits, animation or lower LODs. Stop for this L0 equipment review.

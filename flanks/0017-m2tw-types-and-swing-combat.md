@@ -1,6 +1,6 @@
 # 0017 — m2tw branch: unit types, low-poly meshes, swing combat (2026-07-09)
 
-First two milestones of the M2TW-lite MVP (plan: `docs/plans/m2tw-mvp.md`,
+First two milestones of the M2TW-lite MVP (plan: `docs/plans/001-m2tw-mvp.md`,
 branch `feat/m2tw`, commits `61d52a3` + `8566bd5`).
 
 ## Unit types + render path (`61d52a3`)

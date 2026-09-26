@@ -1,6 +1,6 @@
 # 0077: Unit level of detail, build and measurement (2026-09-20)
 
-Branch `feat/lod`. Plan: docs/plans/unit-lod.md. Background numbers: devlog 0076. Owner could not decide the four open design points on paper, so the defaults were built with every point switchable from the command line.
+Branch `feat/lod`. Plan: docs/plans/008-unit-lod.md. Background numbers: devlog 0076. Owner could not decide the four open design points on paper, so the defaults were built with every point switchable from the command line.
 
 ## State
 
@@ -92,6 +92,6 @@ Checked and sound:
 - The empty-draw skip also applies to the arrow buckets, which share the draw command. Harmless.
 - No leftover references to the removed corpse buckets or the old builder signatures. README needs no change.
 
-Known cost, not a blocker: the per-chunk scratch vectors and the 16 bucket vectors keep their high-water capacity. Over a session that zooms in and out, CPU memory for instance data can grow to roughly twice what it was before (L0 and L1 never hold many, L2 and L3 can each hold everyone). The GPU-driven instance build in docs/plans/scale-to-1m.md removes these buffers entirely.
+Known cost, not a blocker: the per-chunk scratch vectors and the 16 bucket vectors keep their high-water capacity. Over a session that zooms in and out, CPU memory for instance data can grow to roughly twice what it was before (L0 and L1 never hold many, L2 and L3 can each hold everyone). The GPU-driven instance build in docs/plans/010-scale-to-1m.md removes these buffers entirely.
 
 Style nit left as is: `blade()` sits in its own small `impl MeshBuf` block instead of the main one.

@@ -2,7 +2,7 @@
 
 Written by GPT-6 Astra.
 
-2026-09-24. Gota found the v2 hold too long and the intermediate swing unnatural, with the sword appearing horizontal rather than cutting along its trajectory. `resources/knight_slash_review3.png` identifies v2 frame 22. Beginning and ending poses were described as decent. The active strike speed was already sufficient.
+2026-09-24. Gota found the v2 hold too long and the intermediate swing unnatural, with the sword appearing horizontal rather than cutting along its trajectory. `resources/knight/knight_slash_review3.png` identifies v2 frame 22. Beginning and ending poses were described as decent. The active strike speed was already sufficient.
 
 The middle hand path shortened the shoulder-to-grip distance, forcing the elbow to fold more before extending. The independently authored blade axis also retained an arbitrary roll inherited from the arm's IK frame. Thus good endpoints and valid hinge geometry did not produce a convincing swing.
 

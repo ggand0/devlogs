@@ -2,14 +2,14 @@
 
 Owner returned from travel (month+ gap; state recap = the 2026-08-14
 handoff, nothing had moved) and generated the melee vocal batch from
-tmp/battle-sfx-prompts.md section 2: 57 clips in assets/sfx_melee/
+work/audio/battle-sfx-prompts.md section 2: 57 clips in assets/sfx_melee/
 (attack_grunts 21, attack_screams 12, hit_grunts 16, battle_screams
 8). This is system 2 of the devlog 0070 plan, landed as commit
 6ceffd8 on fix/controls-audio-qol. `stabbed?.mp3` renamed to
 stabbed0.mp3 — `?` is illegal on Windows and would break the itch
 build; watch generated filenames for `? * : " < > |`.
 
-## Model (M2TW soldier_voice, devlog 0070 / tmp/m2tw-sounds/)
+## Model (M2TW soldier_voice, devlog 0070 / work/research/m2tw-sounds/)
 
 Per-soldier vocals during combat: Individual_Attack_Grunt p .4 per
 swing (-20 dB), Individual_Attack_Scream p .25 (-15),
@@ -79,4 +79,4 @@ volume curves are OUR-CALIBRATION stand-ins forced by the aggregate
 no-per-unit-audio architecture — those four are the honest knobs.
 
 Remaining from the 0070 plan: death rework (assets not yet
-generated), celebrate, rout. Sheet: tmp/battle-sfx-prompts.md.
+generated), celebrate, rout. Sheet: work/audio/battle-sfx-prompts.md.

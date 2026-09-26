@@ -5,7 +5,7 @@ reports: (1) a rear unit ordered onto an enemy already fighting an
 ally never advances — it deals with the overflow trickle instead;
 (2) a unit "makes stupid space" for a retreating unit and ends up
 with a wrecked formation. Both fixed with engine-documented
-mechanisms only; backups tmp/cascade-full-2026-07-19.bundle +
+mechanisms only; backups work/backups/cascade-full-2026-07-19.bundle +
 backup/m2tw-melee-a5be67e taken BEFORE the work.
 
 ## Root causes

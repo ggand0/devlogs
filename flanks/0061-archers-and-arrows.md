@@ -1,6 +1,6 @@
 # 0061: archers and the arrow projectile system
 
-Date: 2026-07-27. Branch feat/archers, plan docs/plans/archers.md, evidence devlog 0060 (+ tmp/archer-evidence/). Owner calls locked before impl: plain archers first (120 m, no AP; longbow is a stat promotion later), hood look (helmet variant possible later), damage anchor ~5% casualties per 4-volley exchange, datamine if needed.
+Date: 2026-07-27. Branch feat/archers, plan docs/plans/006-archers.md, evidence devlog 0060 (+ work/research/archer-evidence/). Owner calls locked before impl: plain archers first (120 m, no AP; longbow is a stat promotion later), hood look (helmet variant possible later), damage anchor ~5% casualties per 4-volley exchange, datamine if needed.
 
 ## What went in
 

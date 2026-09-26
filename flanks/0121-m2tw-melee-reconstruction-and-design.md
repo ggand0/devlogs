@@ -68,4 +68,4 @@ Verification: the FL_DIAG_REAR numbers (target: idle rear men moving under 10% o
 - Approved; he wants to try it. Refactor of movement.rs at the end of the same branch, not before.
 - The explicit crowding / waiting state (item 10, design step 2's "waiting") is deferred: we already have body collision. Caveat on record: collision stops the overlap, not the push, and 0119's creepers are exactly men pushing against it. The contact frame removes the main push (slots inside the enemy); what remains is the 4 m surge and gap filling. Build steps 1, 3 (without the wait), 4 and the fixed-pace stepping first, measure with FL_DIAG_REAR, and add the wait only if creep remains.
 - Any formation and any number of ranks must work (see above); fast endings from shallow formations are fine.
-- Astra gets the side shuffle clips: tmp/handoffs/HANDOFF-side-shuffle-2026-09-25.md.
+- Astra gets the side shuffle clips: work/handoffs/HANDOFF-side-shuffle-2026-09-25.md.

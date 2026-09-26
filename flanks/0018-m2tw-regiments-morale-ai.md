@@ -1,6 +1,6 @@
 # 0018 — m2tw branch: regiments, morale/rout, skirmish AI (2026-07-09)
 
-MVP milestones 3–5 (plan `docs/plans/m2tw-mvp.md`; commits `0e34e80`,
+MVP milestones 3–5 (plan `docs/plans/001-m2tw-mvp.md`; commits `0e34e80`,
 `984c6ad`, `263b500` on `feat/m2tw`). The game is now a playable M2TW-lite
 skirmish: two armies of 100 regiments each, heavy/light infantry, swing
 combat, morale-driven collapse, and an AI opponent that attacks on its own.

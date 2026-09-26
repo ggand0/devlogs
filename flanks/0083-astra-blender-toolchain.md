@@ -1,6 +1,6 @@
 # 0083: Astra and Blender toolchain, set up and measured (2026-09-22)
 
-Setup notes and their execution: docs/internal/astra-blender-setup.md. Asset contract: docs/plans/unit-asset-spec.md. No engine code touched. Number 0082 is reserved by the item 2 GPU thread, so this entry takes 0083.
+Setup notes and their execution: docs/internal/001-astra-blender-setup.md. Asset contract: docs/plans/009-unit-asset-spec.md. No engine code touched. Number 0082 is reserved by the item 2 GPU thread, so this entry takes 0083.
 
 ## State
 

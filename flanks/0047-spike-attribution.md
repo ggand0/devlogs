@@ -86,3 +86,9 @@ Play (or FL_CAM_TOUR) at 100k, grep `[hitch]`: spike class shows as
 
 `trace-1784607636205616.json` (12 GB, repo root) is the raw trace —
 owner to delete when done (rm needs his say-so).
+
+Moved 2026-09-26: the trace now lives only at
+`/data/ggando/flanks/assets_dev/trace-1784607636205616.json` (verified
+byte-identical with `cmp` before the local copy under `assets_dev/` was
+removed). It is kept only for re-analysis of this run; it can be deleted
+whenever the space is wanted.

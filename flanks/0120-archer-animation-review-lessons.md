@@ -14,13 +14,13 @@ Written by GPT-6 Astra.
 
 Archer celebration was explicitly deferred because this work had already taken substantial time. Quiver orientation was deferred to another thread. Do not interpret approval of these clips as approval of celebrations, a quiver redesign or all possible animation transitions.
 
-The approval-time source snapshot is `assets_dev/archer/reload_v11/approved_source/`. Reproducible source is `tools/blender/archer/`. The authoring contract and accepted files are described in `tmp/handoffs/HANDOFF-archer-approved-ranged-animations-for-claude-2026-09-24.md`. Subsequent engine integration is documented separately in [0108](0108-archer-bow-rig-in-game.md); statements about integration being unfinished in older authoring logs describe that earlier stage.
+The approval-time source snapshot is `assets_dev/archer/reload_v11/approved_source/`. Reproducible source is `tools/blender/archer/`. The authoring contract and accepted files are described in `work/handoffs/HANDOFF-archer-approved-ranged-animations-for-claude-2026-09-24.md`. Subsequent engine integration is documented separately in [0108](0108-archer-bow-rig-in-game.md); statements about integration being unfinished in older authoring logs describe that earlier stage.
 
 ## Feedback and what changed
 
 ### The original draw did not read as drawing
 
-References: `resources/archer_anim_feedback0.png` and `resources/braveheart_archer_ref.png`.
+References: `resources/archer/archer_anim_feedback0.png` and `resources/archer/braveheart_archer_ref.png`.
 
 The initial right arm bent in implausible directions, its hand entered the torso during the lift, and the action looked like raising the arm rather than drawing a bow. Gota explicitly corrected the mistaken interpretation of “Ok good” as approval: “I didn't mean to approve it yet.” The geometric checks had passed, but the animation was rejected.
 
@@ -44,7 +44,7 @@ The accepted release returns the string over 75 ms and moves the drawing hand a 
 | V10 | Repeated feedback was to stop lifting and “just bring it forward already.” | Removed the remaining outside-transfer waypoint. The hand moved forward 280 mm and down 20 mm from reload time 1.80 to 3.05 s. V10 was accepted as looking alright. |
 | V10, feedback 8–10 | The earlier transfer still looked mechanical. The sideways rotation pose in feedback 9 was redundant; move toward feedback 10 immediately after grasping the arrow. | V11 removed the 3.05-second sideways key and used one continuous curve toward the bowstring. Explicitly approved. |
 
-These screenshot references are `resources/archer_anim_feedback1.png` through `archer_anim_feedback10.png`. Detailed records are [0103](0103-archer-hip-quiver-reload.md), [0105](0105-archer-reload-elbow-plane.md), [0106](0106-archer-reload-shoulder-roll.md) and [0107](0107-archer-continuous-arrow-transfer.md).
+These screenshot references are `resources/archer/archer_anim_feedback1.png` through `archer_anim_feedback10.png`. Detailed records are [0103](0103-archer-hip-quiver-reload.md), [0105](0105-archer-reload-elbow-plane.md), [0106](0106-archer-reload-shoulder-roll.md) and [0107](0107-archer-continuous-arrow-transfer.md).
 
 ## Techniques that worked, and their limits
 

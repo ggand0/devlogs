@@ -2,7 +2,7 @@
 
 `feat/battle-feel` continued (`ccd384e`), while the owner generates the
 ElevenLabs audio batch (asset list + prompts + durations in
-`tmp/audio-plan.md`).
+`work/audio/audio-plan.md`).
 
 ## Persistent corpses
 
@@ -71,7 +71,7 @@ mixes them from aggregate sim signals only:
   feature; AssetPlugin anchored to the repo root so the direct binary
   finds assets (bevy defaults to the exe dir).
 
-Failed generations documented with retry prompts in `tmp/audio-plan.md`
+Failed generations documented with retry prompts in `work/audio/audio-plan.md`
 (bed_march, bed_wind_field, vox_warcry, ui_order + a play-twice trick
 for the two-blast rout horn). Rule that emerged: ElevenLabs latches onto
 the first concrete noun — put crowd/scale words first, keep them plural,

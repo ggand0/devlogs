@@ -72,7 +72,7 @@ Rules that hold the whole thing together:
 
 The game is CPU-bound. Bevy runs every system on its compute pool, so the sim job's chunks delay all of Update, not only the parallel sync (devlog 0081). Frame anatomy and what each plan item changes: devlog 0081.
 
-### The 1M plan (docs/plans/scale-to-1m.md)
+### The 1M plan (docs/plans/010-scale-to-1m.md)
 
 Owner target: the renderer must be capable of 1M soldiers. The mainstream battle is 200k with textured 3D models, full environment and later pathfinding at 60 fps or more.
 
@@ -81,7 +81,7 @@ Owner target: the renderer must be capable of 1M soldiers. The mainstream battle
 | 1 Distance LOD | DONE, PR #5 (devlog 0077) |
 | 3a Vertex pulling experiment | POSITIVE (devlog 0078). One pulled draw path beats instancing at every level. Code on `exp/vertex-pull`, unmerged reference |
 | 0 Tick off the frame path, FL_HASH, catch-up clamp | DONE, PR #6 (devlogs 0079, 0081) |
-| 2 Build render data on the GPU, with item 3 folded in | NEXT. Handoff tmp/handoffs/HANDOFF-gpu-render-data-2026-09-22.md. Design doc first. Removes about 8 ms of CPU per frame at 200k |
+| 2 Build render data on the GPU, with item 3 folded in | NEXT. Handoff work/handoffs/HANDOFF-gpu-render-data-2026-09-22.md. Design doc first. Removes about 8 ms of CPU per frame at 200k |
 | 9 Bigger battlefield | after item 2. The map caps near 360k soldiers |
 | 6 Less fixed work per soldier | after measuring the tick above 200k |
 | 7 Sleeping soldiers | DEFERRED by the owner, changes outcomes |
@@ -92,8 +92,8 @@ Measurement rules learned the hard way: GPU pass times follow the 3090's clock (
 ## Assets track
 
 - Today every mesh is code-built. Art direction decided 2026-09-20: Medieval II: Total War, balanced between performance and realism, fallback slightly casual (Kingdoms and Castles).
-- The brief for generated or authored models is docs/plans/unit-asset-spec.md. Stage 1: rigid parts, vertex colors with alpha as team amount, four levels per kind, one GLB per kind, knight first. Budgets 2,000 to 3,000 / 600 to 800 / 150 to 250 / 24 to 60 triangles.
-- Tooling set up 2026-09-22 (docs/internal/astra-blender-setup.md): Blender 5.2.2 LTS, Codex CLI 0.155 with GPT-6 Astra through an API key (the Free plan has no Astra), the ahujasid Blender MCP registered, a headless bpy pipeline proven end to end in assets_dev/_setup_smoke/.
+- The brief for generated or authored models is docs/plans/009-unit-asset-spec.md. Stage 1: rigid parts, vertex colors with alpha as team amount, four levels per kind, one GLB per kind, knight first. Budgets 2,000 to 3,000 / 600 to 800 / 150 to 250 / 24 to 60 triangles.
+- Tooling set up 2026-09-22 (docs/internal/001-astra-blender-setup.md): Blender 5.2.2 LTS, Codex CLI 0.155 with GPT-6 Astra through an API key (the Free plan has no Astra), the ahujasid Blender MCP registered, a headless bpy pipeline proven end to end in assets_dev/_setup_smoke/.
 - Export findings: vertex groups do not reach glTF, bake the part id into a second UV layer. Vertex color alpha needs `export_vertex_color="ACTIVE"`. "Facing +Z" in the spec means facing -Y in Blender.
 - Engine gap: no glTF unit loader exists yet. Assets can only be judged in Blender until one is written.
 - Licensing: commit only generated or CC0 assets, never raw Mixamo files. Sound effects are AI-generated plus one Pixabay loop.
@@ -102,17 +102,17 @@ Measurement rules learned the hard way: GPU pass times follow the 3090's clock (
 
 - devlogs/: one entry per work chunk, four-digit numbers, README.md is the index. Next number 0082. Never committed.
 - docs/plans/: design docs and plans, never committed. docs/internal/: local setup notes, never committed. tmp/: drafts (PR text), handoffs (thread entry points), scripts (measurement and hash tools), backups (refs and bundles before ref surgery), hash-baselines.
-- Branch per feature, commit per milestone, build and clippy clean at each. Commit messages are public prose in the present tense, no prefixes, no footers. The owner pushes and opens the PR from tmp/drafts/pr-*.md.
-- Verification: `FL_HASH` fingerprints (tmp/scripts/hashrun.sh, hashcmp.sh) for any sim refactor. Scripted batteries `FL_TEST_DIR`, `FL_TEST_CHARGE`, `FL_TEST_ARCHERY`, `FL_TEST_ROUT`, `FL_TEST_SURROUND`, `FL_TEST_FORM`, 110 s each, bands recorded in devlogs 0075 and 0079. `FL_TEST_FRONT=1` starts a battle without menus.
+- Branch per feature, commit per milestone, build and clippy clean at each. Commit messages are public prose in the present tense, no prefixes, no footers. The owner pushes and opens the PR from work/drafts/pr-*.md.
+- Verification: `FL_HASH` fingerprints (work/scripts/hashrun.sh, hashcmp.sh) for any sim refactor. Scripted batteries `FL_TEST_DIR`, `FL_TEST_CHARGE`, `FL_TEST_ARCHERY`, `FL_TEST_ROUT`, `FL_TEST_SURROUND`, `FL_TEST_FORM`, 110 s each, bands recorded in devlogs 0075 and 0079. `FL_TEST_FRONT=1` starts a battle without menus.
 - Common knobs: `FL_UNITS` (per team), `FL_AI=0`, `FL_ENEMY_STATIC=1`, `FL_VOLUME=0`, `FL_CAM_LOCK=1` with `FL_CAM_DIST`, `FL_NO_CULL=1`, `FL_LOD_PX`, `FL_LOD_DEBUG=1`, `FL_PIPELINE=0`, `FL_CATCHUP`, `FL_SEED`, `FL_MAP=river`.
 - Agent rules from the owner: no subagents, never send input to his screen, propose before touching feel-critical code, visual changes wait for his feel pass, no em dashes, no semicolons, short sentences, no hard wraps in prose docs.
 
 ## Where to read next
 
 - History: devlogs/README.md, then the entry you need.
-- The plan: docs/plans/scale-to-1m.md.
+- The plan: docs/plans/010-scale-to-1m.md.
 - The frame: devlogs/0081-cpu-frame-anatomy-200k.md.
 - The sim tick: devlogs/0079-pipelined-tick-port.md.
-- Rendering and LOD: docs/plans/unit-lod.md, devlogs 0076 to 0078.
+- Rendering and LOD: docs/plans/008-unit-lod.md, devlogs 0076 to 0078.
 - Melee model and evidence: devlogs 0035, 0036. Morale: 0055 to 0057. Archery: 0060 to 0065. Audio: 0069 to 0074.
-- Assets: docs/plans/unit-asset-spec.md, docs/internal/astra-blender-setup.md.
+- Assets: docs/plans/009-unit-asset-spec.md, docs/internal/001-astra-blender-setup.md.

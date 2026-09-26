@@ -4,7 +4,7 @@
 `src/` / renderer integration. No source files, accepted assets or earlier
 build directories were edited; no commits.
 
-Read `tmp/handoffs/HANDOFF-unit-animation-for-astra-2026-09-23.md`, the complete
+Read `work/handoffs/HANDOFF-unit-animation-for-astra-2026-09-23.md`, the complete
 asset spec and Blender setup notes. Inspected the current uncommitted shader
 and follow-through code, loader, weapon-rebuild generator and offline arm
 viewer. The existing renderer infers forearm membership from an elbow plane
@@ -67,7 +67,7 @@ GLB inspector. A fresh rebuild passes the full motion and saved-scene checks
 and reproduces the reviewed mesh attributes. The validator allows 1e-12 in
 pose-table floats for Blender/system NumPy rounding differences.
 
-Handoff: tmp/handoffs/HANDOFF-spearman-v3-for-claude-2026-09-23.md. The handoff
+Handoff: work/handoffs/HANDOFF-spearman-v3-for-claude-2026-09-23.md. The handoff
 and this devlog remain uncommitted. Existing renderer edits and unrelated
 files stay outside the source commit; installed unit assets remain unchanged.
 

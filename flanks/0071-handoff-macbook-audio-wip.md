@@ -17,15 +17,15 @@ Git syncs NONE of the working context. Untracked by design:
    untracked clips above.
 3. The M2TW install (`/data2/SteamLibraryFlatpak/.../Medieval II
    Total War`) does NOT travel, but the mined data does:
-   `tmp/m2tw-sounds/` = the full unpacked SSHIP sound config set (35
+   `work/research/m2tw-sounds/` = the full unpacked SSHIP sound config set (35
    files, every descr_sounds_* + the soldier/unit voice exports —
    the primary source for devlogs 0069/0070 and any future audio
-   system), `tmp/archer-evidence/` = EOP structs + projectile/EDU
-   docs, `tmp/m2tw-extraction/` = live morale probe CSVs. New
+   system), `work/research/archer-evidence/` = EOP structs + projectile/EDU
+   docs, `work/research/m2tw-extraction/` = live morale probe CSVs. New
    LIVE-game probing still waits until the owner is back home.
 4. Audio generation is WIP on ElevenLabs (browser side, owner does
-   it): prompt sheets `tmp/charge-sfx-prompts.md` (DONE, shipped) and
-   `tmp/battle-sfx-prompts.md` (IN PROGRESS — this is the active
+   it): prompt sheets `work/audio/charge-sfx-prompts.md` (DONE, shipped) and
+   `work/audio/battle-sfx-prompts.md` (IN PROGRESS — this is the active
    batch).
 
 ## Where the project stands
@@ -33,7 +33,7 @@ Git syncs NONE of the working context. Untracked by design:
 Branch `fix/controls-audio-qol` off main (`b937798`), 11 commits,
 build + clippy clean at every commit. 0.1.0 plan context: this
 bugfix/QoL/audio branch came FIRST by owner decision; scenario format
-and itch packaging (see tmp/handoffs/HANDOFF-scenario-format) follow
+and itch packaging (see work/handoffs/HANDOFF-scenario-format) follow
 after it merges.
 
 Landed on the branch (devlogs 0068, 0069):
@@ -68,7 +68,7 @@ play-test still pending. Do not merge the branch until he passes it.
 
 Owner priority statement: audio is the immersion carrier; if audio is
 good, low-poly graphics are forgivable. Four systems, mined M2TW
-models in devlog 0070, asset list in tmp/battle-sfx-prompts.md.
+models in devlog 0070, asset list in work/audio/battle-sfx-prompts.md.
 Agreed order (feel value per effort):
 
 1. DEATH: budget screams from deaths near the camera (accumulator
@@ -124,7 +124,7 @@ Engine facts the next agent needs (all in src/audio.rs):
   UI click loops; owner play-tests live. pkill must be
   `pkill -x flanks`. Never steal window focus.
 - Devlog per work chunk (next: 0072), devlogs NEVER committed.
-  PR drafts -> tmp/drafts/pr-<feature>.md. Repo is PUBLIC: no
+  PR drafts -> work/drafts/pr-<feature>.md. Repo is PUBLIC: no
   force-pushes, commit messages are public prose.
 - No git push, rm, checkout of dirty trees, or history surgery
   without owner permission. Backup ref + verified bundle before any
@@ -133,7 +133,7 @@ Engine facts the next agent needs (all in src/audio.rs):
 
 ## Open threads beyond audio
 
-- Feel pass on the whole branch, then PR draft (tmp/drafts/), merge.
+- Feel pass on the whole branch, then PR draft (work/drafts/), merge.
 - Deferred from earlier milestones: show rolled enemy style
   in-battle, random-enemy scaling vs partial player army, comp
   persistence, scenario format -> itch 0.1.0 (the previous handoff).

@@ -2,7 +2,7 @@
 
 Written by Claude Opus 5.5.
 
-2026-09-24. Engine side of Astra's approved archer shot animations: the raise, release and reload from `assets_dev/archer/reload_v11/`, handoff `tmp/handoffs/HANDOFF-archer-approved-ranged-animations-for-claude-2026-09-24.md`. The model's checksum matches the approved file (`cf9c79d9...`). It is installed as `assets/units/archer.glb`, and its tables as `assets/units/archer.shoot.json` (Astra's `archer.raise.json`, renamed to the model's shot file). Nothing is committed until Gota's in-game check.
+2026-09-24. Engine side of Astra's approved archer shot animations: the raise, release and reload from `assets_dev/archer/reload_v11/`, handoff `work/handoffs/HANDOFF-archer-approved-ranged-animations-for-claude-2026-09-24.md`. The model's checksum matches the approved file (`cf9c79d9...`). It is installed as `assets/units/archer.glb`, and its tables as `assets/units/archer.shoot.json` (Astra's `archer.raise.json`, renamed to the model's shot file). Nothing is committed until Gota's in-game check.
 
 ## Loader (`unit_glb.rs`)
 
@@ -67,4 +67,4 @@ Written by Claude Opus 5.5.
 
 ## Backups
 
-`refs/backup/archer-bow-rig-2026-09-24`, `tmp/backups/archer-bow-rig-2026-09-24.patch`, `tmp/backups/archer.shoot.json`.
+`refs/backup/archer-bow-rig-2026-09-24`, `work/backups/archer-bow-rig-2026-09-24.patch`, `work/backups/archer.shoot.json`.

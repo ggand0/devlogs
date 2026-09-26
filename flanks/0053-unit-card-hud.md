@@ -182,7 +182,7 @@ at ~68 degrees read as a bristling rank). Wall tooltip text swaps
   change-detection gating of refresh (risk > benefit at ~1000 UI
   entities), hover caching, rasterizer bbox clipping (one-time
   sub-ms), PointerOverUi resource (two call sites).
-- PR draft: tmp/drafts/pr-unit-card-hud.md. Feature-complete pending
+- PR draft: work/drafts/pr-unit-card-hud.md. Feature-complete pending
   owner play test.
 
 ## Next

@@ -4,7 +4,7 @@ Date: 2026-07-18. Branch: feat/m2tw-melee (fresh from main 0a3de56).
 Owner rulings this session: reproduce M2TW, implement NOTHING without
 M2TW evidence; the old branches deleted (preserved: backup/
 rank-discipline e4f0020, backup/melee-brawl 20f06a7, full bundle
-tmp/cascade-full-2026-07-18.bundle); back up BEFORE any git surgery,
+work/backups/cascade-full-2026-07-18.bundle); back up BEFORE any git surgery,
 always. Local main was 27 commits stale (pre-formations) and was
 fast-forwarded to origin/main 0a3de56.
 

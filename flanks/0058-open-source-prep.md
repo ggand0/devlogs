@@ -24,7 +24,7 @@ surface:
   audio, formation, regiments, render_units, movement, the WGSL
   shader). cargo check + clippy clean; behavior untouched.
 - 11 commit bodies rewritten via `git filter-branch --msg-filter` with
-  per-commit anchored perl replacements (tmp/reword-owner-commits.pl).
+  per-commit anchored perl replacements (work/scripts/reword-owner-commits.pl).
   All subjects were already clean. Verified after rewrite: 0 owner /
   claude / co-authored mentions in all 138 messages, tree hash
   byte-identical (96731c8), commit count unchanged.
@@ -56,7 +56,7 @@ github@ggando.me). Verified: all 276 identity slots unified, date
 checksum identical pre/post (contribution graph unaffected in timing),
 tree identical, 0 "pull request" mentions. Force-pushed to
 origin/flanks. Extra backup: refs/backup/main-pre-mergefix-20260726 +
-tmp/flanks-pre-mergefix-20260726.bundle.
+work/backups/flanks-pre-mergefix-20260726.bundle.
 
 ## Backups
 
@@ -65,14 +65,14 @@ tmp/flanks-pre-mergefix-20260726.bundle.
 - /data/backups/flanks-full-20260726/claude-chats/ — the flanks,
   cascade, and cascade.bak Claude project dirs (315M).
 - refs/backup/main-pre-reword-20260726 + verified bundle
-  tmp/flanks-pre-reword-20260726.bundle — pre-rewrite git state.
+  work/backups/flanks-pre-reword-20260726.bundle — pre-rewrite git state.
 
 ## Round 3: license, README rewrite, final checks
 
 - Dual-licensed MIT OR Apache-2.0 (LICENSE-MIT + LICENSE-APACHE,
   Cargo.toml license field, standard Rust blurb in the README).
 - Second slop pass over all commit messages: dumped the full log
-  (tmp/all-commit-messages.txt), grep batteries for workflow tells /
+  (work/backups/all-commit-messages.txt), grep batteries for workflow tells /
   LLM stock phrasing / pronouns, plus a full manual read of all 1614
   lines. Clean; the he/his/him hits all refer to simulated soldiers.
 - README rewritten for a general audience on the viewskater template

@@ -299,7 +299,7 @@ is already queryable); fear auras when monsters/cavalry arrive.
 
 ## Tier A + B landed from the measurements (2026-07-26, 5a5e32a)
 
-Applied per docs/plans/morale-from-measurements.md (owner approved both
+Applied per docs/plans/004-morale-from-measurements.md (owner approved both
 tiers). A: measured casualty step ladder (>=10% -2, >=25% -4, >=50% -8,
 >=80% -12), rout lock -50 decaying over 25 s, commander's own regiment
 +8, contagion unchanged (already matched the measured ceiling). B: base
@@ -339,7 +339,7 @@ every regiment), Local buffer reuse for the two centroid snapshots,
 fatigue's four parallel band matches collapsed into one const table,
 two dead MoraleFactors fields deleted, cached shaken/wavering flags
 replaced by a derived band() helper, FL_SEED read as u32 via env_or.
-Clippy clean at --all-targets. PR draft in tmp/drafts/.
+Clippy clean at --all-targets. PR draft in work/drafts/.
 
 CAVEAT 1 — the 6-seed cascade sweep above is WEAKER than presented.
 FL_SEED is folded in inside push_unit, but the positional jitter is

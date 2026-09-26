@@ -3,7 +3,7 @@
 Written by Claude Opus 5.5.
 
 2026-09-23. Engine side of Astra's v3 spearman (devlog 0093, handoff
-`tmp/handoffs/HANDOFF-spearman-v3-for-claude-2026-09-23.md`). Gota checked the
+`work/handoffs/HANDOFF-spearman-v3-for-claude-2026-09-23.md`). Gota checked the
 stab in game: it works.
 
 ## Contract
@@ -62,7 +62,7 @@ drew no units at all: `from` is a reserved WGSL word, and cargo does not check
 shaders. Astra stashed the tree. It was restored with `git stash pop`.
 
 - Backups: `refs/backup/v3-integration-2026-09-23` and
-  `tmp/backups/v3-integration-2026-09-23.patch`.
+  `work/backups/v3-integration-2026-09-23.patch`.
 - Lesson: check every run's log for `failed to process shader`.
 
 ## Gates

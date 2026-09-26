@@ -1,8 +1,8 @@
 # 0060: M2TW archer evidence
 
-Date: 2026-07-26. Research pass before the archer design (owner mandate: M2TW-evidenced only). Raw fetched sources are cached in `tmp/archer-evidence/` (vanilla EDU, descr_projectile.txt, Withwnar's tested archery guide and accuracy test, Feral manual, TWC wiki EDU docs, M2TWEOP engine structs). Everything below is VERIFIED against a quoted config line, the official manual, or a controlled in-game test unless marked FOLKLORE.
+Date: 2026-07-26. Research pass before the archer design (owner mandate: M2TW-evidenced only). Raw fetched sources are cached in `work/research/archer-evidence/` (vanilla EDU, descr_projectile.txt, Withwnar's tested archery guide and accuracy test, Feral manual, TWC wiki EDU docs, M2TWEOP engine structs). Everything below is VERIFIED against a quoted config line, the official manual, or a controlled in-game test unless marked FOLKLORE.
 
-## EDU stats (vanilla 1.5, verbatim lines in tmp/archer-evidence/edu_vanilla.txt)
+## EDU stats (vanilla 1.5, verbatim lines in work/research/archer-evidence/edu_vanilla.txt)
 
 | unit | missile atk | missile | range | ammo | melee atk | armour/skill/shield | morale | mass | ap |
 |---|---|---|---|---|---|---|---|---|---|

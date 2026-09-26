@@ -33,12 +33,12 @@ Runs of a normal battle vary with AI timing (AI and auto-engage run in Update), 
 - FORM: slot error 0.57 to 0.74 m, facing 0.00, spacing wall 1.05 < normal 1.37 < loose 1.88. OK.
 - DIR: dmg/hit front 21.8 / side 28.1 / rear 49.2 (2.26x), rear kills dominant, yaw dev 0.00.
 - CHARGE: wall dz -1.8 m vs open -3.3 m; the wall lane trades evenly (354 v 360), the open lane loses (300 v 438).
-- Clippy clean. Fingerprints change by design (DIR diverges from tick 1020). New baselines: `tmp/hash-baselines/{dir,arch}-footwork-0eddd31`, deterministic on rerun (19/19). The refactor at the end of the branch must match these.
+- Clippy clean. Fingerprints change by design (DIR diverges from tick 1020). New baselines: `work/baselines/{dir,arch}-footwork-0eddd31`, deterministic on rerun (19/19). The refactor at the end of the branch must match these.
 
 ## Open
 
 - Pace is about half of main's. The contact frame stops the two blocks from pushing into each other, so fewer men are in reach at once. Gota's feel call; the levers are the engage and step rules, or the deferred sidestep, which is what lets M2TW's surplus men flow around to the flanks.
-- Sideways steps still play the forward walk (facing is kept, so it reads as skating) until Astra's shuffle tables land (`tmp/handoffs/HANDOFF-side-shuffle-2026-09-25.md`).
+- Sideways steps still play the forward walk (facing is kept, so it reads as skating) until Astra's shuffle tables land (`work/handoffs/HANDOFF-side-shuffle-2026-09-25.md`).
 - Not yet run: ROUT, SURROUND, PILE, JOIN, 200k perf.
 - The movement.rs refactor, last on this branch.
 
@@ -53,4 +53,4 @@ Causes and fixes:
 - Walking back at contact: a charge bunches the rear ranks behind the stopped front, and the frame's full spacing sent them walking back. Contact-frame regiments no longer step backward to dress (forward and sideways only). Idle rear men walking backward in the seconds after contact: 23 to 25% before, 6 to 7% after (the rest is impact recoil).
 - First cut applied the no-backward rule to every engaged regiment, measured against the regiment's facing. A regiment struck from behind then stopped stepping back toward its attackers to hold its ground, and DIR's lone rear-charged victim survived with 215 of 500. Restricted to contact-frame regiments: lone 43 of 500 (0 at 0eddd31), rear dmg/hit 49.4 vs front 21.9, rear kills 736.
 
-Battery at e5214c6: FORM OK (slot err 0.57 to 0.74, wall 1.05 < normal 1.37 < loose 1.87); DIR as above; CHARGE wall lane 338 spears v 292 heavies, open lane 294 v 401 (ordering intact; the open lane's dz now reads +3.1 m because its files close up forward as its front dies, so its center moves up). Pace in the 8 v 8: about 875 lost per side at 34 s (main about 1,300 at 30 s). Baselines: tmp/hash-baselines/{dir,arch}-footwork-e5214c6. Backup of the pre-fix working tree: refs/backup/footwork-fix2-wip and tmp/backups/footwork-fix2-wip-2026-09-25.patch.
+Battery at e5214c6: FORM OK (slot err 0.57 to 0.74, wall 1.05 < normal 1.37 < loose 1.87); DIR as above; CHARGE wall lane 338 spears v 292 heavies, open lane 294 v 401 (ordering intact; the open lane's dz now reads +3.1 m because its files close up forward as its front dies, so its center moves up). Pace in the 8 v 8: about 875 lost per side at 34 s (main about 1,300 at 30 s). Baselines: work/baselines/{dir,arch}-footwork-e5214c6. Backup of the pre-fix working tree: refs/backup/footwork-fix2-wip and work/backups/footwork-fix2-wip-2026-09-25.patch.

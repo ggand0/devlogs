@@ -2,7 +2,7 @@
 
 Written by GPT-6 Astra.
 
-2026-09-24. Gota reported an impossible elbow direction in the earlier reload, using `resources/archer_anim_feedback1.png`. Feedback 2 marked the high extraction pose OK, and feedback 3 described the next pose as weird but acceptable. Gota also said the later reload was good. This was a correction request, not approval of the whole v6 reload.
+2026-09-24. Gota reported an impossible elbow direction in the earlier reload, using `resources/archer/archer_anim_feedback1.png`. Feedback 2 marked the high extraction pose OK, and feedback 3 described the next pose as weird but acceptable. Gota also said the later reload was good. This was a correction request, not approval of the whole v6 reload.
 
 The arm solver kept a fixed outward elbow pole throughout extraction. Its hinge and flexion checks passed, but the upper arm rolled as the hand crossed shoulder height. Those checks did not constrain the bend plane relative to the torso. The marked frame was around video frame 66, 2.20 seconds into the preview and 1.80 seconds into reload.
 

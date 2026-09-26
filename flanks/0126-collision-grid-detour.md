@@ -23,7 +23,7 @@ The collision grid (spatial.rs `SpatialGrid::rebuild`) is rebuilt every tick: un
 
 - The 200k battlefield is about 650 x 400 cells (198k to 290k over a battle). 7 chunk tasks of 32,768 units each zeroed and filled a histogram of all cells, while each chunk's units touched only 0.7k to 28k of them (measured in game: 61% of cells hold a unit in total, about 10% per chunk).
 - One thread then walked cells x 7 histograms to turn counts into write positions (1.8 to 3 ms, serial), and one thread computed the bounds (0.3 ms).
-- Picture: tmp/notes/vis/grid-sort-before-after.png (script tmp/scripts/viz/gridsort.py; left: one chunk's whole-grid histogram; middle: the 7 chunks' units; right: the band sort below).
+- Picture: work/notes/vis/006-grid-sort-before-after.png (script work/scripts/viz/gridsort.py; left: one chunk's whole-grid histogram; middle: the 7 chunks' units; right: the band sort below).
 
 ## What was built (f7c4635, reverted)
 
@@ -31,7 +31,7 @@ A two-level sort: one parallel pass computes each unit's cell, row band (bands o
 
 Numbers:
 
-- Standalone benchmark on a synthetic 200k layout, single thread, hot caches (tmp/scripts/gridbench): old 8.7 ms (bounds 0.15, count 5.3, merge 1.4, scatter 1.8), new 3.7 ms (bounds 0.13, keys 1.5, group 0.8, bands 1.3). Output verified identical.
+- Standalone benchmark on a synthetic 200k layout, single thread, hot caches (work/scripts/gridbench): old 8.7 ms (bounds 0.15, count 5.3, merge 1.4, scatter 1.8), new 3.7 ms (bounds 0.13, keys 1.5, group 0.8, bands 1.3). Output verified identical.
 - In game, per pass (wall / summed task time): bounds 0.2 / 0.5, keys 0.65 / 3.9, group 0.4 / 1.3, bands 1.9 / 10 ms. The task times are several times the benchmark's: the passes share the compute pool, and the cores, with the frame's systems.
 - An earlier variant carrying 28-byte records through the band grouping (in the same session, before the sight field) cost 6.5 + 7 ms of task time and was dropped.
 
@@ -61,9 +61,9 @@ Proposed tests, not run: add 3.6 MB of dummy writes to the old rebuild (tests 1)
 
 ## Backups
 
-- Commit f7c4635: branch `backup/collision-grid-f7c4635`, bundle tmp/backups/collision-grid-f7c4635-2026-09-25.bundle (verified okay; requires bee555e), patch tmp/patches/collision-grid-f7c4635.patch.
-- The two uncommitted edits: tmp/patches/collision-grid-world-cells-and-rest-cut-uncommitted.patch (apply on bee555e).
-- The standalone benchmark: tmp/scripts/gridbench (cargo, std only).
-- The sight field (devlog 0125): tmp/patches/sight-field.patch.
+- Commit f7c4635: branch `backup/collision-grid-f7c4635`, bundle work/backups/collision-grid-f7c4635-2026-09-25.bundle (verified okay; requires bee555e), patch work/backups/patches/collision-grid-f7c4635.patch.
+- The two uncommitted edits: work/backups/patches/collision-grid-world-cells-and-rest-cut-uncommitted.patch (apply on bee555e).
+- The standalone benchmark: work/scripts/gridbench (cargo, std only).
+- The sight field (devlog 0125): work/backups/patches/sight-field.patch.
 
 The branch was reset to bee555e (`git reset --hard bee555e`, Gota's instruction, after the backups above). HEAD: bee555e.

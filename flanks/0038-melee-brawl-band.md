@@ -3,7 +3,7 @@
 Date: 2026-07-18. Branch: feat/melee-brawl (cut from e4f0020 with
 owner approval; feat/rank-discipline retired). Design approved by
 owner in plain language before coding. Full plan + evidence record:
-docs/plans/melee-brawl-band.md. Gate: FL_RECTFIGHT=1.
+docs/plans/003-melee-brawl-band.md. Gate: FL_RECTFIGHT=1.
 
 ## The two-legged root cause (both log-verified this session)
 

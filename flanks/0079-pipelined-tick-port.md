@@ -1,6 +1,6 @@
 # 0079: Item 0, the sim tick leaves the frame path on `main` (2026-09-20)
 
-Branch `perf/pipelined-tick`, from `main` e80dbe8. Plan: docs/plans/scale-to-1m.md, item 0. Design origin: devlog 0050 on the shelved `perf/spikes` branch. This is a re-port onto today's sim, which has since gained archery, per-soldier arrow aim, morale and fatigue.
+Branch `perf/pipelined-tick`, from `main` e80dbe8. Plan: docs/plans/010-scale-to-1m.md, item 0. Design origin: devlog 0050 on the shelved `perf/spikes` branch. This is a re-port onto today's sim, which has since gained archery, per-soldier arrow aim, morale and fatigue.
 
 ## Commits
 
@@ -11,7 +11,7 @@ Branch `perf/pipelined-tick`, from `main` e80dbe8. Plan: docs/plans/scale-to-1m.
 - fd8cfe1: the fps readout shows a two second average.
 - 08501cf: main thread frame breakdown in the periodic log (devlog 0081 reads it).
 - 9ef6fa6: pacing samples reset on battle start, found in the final diff review (menu time leaked into the first samples).
-- DROPPED on 2026-09-22 at the owner's call: `FL_SIM_POOL`, was 846a327. See "FL_SIM_POOL, built and dropped" below. Backups: tmp/backups/0001-Add-FL_SIM_POOL-to-run-the-sim-job-on-its-own-thread.patch, the bundle tmp/backups/pipelined-tick-pre-drop-20260922.bundle (verified), and the ref refs/backup/pipelined-tick-pre-drop-20260922. The two commits after it were rebased and got new hashes.
+- DROPPED on 2026-09-22 at the owner's call: `FL_SIM_POOL`, was 846a327. See "FL_SIM_POOL, built and dropped" below. Backups: work/backups/0001-Add-FL_SIM_POOL-to-run-the-sim-job-on-its-own-thread.patch, the bundle work/backups/pipelined-tick-pre-drop-20260922.bundle (verified), and the ref refs/backup/pipelined-tick-pre-drop-20260922. The two commits after it were rebased and got new hashes.
 
 ## FL_HASH
 
@@ -22,7 +22,7 @@ First finding: today's sim is bit-deterministic run to run, archery and AI inclu
 - `FL_TEST_DIR=1` (2.2k soldiers)
 - `FL_TEST_FRONT=1 FL_UNITS=20000` with the AI on (40k soldiers, 8.5k dead by the end)
 
-Baselines from the code before any restructure are in tmp/hash-baselines/*-e80dbe8.hash. Scripts: tmp/scripts/hashrun.sh and tmp/scripts/hashcmp.sh.
+Baselines from the code before any restructure are in work/baselines/*-e80dbe8.hash. Scripts: work/scripts/hashrun.sh and work/scripts/hashcmp.sh.
 
 ## The restructure
 
@@ -102,7 +102,7 @@ Dropped from the branch on 2026-09-22, backups listed under Commits. If headroom
 
 ### Clean desktop rerun (2026-09-22)
 
-The owner pointed out that this box had the desktop stutter (tmp/handoffs/HANDOFF-desktop-stutter-2026-09-21.md, devlog 0080: a GNOME shell GC freeze every 10 s, fed by MEGAsync) during yesterday's runs. Reran with MEGAsync off, the shell probe clean (0 stalls over 25 ms in 45 s) and the CPU near idle (load 4.6, only a browser). Same view, same recipe, steady-state samples after warm-up.
+The owner pointed out that this box had the desktop stutter (work/handoffs/HANDOFF-desktop-stutter-2026-09-21.md, devlog 0080: a GNOME shell GC freeze every 10 s, fed by MEGAsync) during yesterday's runs. Reran with MEGAsync off, the shell probe clean (0 stalls over 25 ms in 45 s) and the CPU near idle (load 4.6, only a browser). Same view, same recipe, steady-state samples after warm-up.
 
 | | Inline | Pipelined | Pipelined, `FL_SIM_POOL=12` (dropped, for the record) |
 |---|---|---|---|
@@ -142,7 +142,7 @@ Ported from 1a62029. `Time<Virtual>` max delta is `FL_CATCHUP` tick periods, def
 cargo run --profile opt-dev                      # pipelined (default)
 FL_PIPELINE=0 cargo run --profile opt-dev        # inline fallback, bit-identical to before
 FL_HASH=60 FL_TEST_DIR=1 cargo run --profile opt-dev
-tmp/scripts/hashrun.sh name 40 FL_TEST_DIR=1 && tmp/scripts/hashcmp.sh a b
+work/scripts/hashrun.sh name 40 FL_TEST_DIR=1 && work/scripts/hashcmp.sh a b
 ```
 
 ## Final diff review before the merge (2026-09-22)

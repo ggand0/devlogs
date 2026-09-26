@@ -1,6 +1,6 @@
 # 0081: Where the CPU frame goes at 200k (2026-09-22)
 
-Branch `perf/pipelined-tick`, measured after item 0 (devlog 0079). Purpose: a reference for the item 2 design in docs/plans/scale-to-1m.md. Every number here is from the dev box (Ryzen 9 3900X, 12 cores, 24 threads, RTX 3090), 197k soldiers alive, the locked 900 m view with culling off, muted, `FL_TEST_FRONT=1 FL_UNITS=100000 FL_AI=0 FL_ENEMY_STATIC=1`.
+Branch `perf/pipelined-tick`, measured after item 0 (devlog 0079). Purpose: a reference for the item 2 design in docs/plans/010-scale-to-1m.md. Every number here is from the dev box (Ryzen 9 3900X, 12 cores, 24 threads, RTX 3090), 197k soldiers alive, the locked 900 m view with culling off, muted, `FL_TEST_FRONT=1 FL_UNITS=100000 FL_AI=0 FL_ENEMY_STATIC=1`.
 
 ## The instrument
 

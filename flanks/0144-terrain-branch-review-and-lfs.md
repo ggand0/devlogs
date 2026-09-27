@@ -27,3 +27,7 @@ Both AGENTS.md files, under "Where files go": big binaries go through Git LFS, p
 ## Answers recorded
 
 Terrain performance: about 0.4 ms of GPU for the whole opaque pass at 200k on a CPU-bound frame, nothing on the counter; Gota's fps read is the check. The boundary-blend precompute Astra left to Claude stays deferred: at most 0.09 ms of GPU by Astra's measurement, the corridor is specific to this layout artwork, and the larger authored map will get explicit surface masks that replace the blend. A bigger map does not make the blend costlier, since it is per pixel on screen, not per map area. Vegetation is the next graphics branch, off main after the terrain merge.
+
+## Map row, same branch
+
+Gota asked for a Map row in the menu (Grassland / Classic / River) and, for speed, for it to ride on feat/terrain-look rather than its own branch. Commit a514318 on the branch. Verified: FL_MAP=classic reproduces the pre-change fingerprints 19 of 19, the default reproduces the branch 19 of 19, river spawns its scenery, build and clippy clean. The live switch in the menu is his to try.

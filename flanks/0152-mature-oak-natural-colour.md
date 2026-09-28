@@ -70,3 +70,26 @@ Private review iteration committed as f44c201, including the README row and acce
 Gota approved the warm birch as good enough for this map, with the explicit caveat that its colour may be adjusted later after further map work or placement. Public commit d68f21d records silver_birch_warm.glb through Git LFS, its specimen entry and palette documentation. Cool silver_birch.glb and all oak palettes remain preserved. Prior raw GLB checks, opt-dev build and strict clippy pass; approval introduced no asset or code changes requiring another build.
 
 Gota will have Claude implement an empty map on this branch. The next art task is two bush reference concepts only; no map or runtime edits are needed for that stage.
+
+## Add pale foliage on the current trunks, 2026-09-28
+
+Gota finds the dark natural oaks mismatched to the map when viewed from the lit side (debug9.png); previous colour choices were influenced by views against the sun. The screenshot circles the natural upright, mature and small leaning oaks. Request: restore the first pale foliage colour while keeping current trunks. Explicit clarification: preserve all six existing natural/lighter variants and add three pale variants, for nine current-trunk oak variants total.
+
+New iteration assets_dev/vegetation/oak_pale_v1. The builder appends each current natural mesh from oak_trunks_light_v1 and restores per-leaf-vertex colours by position/UV lookup from the shipped *_original.glb archive. This is the initial pale palette, neutral (1,1,1) multiplier with the original per-spray variation, not the saturated green tree_set_v2 experiment. No new image generation or raster recolouring. Current leaf texture pixels, geometry and normals remain intact; opaque warm-grey bark, wood geometry, UVs, vertex tint and root weathering stay unchanged. Far colour and volume normals are freshly baked.
+
+Raw verification proves that all restored near/middle leaf colours match the archived originals exactly, wood triangle attributes match the current natural assets exactly, all foliage attributes except colour match, both texture images match the current assets, and far geometry is unchanged. Topology/material/root/budget checks and the raw GLB inspector pass. Counts remain upright2670/690/4, mature2960/690/4, leaning2344/664/4. Near heights remain 13.164443, 13.719443 and 9.001080 m.
+
+New files are oak_pale.glb, mature_oak_pale.glb and leaning_oak_pale.glb. Only three Sandbox asset names change, at (-26,1), (-16,-3) and (23,12). Natural and lighter files remain byte-identical. Grassland keeps its existing specimen pairs; lighter Sandbox trees, warm birches and both shrubs remain unchanged. Hash baseline: tmp/runs/0034_pale-oaks/preserved-assets.json. New registrations and placement-name changes are rendering only, with no simulation inputs, shared RNG, terrain or FL switch changes; no sim hash needed. Build and strict all-target clippy pass.
+
+Review page: tmp/shots/0034_pale-oaks/index.html. Matched before/after whole-scene views use x0,z0,distance90,pitch0.62,yaw0.65 and the opposite yaw3.8, making both lighting directions visible. Closer western-copse and small-oak views plus a camera sweep accompany them. Pale trees visibly lighten without changing the neighbouring lighter variants. Stop for this palette-combination review before further colour tuning.
+
+Final pale review includes a 22-second zoom/small orbit. Inspected 24 chronological samples at 4 Hz during approach; not full-frame-rate playback. Logs confirm mature_oak_pale near -> middle -> card -> middle -> near without capture errors. All six existing oak files, warm birch and A/B shrub hashes match the before baseline. New shipped candidates match validated private outputs byte-for-byte; all review links resolve. Private iteration checkpoint 4e78616. Public three-new-GLB/registration/README changes remain uncommitted for palette review. No game remains from captures.
+
+
+## Pale foliage accepted, 2026-09-28
+
+Gota accepts the pale leaves as a better match for this map. Public commit 694eade, "Add pale foliage variants for all three oaks", adds oak_pale.glb, mature_oak_pale.glb and leaning_oak_pale.glb through Git LFS, their runtime registrations and the three Sandbox placement selections. All six natural/lighter variants remain available unchanged, making nine current-trunk oak variants. Current trunk geometry, warm-grey bark and ground blending remain intact. The private build/verification checkpoint is 4e78616; its iteration-table outcome now records acceptance.
+
+The earlier asset checks, opt-dev build and strict all-target clippy passed; this acceptance introduces no further code or asset edits. Final staged diff and LFS entries were checked before committing. No simulation inputs changed. Devlogs remain outside public history.
+
+New concern from debug10.png through debug12.png: front-lit oak trunks still read as clay at moderate distance, although distant and side-lit views look better. Record that as a separate material/lighting investigation in devlog 0156; keep the accepted leaf and bark colours fixed for the next comparison.

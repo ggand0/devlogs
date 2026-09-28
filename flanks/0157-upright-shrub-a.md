@@ -20,3 +20,25 @@ The initial candidate passes raw GLB inspection and geometry/material/topology/L
 Repository build scripts are being packaged under tools/blender/shrub_a, reading embedded texture bytes from assets/vegetation/shrub_b_sandbox.glb to remove private-scene dependencies. Their output still needs comparison against the initial candidate when GPU work is available. Review captures are planned under tmp/shots/0032_shrub-a, with close/detail, gameplay distance, context, reverse, overhead and camera-motion views. No public acceptance commit before the specimen review.
 
 Private iteration checkpoint: 715c2cc. Public candidate/runtime/README and standalone build scripts remain uncommitted for review. The repository raw verifier passes on the initial candidate; it uses the corrected public accessor reader without the older private helper's index-normalization workaround. The standalone recipe itself still awaits a Blender run when the GPU is released.
+
+## In-game review completed, 2026-09-28
+
+Gota released the GPU. The guard reported no game, and the standalone repository recipe built successfully from assets/vegetation/shrub_b_sandbox.glb without any private Blender scene. Raw comparison with the private initial candidate matches every triangle attribute and decoded colour/normal texture pixel at L0, L1 and card. Repository raw verification passes. Comparison script is saved as work/scripts/compare-shrub-a-rebuild.py. No geometry or rendering-source changes were needed, so the existing passing build/clippy checks still apply.
+
+Review page: tmp/shots/0032_shrub-a/index.html. Six game stills cover close, branch/leaf detail, gameplay distance, context with B and the oak/birch group, reverse side and overhead. The accepted concept is included. Close camera focuses (14,14), distance5, pitch0.34, yaw-0.45. Detail uses distance3.6 and crops the upper crown to show branch/leaf detail. Gameplay distance15; context30. The upright form reads clearly, but the in-game canopy is more open than the concept. Leave this first specimen unchanged for Gota's review rather than starting another density revision before feedback.
+
+A 22-second continuous zoom/small orbit is recorded. Inspected 24 chronological samples at 4 Hz around the approach, not full-frame-rate playback. Logs confirm near -> middle -> far -> middle -> near, then middle as the camera withdraws, with no ERROR lines. No battle or dense-placement performance claim. No capture game remains. Existing plant geometry, palettes, placement and lighting are unchanged.
+
+Review links resolve and the shipped candidate remains byte-identical to the validated private asset. Private review checkpoint 4170715 supplements build checkpoint 715c2cc. Public candidate, vegetation registration, README and standalone tool scripts remain uncommitted pending the first specimen review. Stop before expansion or another shrub variant.
+
+## First specimen accepted; density comparison
+
+Gota likes Shrub A, asks whether it is as dense as B when seen at comparable size, and requests committing this version regardless. The circled A/B comparison is resources/vegetation/debug8.png; debug7.png is the older oak-trunk scene. Inspected both after resizing.
+
+Added a practical in-game comparison at tmp/shots/0033_shrub-density/index.html. A: focus(14,14), distance6, scale1. B: focus(9,14), distance7.64, placed scale1.12. Both cameras use pitch0.50 and yaw-0.45. The distance ratio follows the widths (2.2 versus 2.5*1.12) to bring them to comparable screen widths. Existing yaw, height, terrain position and perspective remain distinct; this is a visual comparison rather than a precise foliage-coverage measurement. Both specimens are near meshes.
+
+A still reads more open, especially around the taller stems and upper crown. It has 840 sprays versus B's 704, but occupies a taller crown (1.7 m versus 0.8 m), with different spray lengths/orientations and distribution. Spray count alone is not density. Increasing apparent size exposes the existing gaps; it does not fill them. Preserve the accepted fine-leaf style and this current version. A possible later density pass should add branch-attached fine sprays in the upper/middle gaps while keeping the irregular outline and visible basal stems; no such edit is requested or made now.
+
+Current acceptance includes the candidate, one Sandbox specimen and standalone reproducible scripts. All prior geometry/material/texture, build and strict-clippy checks remain applicable; only a helper docstring changed during this commit step. No new GPU build was needed. Existing assets, simulation, placement and lighting remain unchanged.
+
+Accepted public commit: 4c90248, "Add an upright shrub to the Sandbox vegetation". Private acceptance record: f285fca. The new GLB is confirmed in Git LFS. Public working tree is clean after the commit; devlogs remain uncommitted and backed up.

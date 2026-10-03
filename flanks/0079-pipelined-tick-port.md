@@ -102,7 +102,7 @@ Dropped from the branch on 2026-09-22, backups listed under Commits. If headroom
 
 ### Clean desktop rerun (2026-09-22)
 
-The owner pointed out that this box had the desktop stutter (work/handoffs/HANDOFF-desktop-stutter-2026-09-21.md, devlog 0080: a GNOME shell GC freeze every 10 s, fed by MEGAsync) during yesterday's runs. Reran with MEGAsync off, the shell probe clean (0 stalls over 25 ms in 45 s) and the CPU near idle (load 4.6, only a browser). Same view, same recipe, steady-state samples after warm-up.
+The owner pointed out that this box had the desktop stutter (work/handoffs/013-desktop-stutter-2026-09-21.md, devlog 0080: a GNOME shell GC freeze every 10 s, fed by MEGAsync) during yesterday's runs. Reran with MEGAsync off, the shell probe clean (0 stalls over 25 ms in 45 s) and the CPU near idle (load 4.6, only a browser). Same view, same recipe, steady-state samples after warm-up.
 
 | | Inline | Pipelined | Pipelined, `FL_SIM_POOL=12` (dropped, for the record) |
 |---|---|---|---|

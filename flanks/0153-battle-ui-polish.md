@@ -98,8 +98,8 @@ In the old version 7 of 8 had ended the break-off and fought anyone; in the new 
 
 ## Branch split
 
-feat/ui-polish now ends at 978dde9 (the nine UI commits); fix/melee-orders carries those plus 3d99575, 672937d, 80449f1, af8778b and 89c853f, stacked, to be rebased onto main after the UI PR merges. Backup: branch backup/ui-polish-before-split and work/backups/ui-polish-before-split.bundle. The UI branch alone, built in a scratch worktree: clippy clean, fingerprint gate against main6 equal in all four scenarios (dir 19/19, arch 19/19, pilewide 29/29, pile2 29/29). PR draft: work/drafts/pr-ui-polish.md.
+feat/ui-polish now ends at 978dde9 (the nine UI commits); fix/melee-orders carries those plus 3d99575, 672937d, 80449f1, af8778b and 89c853f, stacked, to be rebased onto main after the UI PR merges. Backup: branch backup/ui-polish-before-split and work/backups/ui-polish-before-split.bundle. The UI branch alone, built in a scratch worktree: clippy clean, fingerprint gate against main6 equal in all four scenarios (dir 19/19, arch 19/19, pilewide 29/29, pile2 29/29). PR draft: work/drafts/024-pr-ui-polish.md.
 
 ## Merged
 
-feat/ui-polish merged as PR #13 (main = 0a41859), with 3aa78bc (comment fixes from the pre-PR audit) and 87ec8a6 (Blob button and its key removed, Hold moved to B). fix/melee-orders rebased onto it: 13217d2, dadd8c9, 8511c93, 5efb0e4, bc98607, clippy clean. Handoff for the next thread: work/handoffs/HANDOFF-melee-orders-2026-09-27.md.
+feat/ui-polish merged as PR #13 (main = 0a41859), with 3aa78bc (comment fixes from the pre-PR audit) and 87ec8a6 (Blob button and its key removed, Hold moved to B). fix/melee-orders rebased onto it: 13217d2, dadd8c9, 8511c93, 5efb0e4, bc98607, clippy clean. Handoff for the next thread: work/handoffs/062-melee-orders-2026-09-27.md.

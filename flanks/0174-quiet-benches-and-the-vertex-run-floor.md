@@ -173,7 +173,7 @@ Unit pass, mid-air: 5.08 ms (main), 4.33, 4.01, 3.99, 4.86, 4.15. The L2 thresho
 | 7706020 | Add FL_RECEIVE_LODS to limit the levels that receive the sun's shadow |
 | 8170100 | Pose the soldiers drawn at L3 for their body alone |
 
-Commit messages trimmed to the writing guidelines (one to three sentences) before the push, which rewrote the hashes; the trees are the same. Pushed to origin as `perf/side-explore` at 8170100 on Gota's word, origin/main still 48b3e0c, so the merged tree is the branch tip: strict clippy clean and the 29 tests pass on it, and the tip's runs logged no shader or validation error. PR draft `work/drafts/pr-side-explore.md`; Gota opens it.
+Commit messages trimmed to the writing guidelines (one to three sentences) before the push, which rewrote the hashes; the trees are the same. Pushed to origin as `perf/side-explore` at 8170100 on Gota's word, origin/main still 48b3e0c, so the merged tree is the branch tip: strict clippy clean and the 29 tests pass on it, and the tip's runs logged no shader or validation error. PR draft `work/drafts/038-pr-side-explore.md`; Gota opens it.
 
 Local branch `perf/unit-cull-experiment` (df179c6): the compute cull, a record only, not pushed.
 

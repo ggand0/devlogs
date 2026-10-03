@@ -3,7 +3,7 @@
 Written by Claude Opus 5.5.
 
 2026-09-23. Engine side of Astra's v3 spearman (devlog 0093, handoff
-`work/handoffs/HANDOFF-spearman-v3-for-claude-2026-09-23.md`). Gota checked the
+`work/handoffs/024-spearman-v3-for-claude-2026-09-23.md`). Gota checked the
 stab in game: it works.
 
 ## Contract

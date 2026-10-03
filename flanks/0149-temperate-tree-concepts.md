@@ -5,7 +5,7 @@ Written by GPT-6 Astra.
 
 Gota accepted oak v2 for game use. He approved the remaining branch scope: two more oak variants, one contrasting birch-like tree, two shrub forms, then placement, wind and the populated performance check. Dense meadow ground cover belongs to a separate branch, with asset art here and Claude handling its population renderer and cost checks. The next step is concept review before constructing the three new trees.
 
-Generated one reference sheet per new tree using the built-in image_gen tool, with the accepted oak render and generated grassland reference as inputs. All three images are saved unchanged under work/notes/vegetation-tree-concepts-2026-09-27/. The directory includes index.html, exact prompts in prompts.json and image checksums in sources.json.
+Generated one reference sheet per new tree using the built-in image_gen tool, with the accepted oak render and generated grassland reference as inputs. All three images are saved unchanged under work/notes/022-vegetation-tree-concepts-2026-09-27/. The directory includes index.html, exact prompts in prompts.json and image checksums in sources.json.
 
 - Mature oak: proposed 14 m height and 13 m crown width, substantial crooked branches and an uneven broad crown.
 - Smaller leaning oak: proposed 9 m height and 6.5 m width, gentle trunk lean, lighter branch structure and asymmetric crown.
@@ -29,7 +29,7 @@ After accepting warm birch, Gota requested bush design/reference images while Cl
 
 Inspected resized debug0.png (M2TW scattered bushes), debug1.png (dense meadow vegetation, outside this stage), and grassland_map_ref.png. Proposed two hawthorn-like scrub forms sharing a leaf/material family: upright 1.7 m high by 2.2 m wide, and low spreading 0.8 m high by 2.5 m wide. Upright shrub provides accents and loose broken hedges; spreading scrub fills smaller isolated patches and the bases of larger plants. These are art directions, not botanical identifications of the screenshots.
 
-Used the built-in image_gen tool via the imagegen skill, one text-only generation per form. Two original reference sheets are saved in assets_dev/vegetation/shrub_concepts_v1/, with exact prompts, original generated-image paths, hashes and dimensions. No reference photograph or game screenshot pixels were used. Review page: work/notes/vegetation-shrub-concepts-2026-09-27/index.html.
+Used the built-in image_gen tool via the imagegen skill, one text-only generation per form. Two original reference sheets are saved in assets_dev/vegetation/shrub_concepts_v1/, with exact prompts, original generated-image paths, hashes and dimensions. No reference photograph or game screenshot pixels were used. Review page: work/notes/024-vegetation-shrub-concepts-2026-09-27/index.html.
 
 Both sheets have believable multi-stem wood, irregular connected leaf masses, small gaps and restrained warm greens. The upright sheet is dense with sparse upper shoots; the spreading sheet has outward-growing low branches and tapering sprays. Preserve these forms when modeling, but simplify the visible fine twig network into leaf sprays and retain only principal woody branches as geometry. Proposed caps: upright 600/160/4 triangles, spreading 420/120/4. Shared 1024-square foliage colour texture, separate opaque bark texture, far colour/normal bakes up to 512-square per form. These are targets, not verified mesh counts or performance results.
 

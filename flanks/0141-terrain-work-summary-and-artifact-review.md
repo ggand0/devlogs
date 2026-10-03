@@ -44,7 +44,7 @@ Six bounded GPU checks compared plain PBR against v2 with 200,000 soldiers. At t
 - v1 review: `tmp/shots/terrain-surface-v1/index.html`.
 - v2 before/after views and clips: `tmp/shots/terrain-surface-v2/index.html`.
 - v2 logs, measurement CSV/JSON and helpers: `tmp/runs/terrain-surface-v2/`.
-- Handoffs: `work/handoffs/HANDOFF-terrain-surface-2026-09-26.md` and `work/handoffs/HANDOFF-terrain-surface-v2-2026-09-26.md`.
+- Handoffs: `work/handoffs/044-terrain-surface-2026-09-26.md` and `work/handoffs/045-terrain-surface-v2-2026-09-26.md`.
 - Implementation devlogs: 0139 and 0140.
 
 ## Current visual feedback

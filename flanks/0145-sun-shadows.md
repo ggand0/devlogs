@@ -1,7 +1,7 @@
 # 0145: Sun shadows, soldiers included (plan 012 item 3)
 Written by Claude Opus 5.5.
 
-Date: 2026-09-26. Branch `feat/sun-shadows` off main 66eb416, in the main tree. Handoff: work/handoffs/HANDOFF-sun-shadows-2026-09-26.md. Not merged, waiting on Gota's play test.
+Date: 2026-09-26. Branch `feat/sun-shadows` off main 66eb416, in the main tree. Handoff: work/handoffs/047-sun-shadows-2026-09-26.md. Not merged, waiting on Gota's play test.
 
 ## Commits
 

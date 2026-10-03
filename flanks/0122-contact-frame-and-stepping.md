@@ -38,7 +38,7 @@ Runs of a normal battle vary with AI timing (AI and auto-engage run in Update), 
 ## Open
 
 - Pace is about half of main's. The contact frame stops the two blocks from pushing into each other, so fewer men are in reach at once. Gota's feel call; the levers are the engage and step rules, or the deferred sidestep, which is what lets M2TW's surplus men flow around to the flanks.
-- Sideways steps still play the forward walk (facing is kept, so it reads as skating) until Astra's shuffle tables land (`work/handoffs/HANDOFF-side-shuffle-2026-09-25.md`).
+- Sideways steps still play the forward walk (facing is kept, so it reads as skating) until Astra's shuffle tables land (`work/handoffs/037-side-shuffle-2026-09-25.md`).
 - Not yet run: ROUT, SURROUND, PILE, JOIN, 200k perf.
 - The movement.rs refactor, last on this branch.
 

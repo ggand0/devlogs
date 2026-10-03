@@ -6,7 +6,7 @@ Branch `feat/melee-footwork`, on top of bee555e (devlog 0124). Gota asked for a 
 
 Pictures now live in work/notes/vis/ (moved there today; the paths in devlogs 0125/0126, the handoff and the picture scripts were updated).
 
-## The proposal (work/notes/perf-direction-2026-09-25.md, work/notes/vis/008-perf-direction.png)
+## The proposal (work/notes/013-perf-direction-2026-09-25.md, work/notes/vis/008-perf-direction.png)
 
 Where the 200k tick's time goes on bee555e, by the previous session's section counters: the separation and reach scan every man runs every tick is ~1250 of 2162 kernel cycles per soldier (the same on main); the footwork added ~380: the 15 m sight scan ~115, the remembered-enemy lookup and join logic ~130, the comrade look ~35, and ~100 in code identical to main's where more men now move. The collision grid rebuild is 4.3 ms wall, 2 to 3 ms of it a serial merge.
 
@@ -76,6 +76,6 @@ The load average was 4.8 before the first run and 10 to 13 between runs. Cause: 
 
 - Gota: do not commit A1/A2; backed up as work/backups/patches/occupancy-bytes-far-look-v1.patch and branch `backup/occupancy-bytes-on-bee555e` (527fb01). The working tree still carries the edits until he says to restore it.
 - Gota: no incremental perf; a fundamental fix within this branch's scope, including revising the footwork logic. Two proposals followed, both notes in work/notes/ with pictures in work/notes/vis/:
-  - perf-fundamental-2026-09-25.md (010-rigid-tiles.png): tiles, rigid-tile reuse of the separation result, sleeping men, dirty-tile rebuild. Rejected for this branch as out of scope (main's systems); kept for the 1M goal.
-  - footwork-v2-perception-2026-09-25.md (011-touch-wave.png): the current plan. A soldier perceives through the touch box he already reads every tick (nearest enemy in it), is told by start events when a comrade of his regiment within 6 m starts running (one small grid query per start in the apply pass, a memory countdown while the roll runs), heads for the fight point beyond that; the 15 m far look and the 6 m runner look go, the memo comes from the scan, lanes fuse into the scan on look ticks. Expected ~1880 to 1900 cycles per soldier at 200k (bee555e 2162, main 1780). The 15 m sight is not M2TW-evidenced (0121: seek radius unknown; 796ff14 chose it against a hollow before any joining mechanism existed). Gota's isolated-man question turned the wave from touch-box-only into start events.
-- Handoff for a second opinion by Opus 5.5: work/handoffs/HANDOFF-footwork-perf2-2026-09-25.md.
+  - 014-perf-fundamental-2026-09-25.md (010-rigid-tiles.png): tiles, rigid-tile reuse of the separation result, sleeping men, dirty-tile rebuild. Rejected for this branch as out of scope (main's systems); kept for the 1M goal.
+  - 015-footwork-v2-perception-2026-09-25.md (011-touch-wave.png): the current plan. A soldier perceives through the touch box he already reads every tick (nearest enemy in it), is told by start events when a comrade of his regiment within 6 m starts running (one small grid query per start in the apply pass, a memory countdown while the roll runs), heads for the fight point beyond that; the 15 m far look and the 6 m runner look go, the memo comes from the scan, lanes fuse into the scan on look ticks. Expected ~1880 to 1900 cycles per soldier at 200k (bee555e 2162, main 1780). The 15 m sight is not M2TW-evidenced (0121: seek radius unknown; 796ff14 chose it against a hollow before any joining mechanism existed). Gota's isolated-man question turned the wave from touch-box-only into start events.
+- Handoff for a second opinion by Opus 5.5: work/handoffs/040-footwork-perf2-2026-09-25.md.

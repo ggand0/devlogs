@@ -1,7 +1,7 @@
 # 0147: Sun shadows against the fps gate, measured in Gota's view
 Written by Claude Fable 5.1.
 
-Date: 2026-09-27. Branch `feat/sun-shadows` at 00d68e4, five commits on main 66eb416, not merged. Follows devlog 0145 (what was built) and work/notes/shadows-perf-followups-2026-09-27.md (the review's follow-up list). No code change in this entry: it records where the branch stands against the gate, why, and what to do.
+Date: 2026-09-27. Branch `feat/sun-shadows` at 00d68e4, five commits on main 66eb416, not merged. Follows devlog 0145 (what was built) and work/notes/021-shadows-perf-followups-2026-09-27.md (the review's follow-up list). No code change in this entry: it records where the branch stands against the gate, why, and what to do.
 
 ## The gate
 

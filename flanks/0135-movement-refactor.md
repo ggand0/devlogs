@@ -79,4 +79,4 @@ Gate of the final binary (md5 de40139f, HEAD bb45a15): DIR 19/19, ARCHERY 19/19,
 
 ## Merged
 
-PR #9 merged into main as 45a6c87 on 2026-09-26 (branch head bb45a15). Post-merge handoff: work/handoffs/HANDOFF-after-footwork-2026-09-26.md.
+PR #9 merged into main as 45a6c87 on 2026-09-26 (branch head bb45a15). Post-merge handoff: work/handoffs/043-after-footwork-2026-09-26.md.

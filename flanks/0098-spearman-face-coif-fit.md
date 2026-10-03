@@ -12,4 +12,4 @@ Viewed exported GLB front, 45°, profile and low-front renders with back-face cu
 
 Source comparison: only face and mail_coif changed, neck added; all 26 other geometry components match. All source PNGs match the preceding revision. The rig, motion source and runtime table are unchanged, so no animation was regenerated. All 354 recorded prior files remain byte-identical, including MAA and shipped assets. No game-code changes, Cargo runs, asset promotion or commits.
 
-Review: `assets_dev/spearman/textured_v3_face_fit/face_fit_comparison.png`. Handoff: `work/handoffs/handoff-spearman-face-fit-gpt6-astra.md`. Stop here for appearance review; MAA remains unchanged.
+Review: `assets_dev/spearman/textured_v3_face_fit/face_fit_comparison.png`. Handoff: `work/handoffs/028-spearman-face-fit-gpt6-astra.md`. Stop here for appearance review; MAA remains unchanged.

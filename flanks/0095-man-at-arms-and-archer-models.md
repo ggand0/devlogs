@@ -20,7 +20,7 @@ Each model file is 5.0 to 5.9 MB. About 97% of that is the embedded 2048² PNG a
 
 ## Shield back (open)
 
-All three shielded kinds share a heater shield that is a one-sided shell facing forward. Below the arm it has 0.071 m² facing forward and 0.001 m² facing back, so it is see-through from behind under back-face culling. The fix is in the model: a closed back board with its own texture. The note for Astra is `work/notes/astra-shield-back-2026-09-23.md`.
+All three shielded kinds share a heater shield that is a one-sided shell facing forward. Below the arm it has 0.071 m² facing forward and 0.001 m² facing back, so it is see-through from behind under back-face culling. The fix is in the model: a closed back board with its own texture. The note for Astra is `work/notes/001-astra-shield-back-2026-09-23.md`.
 
 ## Capture script
 

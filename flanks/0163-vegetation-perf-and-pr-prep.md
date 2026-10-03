@@ -34,7 +34,7 @@ gate.sh on both binaries, prefix veg-flanks-before / veg-flanks-after: dir 18, a
 
 ## PR draft
 
-work/drafts/pr-vegetation.md: "Add trees and shrubs to the Grassland and River maps".
+work/drafts/027-pr-vegetation.md: "Add trees and shrubs to the Grassland and River maps".
 
 ## Before the PR
 

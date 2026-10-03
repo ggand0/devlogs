@@ -29,6 +29,6 @@ Linear float bake data needs explicit sRGB encoding when written into a byte ima
 
 Textures use neutral RGB in team regions and a linear alpha mask. The preview formula is `atlas.rgb * mix(white, team_tint, atlas.a)` in linear color space. Team alpha is not opacity. The current shader's replacement blend would erase cloth detail at mask 1. The current loader also does not retain atlas UVs or images. This work is an asset preview, not a renderer integration.
 
-Handoff is `work/handoffs/handoff-knight-textures-gpt6-astra.md`. It covers atlas loading, UV retention, fragment sampling, sRGB, tinting, mipmaps and the need to include atlas color in the visibility-based derived LOD calculation. White `COLOR_0.rgb` must not be used as the new far-color source.
+Handoff is `work/handoffs/017-knight-textures-gpt6-astra.md`. It covers atlas loading, UV retention, fragment sampling, sRGB, tinting, mipmaps and the need to include atlas color in the visibility-based derived LOD calculation. White `COLOR_0.rgb` must not be used as the new far-color source.
 
 Stop for the owner's material and shape review. L1 to L3, the silhouette overlay, rotation checks and full acceptance remain pending. No final asset or tools promotion yet.

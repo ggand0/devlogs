@@ -91,4 +91,4 @@ Tens of thousands of trees would hurt the camera view before shadows: per-entity
 ## Open
 
 - Terrain out of the shadow maps waits on Gota's go and the look check.
-- Whether Astra's accepted foliage colours still hold under self-shadowing (the canopies read darker in debug13 than in the shadowless captures they were chosen from). Handoff: work/handoffs/HANDOFF-tree-shadows-for-astra-2026-09-29.md.
+- Whether Astra's accepted foliage colours still hold under self-shadowing (the canopies read darker in debug13 than in the shadowless captures they were chosen from). Handoff: work/handoffs/069-tree-shadows-for-astra-2026-09-29.md.

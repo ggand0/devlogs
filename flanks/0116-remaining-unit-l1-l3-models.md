@@ -30,6 +30,6 @@ Compared L0/L1/L2/L3 at 20, 8 and 3 px, from front/back/side, plus red and blue 
 
 ## Handoff
 
-`work/notes/remaining-unit-l1-l3-for-claude-2026-09-24.md` contains paths, counts, per-part heights, hashes, preservation checks and installation guidance. The previously approved knight note is `work/notes/knight-l1-l3-for-claude-2026-09-24.md`.
+`work/notes/009-remaining-unit-l1-l3-for-claude-2026-09-24.md` contains paths, counts, per-part heights, hashes, preservation checks and installation guidance. The previously approved knight note is `work/notes/008-knight-l1-l3-for-claude-2026-09-24.md`.
 
 Stopped with reviewable candidates. No installed asset, src/ or renderer edits; no commits or staging. Other concurrent knight animation work was left untouched.

@@ -70,7 +70,7 @@ The layout went through five rounds with Gota: 44 thin columns (too deep, archer
 
 ## The PR draft: eleven rewrites of one sentence
 
-After the branch was done, the PR draft (work/drafts/pr-release-prep.md) took eleven attempts at its two-line summary, with Gota correcting each one. Every attempt fixed the latest complaint and broke something an earlier correction had settled:
+After the branch was done, the PR draft (work/drafts/029-pr-release-prep.md) took eleven attempts at its two-line summary, with Gota correcting each one. Every attempt fixed the latest complaint and broke something an earlier correction had settled:
 
 1. "This PR gets the game ready for the next release": not imperative.
 2. "Get the game ready for the next release": nothing Gota would say, and release talk describes no change.

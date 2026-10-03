@@ -103,8 +103,8 @@ Bevy's pipelined renderer makes the main thread wait for the render world, and t
 
 ## State
 
-- MERGED as PR #7 on 2026-09-22, `main` = a197872. Eight commits: the validation fix, the GPU path, the render thread timer, the bodies, the readback and check mode, the camera sweep knob, the default flip, a field trim. Build and clippy clean at every commit. Handoff for the next agent: work/handoffs/HANDOFF-after-item2-2026-09-22.md.
-- The owner's feel pass was positive (above), so the GPU path is the default and `FL_GPU_SYNC=0` is the fallback. Archery on the GPU path: fingerprints equal the baseline 19 of 19, 11,700 check frames with no difference. Ready for the PR draft in work/drafts/pr-gpu-render-data.md.
+- MERGED as PR #7 on 2026-09-22, `main` = a197872. Eight commits: the validation fix, the GPU path, the render thread timer, the bodies, the readback and check mode, the camera sweep knob, the default flip, a field trim. Build and clippy clean at every commit. Handoff for the next agent: work/handoffs/016-after-item2-2026-09-22.md.
+- The owner's feel pass was positive (above), so the GPU path is the default and `FL_GPU_SYNC=0` is the fallback. Archery on the GPU path: fingerprints equal the baseline 19 of 19, 11,700 check frames with no difference. Ready for the PR draft in work/drafts/017-pr-gpu-render-data.md.
 - The 40 byte record (yaw pair and color packed) waits for the feel pass.
 - Backup of the branch before a history fix of two broken commits: ref `refs/backup/gpu-render-data-pre-fix-20260922`, bundle work/backups/gpu-render-data-pre-fix-20260922.bundle, verified. The two commits had been made from zero-context patch splits that landed lines in the wrong places. They were replaced by commits made from exact file states, each checked to compile.
 

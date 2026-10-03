@@ -31,7 +31,7 @@ The installed archer remains v2. The renderer cannot read this new part/table co
 
 The unchanged body/leg components retain surface exceptions from v2: body has 333 open edges, 4 nonmanifold edges and 3 winding disagreements; each leg has 40 open edges. Some boundaries are hidden garment/component seams, but the full exception audit has not been completed. This is not final asset acceptance. Keep the GLB out of `assets/units/` until the requested stages and acceptance checks are complete.
 
-A return handoff records the part IDs, transforms, integration requirements and remaining work: `work/handoffs/HANDOFF-archer-draw-prototype-for-claude-2026-09-23.md`.
+A return handoff records the part IDs, transforms, integration requirements and remaining work: `work/handoffs/031-archer-draw-prototype-for-claude-2026-09-23.md`.
 
 ## Review status correction
 

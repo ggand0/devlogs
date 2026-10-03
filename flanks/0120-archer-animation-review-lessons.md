@@ -14,7 +14,7 @@ Written by GPT-6 Astra.
 
 Archer celebration was explicitly deferred because this work had already taken substantial time. Quiver orientation was deferred to another thread. Do not interpret approval of these clips as approval of celebrations, a quiver redesign or all possible animation transitions.
 
-The approval-time source snapshot is `assets_dev/archer/reload_v11/approved_source/`. Reproducible source is `tools/blender/archer/`. The authoring contract and accepted files are described in `work/handoffs/HANDOFF-archer-approved-ranged-animations-for-claude-2026-09-24.md`. Subsequent engine integration is documented separately in [0108](0108-archer-bow-rig-in-game.md); statements about integration being unfinished in older authoring logs describe that earlier stage.
+The approval-time source snapshot is `assets_dev/archer/reload_v11/approved_source/`. Reproducible source is `tools/blender/archer/`. The authoring contract and accepted files are described in `work/handoffs/034-archer-approved-ranged-animations-for-claude-2026-09-24.md`. Subsequent engine integration is documented separately in [0108](0108-archer-bow-rig-in-game.md); statements about integration being unfinished in older authoring logs describe that earlier stage.
 
 ## Feedback and what changed
 

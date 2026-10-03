@@ -9,7 +9,7 @@ Mesh vertices: 1,179,648 to 209,088. Triangles: 393,216 unchanged. Mesh attribut
 
 Build and strict clippy pass in opt-dev. Both geometry/crater tests pass. All six KTX2 files pass Khronos validation. Captured and inspected gameplay, close/wide camera switches, crater updates, the river variant, and a 200,000-soldier battle. The five final runtime logs contain no shader/asset errors or panics. No matched-clock GPU benchmark was attempted during the concurrent performance work. No simulation hash run was needed for this rendering-only change under current AGENTS.md.
 
-Review: `tmp/shots/terrain-surface-v1/index.html`. Logs and capture helper: `tmp/runs/terrain-surface-v1/`. Details and limitations: `work/handoffs/HANDOFF-terrain-surface-2026-09-26.md`.
+Review: `tmp/shots/terrain-surface-v1/index.html`. Logs and capture helper: `tmp/runs/terrain-surface-v1/`. Details and limitations: `work/handoffs/044-terrain-surface-2026-09-26.md`.
 
 The larger battlefield layout, vegetation, water and lighting remain subsequent review stages. The iteration is saved in commit `42e30de` (Add blended pasture terrain materials). No shared source files or the main worktree's code were edited.
 

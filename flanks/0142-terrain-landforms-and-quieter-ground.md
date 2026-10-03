@@ -46,7 +46,7 @@ Three bounded runs used 200,000 stationary soldiers, with GPU clocks/load record
 
 - Before/after slider, motion/crater recordings, 200k view and plain-shading diagnosis: `tmp/shots/terrain-surface-v3/index.html`.
 - Raw logs, hashes, clock CSVs, measurement JSON and helper scripts: `tmp/runs/terrain-surface-v3/`.
-- Handoff: `work/handoffs/HANDOFF-terrain-v3-2026-09-26.md`.
+- Handoff: `work/handoffs/048-terrain-v3-2026-09-26.md`.
 
 The surface is deliberately calmer and the hills much broader. Some broad color variation remains by design. The finite map edge and sparse environment are still visible; this is a terrain shape/material iteration rather than a finished environment. Review the new landforms and quieter ground in motion before adding more detail or expanding the battlefield. The river experiment still needs a separate design pass.
 

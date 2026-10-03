@@ -2,7 +2,7 @@ Written by Claude Fable 5.1
 
 # 0129: Footwork v2, perception through the touch box and start events
 
-Branch `feat/melee-footwork`, commit **125f66c** on bee555e (devlog 0127 is the measured dead end before it; 0128 is another agent's probe, not read here). Gota's direction: no incremental perf; a fundamental fix within the footwork's scope, revising the footwork logic if needed. Proposal note: work/notes/footwork-v2-perception-2026-09-25.md, picture work/notes/vis/011-touch-wave.png. The commit is untuned and awaits Gota's feel checks, which he wants before detailed verification.
+Branch `feat/melee-footwork`, commit **125f66c** on bee555e (devlog 0127 is the measured dead end before it; 0128 is another agent's probe, not read here). Gota's direction: no incremental perf; a fundamental fix within the footwork's scope, revising the footwork logic if needed. Proposal note: work/notes/015-footwork-v2-perception-2026-09-25.md, picture work/notes/vis/011-touch-wave.png. The commit is untuned and awaits Gota's feel checks, which he wants before detailed verification.
 
 ## Why the footwork cost what it cost
 

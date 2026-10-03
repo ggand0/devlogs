@@ -365,4 +365,4 @@ Asked for: the soldiers in the charge state visualized on F3, and a quiet dot fo
 
 ## Next: the charge phase rule (plan saved 2026-09-29)
 
-The stuck-charge spam is fixed at unit level, not in the audio: a regiment charges only while it actually advances on its target (smoothed approach speed toward the target centroid, enter at GOING_SPEED 1.0 m/s, leave under CRASH_STALL 0.3 m/s), on top of the existing range/order/engaged conditions. The full plan with B (no cutting inside a sound), C (killing-blow cap), the move-order click and the rout cry is in work/notes/charge-phase-and-audio-plan-2026-09-29.md, for execution by Opus 5.5.
+The stuck-charge spam is fixed at unit level, not in the audio: a regiment charges only while it actually advances on its target (smoothed approach speed toward the target centroid, enter at GOING_SPEED 1.0 m/s, leave under CRASH_STALL 0.3 m/s), on top of the existing range/order/engaged conditions. The full plan with B (no cutting inside a sound), C (killing-blow cap), the move-order click and the rout cry is in work/notes/028-charge-phase-and-audio-plan-2026-09-29.md, for execution by Opus 5.5.

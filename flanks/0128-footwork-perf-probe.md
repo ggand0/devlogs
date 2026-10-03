@@ -6,7 +6,7 @@ Written by Claude Opus 5.5
 I think this Opus 5.5 was pretty retarded, wasting 30 minutes after my initial prompt asking for a proposal and then it kept probing stuff for 30 minutes. Then I interrupted it obviously and asked for the proposal again, but basically it ended up suggesting to drop the entire feature I built on this branch, unacceptable. I'd only take it as a grain of salt and maybe only refer to the probe values. I suspect it has been nerfed by Anthropic already since it had been a few days after a release.
 
 
-Branch `feat/melee-footwork`, HEAD bee555e (the working tree still carries the uncommitted A1/A2 edits of devlog 0127; this session did not touch `src/`). Gota asked for a second opinion on Fable's footwork v2 (work/handoffs/HANDOFF-footwork-perf2-2026-09-25.md) and for the best way to fundamentally improve the branch's performance while keeping the behavior the branch built.
+Branch `feat/melee-footwork`, HEAD bee555e (the working tree still carries the uncommitted A1/A2 edits of devlog 0127; this session did not touch `src/`). Gota asked for a second opinion on Fable's footwork v2 (work/handoffs/040-footwork-perf2-2026-09-25.md) and for the best way to fundamentally improve the branch's performance while keeping the behavior the branch built.
 
 ## How the session went
 

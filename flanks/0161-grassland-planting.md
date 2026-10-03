@@ -2,11 +2,11 @@
 
 Written by Claude Opus 5.5.
 
-2026-09-29. From work/handoffs/HANDOFF-grassland-vegetation-for-claude-2026-09-29.md (Astra's placement plan). Commit 038f7ec "Plant the grassland's margins, gap copses and hedge" on feat/vegetation, not pushed. Review page: tmp/shots/0035_grassland-planting/index.html.
+2026-09-29. From work/handoffs/070-grassland-vegetation-for-claude-2026-09-29.md (Astra's placement plan). Commit 038f7ec "Plant the grassland's margins, gap copses and hedge" on feat/vegetation, not pushed. Review page: tmp/shots/0035_grassland-planting/index.html.
 
 ## How Astra asked for it
 
-Gota moved Grassland placement to Claude so Astra's time goes to asset authoring (0155, last section). Astra wrote the plan from its placement drawing (work/notes/vegetation-design-2026-09-27/composition.svg) and the accepted Sandbox composition:
+Gota moved Grassland placement to Claude so Astra's time goes to asset authoring (0155, last section). Astra wrote the plan from its placement drawing (work/notes/023-vegetation-design-2026-09-27/composition.svg) and the accepted Sandbox composition:
 
 - Assets: the Sandbox set only, reused through the existing handles and LOD path. Pale and lighter oaks in all three shapes, `silver_birch_warm`, `shrub_b_sandbox` as B (not v4, whose middle level is sparser), `shrub_a` sparingly. No GLB rebuilds, no palette multipliers.
 - Mix: about 80% oaks and 20% birches; mature crowns anchor groups, upright oaks vary the skyline, leaning oaks soften edges; pale and lighter mixed without a pattern. B the majority of shrubs, A about 15 to 25%. Trees at scale 0.85 to 1.10, shrubs 0.75 to 1.20, yaw free.

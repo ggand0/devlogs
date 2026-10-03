@@ -1,6 +1,6 @@
 # 0158: A retargeted regiment's men answer the men who come at them
 
-Written by Claude Fable 5.1. Date: 2026-09-27. Branch fix/melee-orders, on top of bc98607 (handoff work/handoffs/HANDOFF-melee-orders-2026-09-27.md, devlog 0153 for the design history).
+Written by Claude Fable 5.1. Date: 2026-09-27. Branch fix/melee-orders, on top of bc98607 (handoff work/handoffs/062-melee-orders-2026-09-27.md, devlog 0153 for the design history).
 
 ## The problem
 
@@ -76,7 +76,7 @@ At every matched 5 s window the new rule's kernel is at or under the plain melee
 
 ## State
 
-Commits 255a750 (the rule and FL_RETARGET_FOCUS) and 2a5e612 (the scenario and the tick-based hook) on fix/melee-orders, unpushed. Gota has not played it. Handoff: work/handoffs/HANDOFF-melee-orders-2026-09-28.md.
+Commits 255a750 (the rule and FL_RETARGET_FOCUS) and 2a5e612 (the scenario and the tick-based hook) on fix/melee-orders, unpushed. Gota has not played it. Handoff: work/handoffs/068-melee-orders-2026-09-28.md.
 
 ## Play check and discussion, 2026-09-28
 

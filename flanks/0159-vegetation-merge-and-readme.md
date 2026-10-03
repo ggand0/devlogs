@@ -2,7 +2,7 @@
 
 Written by Claude Opus 5.5.
 
-2026-09-28, chores from work/handoffs/HANDOFF-chores-2026-09-28.md, tasks 1 and 2.
+2026-09-28, chores from work/handoffs/067-chores-2026-09-28.md, tasks 1 and 2.
 
 ## main into feat/vegetation
 
@@ -12,11 +12,11 @@ Written by Claude Opus 5.5.
 - regiments.rs and terrain.rs auto-merged.
 - opt-dev build and strict clippy (`--all-targets -D warnings`) pass. A 15 s `FL_SCENE=1 FL_MAP=sandbox FL_VOLUME=0` run showed no panic and no shader error, 0 units, 320 to 338 fps, with `render/sun_shadows/elapsed_gpu` at 0.08 to 0.11 ms. Log in tmp/runs/merge-main-vegetation/scene.log.
 - The oaks need no code to join the shadows: sun shadows are Bevy's cascaded shadow maps (units add their own items to that phase), and the oaks are `StandardMaterial` meshes, foliage `AlphaMode::Mask(0.5)`. Cascades stop at 110 m; `FL_SHADOW_CASCADES=3 FL_SHADOW_DIST=280` reaches farther trees.
-- Note for Astra: work/notes/shadows-on-vegetation-for-astra-2026-09-28.md (shadows on against `FL_SHADOWS=0` at the debug10 and debug12 views, `flanks::vegetation=debug` logs the oak level in each shot). Board updated.
+- Note for Astra: work/notes/027-shadows-on-vegetation-for-astra-2026-09-28.md (shadows on against `FL_SHADOWS=0` at the debug10 and debug12 views, `flanks::vegetation=debug` logs the oak level in each shot). Board updated.
 
 ## README for 0.2.0
 
-New worktree `/home/gota/ggando/gamedev/flanks-main` on branch `docs/readme-0.2.0` off main 0a41859 (the main tree stays on fix/melee-orders). Commit 2a1f37b, not pushed. PR draft work/drafts/pr-readme-0.2.0.md.
+New worktree `/home/gota/ggando/gamedev/flanks-main` on branch `docs/readme-0.2.0` off main 0a41859 (the main tree stays on fix/melee-orders). Commit 2a1f37b, not pushed. PR draft work/drafts/026-pr-readme-0.2.0.md.
 
 Checked against the code, not memory:
 

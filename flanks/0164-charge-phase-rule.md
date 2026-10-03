@@ -2,7 +2,7 @@
 
 Written by Claude Opus 5.5.
 
-Follows devlog 0161 (positional battle audio). Plan: work/notes/charge-phase-and-audio-plan-2026-09-29.md (written by Fable 5.1, executed here). Branch feat/positional-audio, local.
+Follows devlog 0161 (positional battle audio). Plan: work/notes/028-charge-phase-and-audio-plan-2026-09-29.md (written by Fable 5.1, executed here). Branch feat/positional-audio, local.
 
 ## The charge phase rule (sim)
 
@@ -57,7 +57,7 @@ Gota: the charge spam is gone, but the 200k battle lost its atmosphere (the stuc
 
 - Atmosphere: regenerate `bed_melee_close0-2` (Gota generates; prompt sheet work/audio/fight-loop-prompts.md). Measured against M2TW's fight loops (Group_Fight_Small/Medium/Large, extracted with the other atmosphere samples to work/audio/listen/atmosphere/): M2TW's are 92-95 % of their energy at 300 Hz-2 kHz (voices and body), ours 5-36 % there and 45-62 % at 2-8 kHz plus 14-32 % above 8 kHz (bright steel and hiss). The sheet targets M2TW's balance. In M2TW's text configs and sample packs, soldiers waiting behind the front play no voices (the group taunt bank is commented out and vanilla has no group taunt samples), only quiet fidgets and shield bashes within 1-2 m.
 - defbce9: move-order click rel 3.7 to -1.9 (5.6 dB under the attack click); `sfx_spear_damage_01` out of the flesh-hit set (it plays on flesh hits, killing blows and killing arrow hits). Launch check: 5000-man battle, 90 s, no panic, the four remaining clips play.
-- Vanilla's compiled sound events (data/sounds/events.idx|dat) go to another agent: work/handoffs/HANDOFF-m2tw-sound-events-decode-2026-09-29.md.
+- Vanilla's compiled sound events (data/sounds/events.idx|dat) go to another agent: work/handoffs/071-m2tw-sound-events-decode-2026-09-29.md.
 
 ## Close melee beds: composites from Gota's ElevenLabs layers (2026-09-29)
 
@@ -154,7 +154,7 @@ Check, 200k AI battle, FL_DEPLOY=0, camera 160 m over the front, 80 s, muted: ta
 
 feat/positional-audio, 33 commits over main's d4d375c (main has since moved to a864d7e), 23 files. What it delivers, in play terms: every battle sound placed in the world (direction, distance from the look point, zoom fade), clips levelled by the loudness manifest and balanced by one mix table, voice caps per sound kind with no cutting inside a kind, a fight loop per unit in melee (12 takes: 6 close, 2 mid, 4 mid-close; the camera-centred mid and far beds removed), the charge phase only while a unit runs at its target (the one sim change), the charge sound fading out over 1 s, bow strings back, the crowd dip under nearby volleys, horns / UI / stings through the mixer, and the listening switches FL_BED_MUTE, FL_SOLDIER_SFX, FL_FIGHT_TAKES and the FL_LOG_AUDIO file log.
 
-Pre-PR chores: the text audit passed on all 31 commit messages; the code comments got fixes in 5a848fb (the voice fade tag renamed to `tag`, review wording and a pointer outside the repository removed) and 37fdd35 (a wrap). PR draft: work/drafts/pr-positional-audio.md.
+Pre-PR chores: the text audit passed on all 31 commit messages; the code comments got fixes in 5a848fb (the voice fade tag renamed to `tag`, review wording and a pointer outside the repository removed) and 37fdd35 (a wrap). PR draft: work/drafts/028-pr-positional-audio.md.
 
 Known gap, for the next branch: units waiting in the rear, and the battle seen from far out, are quiet (Gota's idea: battle screams or milder versions from rear units instead of taunts). Parked: taunts on `backup/taunts`.
 - Gates against the merge base d4d375c (rebuilt clean in my scratch worktree; its throwaway voice log is stashed there, not lost): FL_HASH dir, arch, pilewide and pile2 all identical (19, 19, 29, 29 fingerprints); flank-view fps, 200k front battle, muted, last 40 s of 90 s: 107.6 (d4d375c) against 107.9 (37fdd35). `git merge-tree` against main a864d7e (vegetation merged): no conflicts.

@@ -26,11 +26,13 @@ For scale, the quiet Windows runs of devlog 0174 read 146 to 165 at 200k maximiz
 
 Release 0.2.1 today, after one test on the Mac. Gota: "This is something I can confidently show off and recommend to people, and with enough polish, as a paid game."
 
-The remaining steps follow `work/handoffs/HANDOFF-windows-to-linux-2026-10-02.md`:
+The remaining steps follow `work/handoffs/084-windows-to-linux-2026-10-02.md`:
 
 1. One macOS launch, zoomed out (the far levels' atlas coordinate from #20 and the near-to-far order from #23 have not been seen on Metal yet).
 2. On Gota's word: the version bump commit, the tag, the AppImage built in a fresh clone, the release.
 3. On Windows: the `embed_assets` exe from the tagged commit, uploaded to the same release, then the X post.
+
+All three done by 2026-10-03: the AppImage (built here, `work/releases/0.2.1/`), the macOS dmg and the Windows exe are on the 0.2.1 release, and the demo video is on X at https://x.com/gtgando/status/2106225238266777837 (devlog 0176).
 
 ## Open
 

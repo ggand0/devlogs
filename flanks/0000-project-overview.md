@@ -81,7 +81,7 @@ Owner target: the renderer must be capable of 1M soldiers. The mainstream battle
 | 1 Distance LOD | DONE, PR #5 (devlog 0077) |
 | 3a Vertex pulling experiment | POSITIVE (devlog 0078). One pulled draw path beats instancing at every level. Code on `exp/vertex-pull`, unmerged reference |
 | 0 Tick off the frame path, FL_HASH, catch-up clamp | DONE, PR #6 (devlogs 0079, 0081) |
-| 2 Build render data on the GPU, with item 3 folded in | NEXT. Handoff work/handoffs/HANDOFF-gpu-render-data-2026-09-22.md. Design doc first. Removes about 8 ms of CPU per frame at 200k |
+| 2 Build render data on the GPU, with item 3 folded in | NEXT. Handoff work/handoffs/014-gpu-render-data-2026-09-22.md. Design doc first. Removes about 8 ms of CPU per frame at 200k |
 | 9 Bigger battlefield | after item 2. The map caps near 360k soldiers |
 | 6 Less fixed work per soldier | after measuring the tick above 200k |
 | 7 Sleeping soldiers | DEFERRED by the owner, changes outcomes |

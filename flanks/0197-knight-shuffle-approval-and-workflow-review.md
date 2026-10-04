@@ -1,0 +1,37 @@
+# Knight side shuffle approval and measurement workflow review
+
+Written by GPT-6 Astra.
+
+Gota approved both left/right shuffle v2 clips on 2026-10-04: "approved, both look good." This accepts the motion in `assets_dev/knight/shuffle_v2/`, archived as private assets commit `280f86e`. Standing v2 and ready v5 remain accepted for now. No clip, pose, model or skin is changed by this entry. The earlier review-pending statements in devlog 0196 and note 040 are superseded by this approval. Approval of the look does not mean the clips are already playing in the game or remove the recorded crowd-spacing and skin limitations.
+
+The approved result closes the trailing foot first, then steps out with the leading foot. Each cycle travels 0.60 asset metres in 0.75 seconds and returns exactly to the saved skeleton ready pose. It retains v1's lift heights, 73 mm pelvis-dip amplitude and small chest counter-motion. Maximum width is 0.951093 m, compared with ready's 0.949324 m; the sword and shield set the width. Maximum forward reach is 0.680175 m. Across 301 interpolated poses per direction and all four levels, planted-sole world error stays below 1.570 mm, penetration below 0.401 mm, and at least one foot remains down. Devlog 0196 and note 040 hold the fuller measurements and integration contract.
+
+## Did I use the new reference measurement tool?
+
+Yes. `shuffle_v2/reference_checks.py` calls the actual `pose_check.py` functions to compare our skeleton with both the dismounted feudal knight and Spanish swordsmen militia references. It evaluates four poses per direction, at our times 0.00, 0.20, 0.55 and 0.75 seconds, against reference frames 0, 4, 17 and 30. That is sixteen comparisons across two clips and two reference figures. Each produces a measurement table and front/side/top skeleton overlay in ignored `local_reference/`. The script was run on the first draft and again after changing to trailing-foot-first motion; it did not trace the reference frame by frame or transfer its animation data.
+
+This was a diagnostic comparison, not an automatic optimizer or an all-green acceptance result. Numerous rows remain above the 12-degree or 5-percentage-point tolerances. For example, the final left shuffle at 0.20 seconds against the militia has 11 of 18 rows over tolerance, with 23.0-degree angular RMS. The approved ready pose itself already differs substantially from the reference. Each flagged row has an explanation beside the table, covering retained ready upper-body/crouch/toe choices or the authored footwork on our proportions. I did not change an approved pose simply to reduce that score.
+
+## How the workflow worked in practice
+
+The skeleton made reuse much more direct. I could solve the existing step on named joints, save it in one clip format, and evaluate the same skin used by the game. There was no new deformation format or shader rule to invent for this motion. Exact endpoints, reach limits and planted-foot contact could be checked before rendering, which reduced the amount of basic debugging left for Gota's visual review.
+
+The reference tool made discrepancies explicit. Instead of an impression that a leg or forearm looked wrong, it reported which direction differed and by how much. It also exposed why a single total score would be misleading: our accepted ready stance deliberately retains a different crouch, upper body and shield-arm pose. Those baseline differences should be identified once and kept visible, with new motion errors treated separately.
+
+The most useful measurements for this particular iteration were our own motion checks: leg reach, full mesh width, world-space planted-foot drift and neighbour intersections. The reference-angle table did not identify the foot-order solution for me. I initially kept v1's leading-foot-first order and proposed either accepting the extra width or shortening the step. Claude, through Gota, supplied the better answer: close the trailing foot first. That reduced the width from 1.235 m to 0.951 m without changing travel or duration. I should have reasoned about support order and the narrowest part of the reference step before treating those first two options as exhaustive.
+
+The neighbour check needed a similar correction. My first test kept roots at constant relative offsets; a stationary pose at such an offset is not a stationary soldier when our root travels toward it. The final test includes the full 0.60 m world displacement. It shows no sampled intersection with a stationary standing neighbour from 1.4 m starting spacing, but intersections from 1.05 m. This is a lesson in defining the quantity being measured: an automated pass is useful only when it represents the situation we mean to test.
+
+I would keep this workflow. It shifts much of the correction work into reproducible measurements before review. This one iteration does not establish that a fresh animation will require fewer rounds, because it reused accepted motion and still needed a conceptual correction from Claude. Visual review also remained necessary for the coat, surface shape and overall movement. The coat/leg and L1 upper-thigh intersections recorded in 0196 remain visible limitations of the current skin, not something a limb-angle score can settle.
+
+## Apply it to the next pair
+
+The next item is handoff 085 item 4: knight forward and backward shuffles, `knight.shuffle_forward.json` and `knight.shuffle_backward.json`. Both start and end exactly in the accepted skeleton ready pose. After that comes item 5, one cut from ready back to ready, with its contact time and landing point recorded. No forward/backward authoring is started by this approval/documentation step.
+
+For that pair, inspect both units' matching GIFs and sheets first and write down the support sequence. Choose up to four reference comparisons by corresponding events (ready, support change or closest-foot pose, the defining step, return), not merely similar timestamps; the clips have different durations and footwork. Record the accepted ready differences as the baseline. For each new flagged difference, distinguish an intended adaptation from an error that needs correction rather than relying on a broad exception for the whole leg. Author the intervening trajectories independently.
+
+Then run the same saved-clip checks before rendering: exact endpoints, reachable joints, world-space planted soles, interpolated ground clearance, equipment/body intersections, width and reach with the responsible parts named. Test forward/backward travel relative to stationary soldiers, including the rank ahead and behind. Present the pair in motion with matching reference views and its measurements, and stop for Gota's review. The shared player integration remains separate work for Claude; the existing source still needs the shuffle clips loaded and played by ground distance.
+
+## Workflow guide
+
+Added [Creating a unit animation](../docs/internal/006-unit-animation-workflow.md) at Gota's request. It records the canonical knight model and endpoints, both reference units, requests for missing reference imagery, key-event comparisons and exceptions, saved-clip and world-space contact checks, the review page and two-direction orbit, and archival/integration boundaries. The guide explicitly requires an update after the new forward/backward pair, including measured results and what the workflow actually helped correct. Reference files for both directions exist for the knight and militia; no forward/backward motion was authored during this documentation step.

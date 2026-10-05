@@ -63,3 +63,7 @@ The pair is visually approved. Script promotion and player integration remain co
 On 2026-10-04 Gota approved both directions: "Both look fine and good enough to me. Approved." The accepted animation package is unchanged from private assets commit `072dc90`. Verified all 35 checksum entries before recording approval; no animation, model, measurement or review-media edits were needed. Private assets commit `aa09a5d` updates the iteration row to Motion accepted. No push was made.
 
 This accepts the presented footwork and retained reference variations. The documented skin intersections, formation-space requirements and player transition requirements remain visible for integration. The integration note and workflow guide now record approval. Documentation stays uncommitted and devlogs are backed up at session end.
+
+## Combined integration handoff, 2026-10-05
+
+After Gota completed and approved cut v4 in the other session, expanded [handoff 094](../work/handoffs/094-knight-cut-v4-integration-for-claude-2026-10-05.md) to cover all five accepted items, seven clip files in total. The cut contract remains intact. Added canonical standing/ready sources, both shuffle pairs, archive/approval commits, distance-driven playback, support intervals, transition requirements and known spacing/skin limits. Direct file checks confirm all four shuffle clips and cut v4 share the exact canonical ready endpoints. This completes the authored essential set; player integration and in-game checks remain separate work. No asset or engine files changed.

@@ -311,3 +311,74 @@ What remains:
 - Not retaken: the behaviour baselines, the fps baselines by the perf rules, the four benchmark views.
 - The switches: `FL_FIGHT_ROOM` and the old code path go once Gota is sure of the two rules; the sort of all `FL_` switches before 0.3.0 is in plan 020.
 - `tmp/runs/soldier-scale/target-main` (1.9 GB, main's baseline build) can go when the branch is merged.
+
+### 2026-10-05: exploring the body distance, and the arc in a packed line
+
+- Gota wants to try 1.1 or 1.2 m. `FL_BODY` was capped at a wall's 1.05 m files; a93080a lets it go up to 1.4 m and never moves a pair apart beyond its own rest distance, so walls keep their files (1.02 to 1.04 m in the charge test at `FL_BODY=1.2`). The default's fingerprints are unchanged.
+- One quick look at `FL_BODY=1.2` in the six-on-one pile: the attackers sit at 0.93 to 1.10 m, still inside the setting, because the correction moves a man at most 0.1 m a tick while the others keep driving in, and 58 to 73% of them are in motion (20 to 55% at 0.9 m). Worth watching for shaking.
+- What a 0.2.1-equivalent would be: by the size ratio (1.70 against 1.00 m) the old 0.9 m is 1.53 m, more than the 1.4 m slots; by the same air between bodies as 0.2.1's press (about 0.3 m) it is about 1.3 m for today's man-at-arms and about 1.15 m with the narrow pose.
+- Gota's screenshot `refs/unit_scale_branch/debug3.png` (198k, `FL_DEBUG_ARC`): along a packed contact line nearly every arc is red. Almost nobody there may strike.
+- Why the arc was introduced (plan 021, rule 2): to make a fighting unit open up as M2TW's does, by having men who cannot strike wait and sidestep until they find room, and to stop blows through comrades. The opening did not happen (measured above); what the rule does today is thin the contact strip and slow the killing.
+- Gota confirmed that "the blow follows the room" is Gota's own suggestion written out. The one addition: a stab is still blocked by a comrade standing in the line to the enemy.
+- Gota on `FL_BODY=1.2` (2026-10-05): "I kind of like FL_BODY=1.2 too, but packed soldiers in the rear start doing walk animation while not moving, so looks awkward." Cause, read in the code: the walk animation is fed the smoothed size of each tick's displacement (`sm.walk` in `src/render_units.rs` and `src/shaders/unit_build.wgsl`). A packed man who drives in and is moved back out each tick covers ground every tick and gets nowhere, and the size of his displacement counts both ways as walking. A wider body distance makes more of that. A fix, not built: smooth the displacement as a vector and take its length, so back and forth cancels and only real travel plays the walk.
+- `FL_GAP` is the spacing inside one unit. The distance between units is separate: 10 m between blocks in the army layout (`REG_GAP` in `src/regiments.rs`) and the gap between the armies (`FL_ARMY_GAP`, 60 m).
+- The arc, Claude's proposal after Gota's "What's your proposal for fixing the cone properly after all?" (not built): every blow needs only the lane to the enemy clear, 0.35 m to either side of the line from the man to his enemy, as the spear has today. Both blows the game plays, the stab and the overhead chop, travel in the vertical plane through that line, so neither sweeps a wide arc; the 1.2 m, 70 degree arc belongs to a sideways cut that is benched. A wide arc comes back per clip when a sideways cut is played, read from the clip's own reach and width. Removed with it: the arc test and its two constants; the overlay would draw lanes for every kind. Kept: the wait and the sidestep when the lane is blocked, the fighting distance and the step back.
+
+### 2026-10-05: the arc replaced by the lane (f4f2d7d)
+
+Gota: "do the clearance fix first". Built as proposed above: every blow, for every kind, needs only the lane to the enemy clear (`in_lane` in `src/sim/soldier.rs`, 0.35 m to either side of the line from the man to his enemy, up to the enemy). The arc test and its two constants are removed; the sight bit is `SIGHT_LANE`. The wait and the sidestep of a blocked man, the fighting distance and the step back are unchanged. The overlay is now `src/lane_overlay.rs` with the switch `FL_DEBUG_LANE=1` (or `=<metres>`); `FL_DEBUG_ARC` is gone. It draws the lane of every soldier with an enemy in reach, green or red, and nothing for the others, and costs little (292 fps in the two-on-one pile).
+
+Checks: `FL_FIGHT_ROOM=0` matches main (direction, two-on-one). Strict clippy clean, 35 tests pass.
+
+Picture, looked at first: `tmp/runs/soldier-scale/lane/pile2_22s.png`. Along the contact the lanes are mostly green; a few are red where a man stands behind another. With the arc the same view was mostly red (`tmp/runs/soldier-scale/arc/pile2_22s.png`).
+
+| | Main | The arc | The lane |
+|---|---|---|---|
+| Two-on-one pile, victims left at 20, 40, 60 s | 357, 207, 80 | 398, 251, 121 | 367, 188, 71 |
+| Wide pile, victims left at 55 s | 224 | 280 | 280 |
+| 200k scripted front, dead at about 75 s | 16,710 | 3,494 | 14,388 |
+| Direction test at 36 s, kills front, side, rear | 452, 247, 707 | 349, 263, 613 | 426, 215, 770 |
+| Spearwall charge at 40 s, wall lane, spearmen against knights left | 373 against 329 (rules off) | 393 against 353 | 385 against 363 |
+
+The kill pace is back near main's everywhere but the wide pile, and the crush under Move orders kills again. The wall keeps its spacing (1.03 m).
+
+A slip while committing: the first commit of this change held only the file rename (the `git add` named the old file and failed). It was amended before any push. Backup of the tip before the amend: the ref `backup/soldier-scale-before-lane-amend` (dd901f3) and `work/backups/soldier-scale-before-lane-amend-2026-10-05.bundle`.
+
+### 2026-10-05: walking in place in a press
+
+Gota, on `FL_BODY=1.2`: packed soldiers in the rear play the walk animation while not moving. Fixed in the walk signal of both render paths (`src/render_units.rs`, `src/shaders/unit_build.wgsl`; the GPU smoothing record grows from 40 to 48 bytes): the per-tick displacement is smoothed as a vector and the walk follows its length, so back and forth cancels and steady travel reads as before. Stills at `FL_BODY=1.2` in the six-on-one pile: the charging units run at 8 s (`tmp/runs/soldier-scale/walk/body12-new_8s.png`), the packed rear stands at 30 s (`body12-new_30s.png`). How it reads in motion is for Gota's eye. The sim is untouched. The CPU path (`FL_GPU_SYNC=0`) ran without errors.
+
+## The session in one table (2026-10-05, after Gota's own summary)
+
+Gota's summary, checked against the record: 0.2.1's ranks before a battle felt too loose and the scale solved that; 0.2.1's spacing in a battle did not feel wrong; on the branch the battle spacing felt too tight, and the main factor was the body distance of 0.9 m against the bigger drawn man; the M2TW-derived rules are useful but were not what the tightness needed.
+
+| Topic | 0.2.1 | The branch now | What it turned out to be | State |
+|---|---|---|---|---|
+| Ranks standing before a battle | Too loose: 1.4 m slots, a man 0.59 m wide, 0.81 m of air | Looks right: same 1.4 m, a man 1.01 m wide, 0.39 m of air | The drawn size | Done (aa0235b). `FL_GAP` for a gap per kind, values not chosen |
+| The mass in a battle | Not noticed: 0.85 m between men, 0.26 m of air | Felt too tight: the same 0.85 m is arms and shields overlapping | The drawn size against a body distance set for a 0.6 m body on 2026-07-08 | Body distance 1.0 m kept (a8dbdf6); Gota is trying 1.1 to 1.2 m with `FL_BODY`. At 200k the mass still sits near 0.9 m because rear units push in |
+| Packed men walking in place | Not seen | Seen at `FL_BODY=1.1` and wider | The walk animation counted back-and-forth movement | Fixed (2548376), for Gota's eye |
+| Rear units pushing into the unit that fights | There, unnoticed | The cause of the mass at 200k | An attack lays a unit's slots on the target's centre; men in formation walk into whoever is in the way | Left as it is. A wait rule and a shove limit were tried and removed. Gota's idea: the line gives ground (plan 023, another branch) |
+| Rule 1, from M2TW: fight at the weapon's length | Every kind closed to 1.2 m | 0.9 of the reach (1.44 to 2.16 m), with a step back | Introduced by plan 021 to open the fight at true size. It sets the distance to the enemy; it does not open the mass | Kept (b34d73c) |
+| Rule 2, from M2TW: room to strike | Any blow landed whatever stood between | A blow needs the lane to the enemy clear; a blocked man waits and sidesteps | Introduced so that men who cannot strike would sidestep and the unit would open as M2TW's does. The opening did not happen. As a 70 degree arc it stopped a packed line from fighting; as a lane it only stops blows through the man in between | Kept as the lane (f4f2d7d). Close to main in effect |
+| Archers | Calibrated for a 1.0 m body | About 1.9 times the kills | Arrows test the taller body | Open |
+
+M2TW's behaviour, as measured or seen (devlog 0177 and this session):
+
+- A man is 0.8 m across (collision radius 0.4 m) and 1.7 m tall. Two bodies are kept 0.8 m apart; ours 1.0 m now.
+- Nearest comrade: 1.0 m standing in close order, 0.8 m moving (bodies touching), 1.5 m fighting (1.2 to 2.2), reached over 30 to 60 s; it closes again when the fight stops. Ours: 1.31 m standing, about 1.1 m moving, 0.9 to 1.25 m fighting.
+- A fighting unit covers about four times its standing ground, mostly in depth. Ours does not open.
+- Sword blows land a median 1.87 m ahead, spear thrusts 2.01 m. Ours now 1.44 to 2.16 m by kind.
+- Crowded men who cannot attack sidestep with shuffle clips until they find room (the reading of devlog 0177, not proven).
+- Gota's observation, not measured: a defender flooded at a breached gate is gradually pushed back.
+
+Cost of the last two changes: the sim step at 200k in the scripted front read 9.3 to 9.5 ms with the lane rule at 186k men, against 9.5 to 9.8 ms with `FL_FIGHT_ROOM=0` at 183k to 193k (one run each). The walk fix adds two numbers per soldier to the GPU smoothing record (1.6 MB at 200k) and a few operations in a pass that already runs per soldier; its fps at 200k was not measured.
+
+### 2026-10-05: whether rule 2 is still worth anything, and the handoff
+
+Gota: "the original point of this arc clearance is that soldiers blocked and not having the clearance would hopefully side step to avoid the frontline packed situation ... But now that point kinda got lost or shifted. The main tightness reason was scaling and physics range compared to 0.2.1. when everybody can reach enemies it's the same as main and worthless isn't it?" Claude's answer: for the tightness, yes. What the lane still does is small: no blow through a comrade who stands directly between a man and his enemy, which mostly stops rear ranks with long reach striking past the man in front. It costs nothing that the step time shows and is where a per-clip clearance would attach. Whether it stays is Gota's call.
+
+The handoff for this thread: `work/handoffs/096-soldier-scale-after-first-plays-2026-10-05.md`.
+
+## 2026-10-05, the next session
+
+The next session on this branch worked on the twitch of packed men. Its record is `devlogs/0208-the-twitch-in-the-press.md`.

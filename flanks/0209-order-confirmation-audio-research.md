@@ -22,8 +22,10 @@ A UI click per action and a rate-limited war horn from the ordered regiments; ha
 
 ## The sheet
 
-- 12 group shouts from the SFX model, unison asked for on purpose, with a fallback of stacked solo TTS barks (onsets within 60 ms) if the small takes come out as a pub.
-- 23 heavy and 26 light order lines by TTS, one voice per class shared with the taunts, the `[shouting]` tag and the stressed word in capitals.
+Revised 2026-10-06 against `refs/audio/elevenlabs-battle-sfx-notes.md`; the first version had the group shout generated at every size, which rule 4 (vocal counts under about 100 come out as a pub) rules out for the small band, and the order lines by TTS first, where rule 12 puts SFX with stress marks first.
+
+- 16 solo barks from SFX ("Knight barking a one-word reply "HEY!" ...") and 12 group shouts stacked from them per size band with the notes' tested pitch, reverb and lowpass values, onsets within 80 ms to keep one hit; 8 generated medium and large takes ("Mass of knights shouting back a single "HEY!" in unison ...") to try against the stacks.
+- 23 heavy and 26 light order lines from SFX in the notes' command-shout pattern (quoted, hyphenated, stressed syllable in capitals, "the last word loud", "one man, close"), TTS v3 through the class voices as the fallback. The archers never say "loose" for a formation, since "loose" means shoot.
 - 6 optional single-man replies.
 - Gota's earlier takes in `assets_dev/sfx_dev/voice/` mapped to the rows they could fill.
 - Wiring notes: player orders only, one order line per click however many regiments, group shouts from the few nearest regiments.

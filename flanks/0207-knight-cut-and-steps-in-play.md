@@ -38,6 +38,18 @@ Steps 2 and 3 of handoff 095: Astra's accepted cut and four step clips now play 
 
 Gota: the steps look good so far but need a longer play to judge; the cut at its authored speed is too slow, and it fits a shorter time than I had said. Set to 0.6 s to the blow as an experiment: 18 ticks to the blow and 21 back, the clip at twice its speed throughout (b1be7f2). The return no longer bounds the pause (21 is under the shortest jittered cooldown, 36), so the weight is (18 + 48) / (12 + 48) = 1.10.
 
+## 0.4 s (2026-10-06)
+
+Gota asked whether 0.6 s is realistic for a one-handed diagonal cut. From general knowledge of strike timings (not measured): about 0.4 to 0.5 s from the start of the wind-up to the hit from a guard, the strike itself about 0.2 s. Set to 0.4 s to try (12 ticks to the blow, 14 back, the clip at three times its speed). The cut now has the stab's timing, so its weight is 1.0: it differs from the stab only in look. A slow-motion video of test cuts, counted frame by frame, would settle the number.
+
+## 0.5 s (2026-10-06)
+
+Gota: 0.4 s is too fast in play. Set to 0.5 s: 15 ticks to the blow and 18 back, the clip at 2.4 times its speed, weight (15 + 48) / (12 + 48) = 1.05.
+
+## Back to 0.6 s (2026-10-06)
+
+Gota, after playing all three: 0.4 and 0.5 s clearly look like a sped-up clip; 0.6 s matches this animation. Back to 18 ticks to the blow and 21 back, weight 1.10. A real cut can be faster, but this clip's motion sets the pace: a faster cut needs a clip made for it.
+
 ## Checks
 
 - opt-dev build, `cargo clippy --profile opt-dev -- -D warnings` clean, 36 tests pass.

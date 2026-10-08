@@ -74,3 +74,110 @@ Read:
 ## State
 
 No code changed. New: figure 041 and its script, this devlog. The widening is still the open design; Gota's description above is the spec so far, and the M2TW reading above is the one thing added to it.
+
+## 2026-10-08: the push scene with the shared speed under the leg cap and the current brake
+
+Gota: the clips to see are the gap waves in the push scene (three blue units hold 2 m apart, a red mass of twelve is sent past them, deaths at the contact), not the arrival wave of the rear scene. And the wave fix did change the crowd brake: the soft wall build still had the band tied to the body distance, and the next commit set the legs' cap and the crowd brake's band by the men's size, the two causes of devlog 0210.
+
+The port got two entries for it: `wall-legs` (the current build: the soft wall, legs 4 m/s², the band 1.3 to 0.9 m) and `share-legs` (the shared speed with the same cap and band, `FL_CONTACT=share` on the current build). Clips, 100 s, deaths five a second from 10 s, men at their drawn width, the four versions side by side: `tmp/runs/soldier-scale/contact-toy/push-deaths-drawn-share-legs-100s.mp4` (the whole scene) and `push-close-drawn-share-legs-100s.mp4` (the right gap). Figure 042, `work/notes/vis/042-gap-waves-shared-speed-with-legs-and-brake.png` (script `gap_waves_shared_speed_legs_042.py`): figure 040's space-time picture of the right gap's column for the four.
+
+The blue line in that scene (its living men's mean movement along the push, and how many live), from `push_line.py` in this session's scratchpad on `contact_anim.run`:
+
+| Version | Blue alive at 40 s | Line carried at 40 s | Blue alive at 100 s |
+|---|---|---|---|
+| Shared speed, as played | 315 | 6.08 m | 158 |
+| Shared speed, legs 4 m/s², brake 1.3 to 0.9 m | 313 | 7.42 m | 165 |
+| Soft wall, as played | 318 | 0.57 m | 176 |
+| Current build | 318 | 0.61 m | 179 |
+
+Read:
+
+- Under the shared speed the holding line does not hold: the red mass, Move-ordered 60 m past it, carries it 6 m by 40 s and is through by 50 s. With the leg cap it is carried further, 7.4 m, because a man who is handed a speed now has only 4 m/s² of legs to cancel it with. In figure 042 both shared-speed panels are a solid dark band, the column pouring through at over 40 cm/s, and the line is gone by 50 to 60 s; there is no press left for a wave to run in.
+- Under the soft wall the line holds (0.6 m), the soft-wall-as-played panel shows the stripes, the stop-and-go of the column every 1.5 to 2 s from 8 to 45 s, and the current build's panel is steady at 10 to 25 cm/s with no stripes, as in figure 040.
+- So the leg cap and the band cure the waves on the soft wall and cannot be judged on the shared speed in this scene, because the shared speed loses the line first. The two contact rules are not interchangeable with the same cap and band.
+
+## 2026-10-08: the branch's close-out begins
+
+Gota's decisions after the discussion of the two contacts: keep both, the shared speed as the default (it moves and pushes things and looks more interesting; the soft wall is the safe one), a player toggle on the settings branch later; the combined rule (sink over the give, then hand on the excess with the feet taking a share) on another branch; the lane out; FL_BRAKE=body out and FL_LEG_ACCEL folded into its constant; FL_FIGHT_ROOM and main's old path out after fresh fingerprints from the final build; the step back kept or dropped by a count of how often it fires; the killing pace measured against 0.2.1 with one thing put back at a time before naming a cause; archers at true size; performance by the perf rules at the end; the widening, the settings and the module split of `soldier.rs` on other branches.
+
+### Step 1: the body distance 1.2 and the shared speed as default (b92b974, cdc4227)
+
+`BODY_DISTANCE` 1.0 to 1.2; `share_contact()` true unless `FL_CONTACT=wall`; the comments in `steer` and on `GIVE` describe the share as the rule and the soft wall as the alternative. Strict clippy clean, 35 tests pass. The chain (`tmp/runs/soldier-scale/shake/share-checks.sh`, log `share-checks.log`), every scene with the default and with `FL_CONTACT=wall`:
+
+| | Shared speed (default) | Soft wall (`FL_CONTACT=wall`) |
+|---|---|---|
+| Fingerprints with `FL_FIGHT_ROOM=0` | direction 18 of 18, two-on-one 28 of 28 equal to main | (the same binary) |
+| Six-on-one pile at 1.2: shakers; the press | 0 of 3,114; 0.97 to 1.13 m | 0 of 3,152; 0.97 to 1.13 m |
+| Pile: the attacked front gave by 24 s, 40 s; victims left at 40 s | 5.1 m, 8.5 m; 194 | 3.7 m, 3.7 m; 223 |
+| Pile at 1.0, 1.1: shakers | 0, 0 | |
+| Through a friendly unit: pace; the holder's disorder at 12 s | 1.89 m/s; 2.75 m | 1.94 m/s; 1.85 m |
+| Spearwall charge at 40 s: wall lane | 398 spearmen against 377 knights, the wall back 1.2 m | 402 against 378, 1.0 m |
+| Push scene (`FL_TEST_PUSH=1`) at 60 s: line left; mass past it | 469 of 1,152; 1,362 of 1,362 | 416; 1,351 of 1,351 |
+| 200k scripted front: shakers to 71 s; alive at 71 s | 0; 188,474 | 0; 188,593 |
+
+Read: zero shakers everywhere under both. The share pushes: the enemy pile's front gives 8.5 m by 40 s against 3.7 m, and the pile kills faster (194 left against 223); a unit passing through a friendly one disorders it more (2.75 m against 1.85 m) at about the same pace. In the game's push scene the holding line is not carried as in the port: both contacts leave it at about the same place by 60 s, because the line's men fight and die and the mass goes through the gaps and round the ends, where the port's line only stood.
+
+The 200k AI battle of the chain did not start: `FL_AUTOSTART=1` needs `FL_DEPLOY=0` to skip the picker and the deployment. Rerun with it; its numbers follow.
+
+The 200k AI battle, rerun with `FL_DEPLOY=0` (one run each, not deterministic):
+
+| | Shared speed | Soft wall |
+|---|---|---|
+| Shakers, 8 to 99 s | 0 | 0 |
+| Alive at 99 s | 188,102 | 190,870 |
+| Fighting units, comrade distance at 60 s, 100 s | 1.05 m, 1.12 m | 1.06 m, 1.04 m |
+| Frame with a tick, p50 | 6.2 ms | 5.3 ms |
+
+Both calm; the share kills a little faster and its press opens a little more as the battle goes on. Step 1 committed as b92b974 and cdc4227.
+
+### Step 2: the lane out
+
+`in_lane`, the `SIGHT_LANE` bit, the look for a comrade in the lane, the swing's hold and the closing footwork's wait with its sidestep, `Step.lane_blocked`, `src/lane_overlay.rs` with `FL_DEBUG_LANE` and its plugin line in `main.rs`. `SPEAR_LINE_HALF_W` stays for the spear's point. The sidestep for a man blocked on his way stays. Strict clippy clean. The chain reruns on it as `lane-checks.log`.
+
+The chain on the lane build (`lane-checks.log`): fingerprints equal to main (18 of 18, 28 of 28); zero shakers in every scene under both contacts; the pile at 1.2 with the share: the front gave 5.3 m by 24 s and 8.8 m by 40 s, 195 left (step 1: 5.1, 8.5, 194); with the wall 3.7 and 4.7 m, 209 left (3.7, 3.7, 223); the pass 1.89 and 1.94 m/s as before; the push scene the same; the 200k front 187,557 alive at 71 s; the 200k AI battle 190,273 alive at 99 s with the share and 192,836 with the wall (not deterministic). So the lane was hardly ever the thing holding a blow back, as devlog 0182 had found. Committed as the commit after cdc4227.
+
+### Step 3: FL_BRAKE=body out, FL_LEG_ACCEL folded into LEG_ACCEL
+
+Strict clippy clean, 35 tests pass. Fresh fingerprints of the lane build on the default path (`tmp/runs/scripts/gates/lane-default-*`, the four scenarios: direction, archery, wide pile, two-on-one) against the same on this build: 18 of 18, 18 of 18, 28 of 28, 28 of 28 equal. Committed as the commit after afe113c.
+
+### Step 4: how often the step back fires
+
+A count in the room log (`STEP_BACK_TICKS` in `soldier.rs`, read every 5 s by `room_log`; committed as the commit after 545c854). Man-ticks per 5 s window, as men stepping back on an average tick (one man's step lasts about 10 to 15 ticks), with the shared speed at 1.2; logs `tmp/runs/soldier-scale/body/stepback-*.log`:
+
+| Scene | 15 s | 25 s | 35 s | 45 s | 65 s | 95 s | Fighting regiments at the end |
+|---|---|---|---|---|---|---|---|
+| 200k AI battle | 10 | 28 | 38 | 35 | 23 | 19 | 60 |
+| 20k AI battle (10,000 a side) | 9 | 24 | 26 | 25 | 21 | 11 | 16 |
+| Six-on-one pile | 0.1 | 0.3 | 0.2 | | | | 4 |
+| Direction test | 0 | 0 | 0 | 0 | | | 5 |
+
+Read: in a press it never fires (a man needs open ground behind him); in an open fight a few dozen men at a time are stepping back, in the 20k battle as many as in the 200k one, since only the fighting rims count. Keep or drop is Gota's call; the branch is about fifteen lines and costs nothing when it does not fire. Steps 5 to 7 go on with it kept; dropping it later is that deletion.
+
+### Step 5: FL_FIGHT_ROOM and main's old fight out
+
+Deleted: `fight_room()`, `BODY_DISTANCE_OLD`, `CROWD_STOP`, `CORR_GAIN_OLD` with `corr_gain()`, `CLOSE_STOP`, `SEEK_STOP_SPREAD`, the 1 cm threshold on the setting apart, main's contact (the dead stop on the touch tick), the branches at the brake, the fight distance, the step back, the stance, the leg cap and the look-around, and `Step.corr_len2`, which only main's contact read. `CROWD_SLOW` stays: the far look uses it as the crowd above which a pressing man stops looking for a far enemy. `soldier.rs` 1,878 to 1,776 lines. Strict clippy clean, 35 tests pass. Fingerprints on the default path against the build before (`switches-out-*`): direction 18 of 18, archery 18 of 18, wide pile 28 of 28, two-on-one 28 of 28 equal. The chain's fingerprint step now compares against `switches-out-*`, since the comparison with main through the old path is gone with it.
+
+### Step 6: the killing pace against main, measured first
+
+`tmp/runs/soldier-scale/shake/pace.sh <name> [ENV...]` (FL_BIN picks the binary): the living count from the fingerprint log every 2 s in the six-on-one pile, the 200k scripted front and the 200k AI battle (one run, not deterministic). Main's binary is `tmp/runs/soldier-scale/bin/flanks-main` (66044d1). The build after 46bb464 at its defaults (body 1.2, shared speed):
+
+| Alive | Main | Current build |
+|---|---|---|
+| Pile at 24 s, 40 s | 3,164; 2,914 | 3,239; 2,978 |
+| 200k front at 40 s, 70 s | 192,406; 184,609 | 194,372; 187,779 |
+| 200k AI battle at 60 s, 100 s | 188,971; 172,648 | 195,644; 192,121 |
+
+Dead by the last report: the front 15,391 on main against 12,221 (the current build kills at 0.8 of main's pace there); the AI battle 27,352 against 7,879 (0.29 of main's pace). Trials follow, one thing at a time on the same binary and then on trial builds: the body at 1.0 (`FL_BODY=1.0`), the soft wall (`FL_CONTACT=wall`), the brake band at main's distances (1.12 to 0.82 m), the closing distance at 1.2 m for every kind.
+
+Trials on the same binary (alive; the AI battle one run each):
+
+| | Pile 40 s | Front 70 s | AI 100 s | AI dead by 100 s, as a share of main's 27,352 |
+|---|---|---|---|---|
+| Main | 2,914 | 184,609 | 172,648 | 1.00 |
+| Current build | 2,978 | 187,779 | 192,121 | 0.29 |
+| Body at 1.0 (`FL_BODY=1.0`) | 2,986 | 188,062 | 189,536 | 0.38 |
+| Soft wall (`FL_CONTACT=wall`) | 3,021 | 187,908 | 192,326 | 0.28 |
+
+Neither the body distance nor the contact is the cause: the pile and the front are within a few percent of the current build either way, and the AI battle stays at a third of main's pace. Next the trial builds: the brake band at main's distances, then the closing distance at 1.2 m for all.
+
+Trial build, the brake band at main's distances (`BRAKE_FAR` 1.12, `BRAKE_NEAR` 0.82; the setting apart, the share, the cap and the fight distance as on the branch): pile 2,943 alive at 40 s (main 2,914, the branch 2,978), the attacked front gave 7.2 m; the 200k front 185,391 at 70 s (main 184,609, the branch 187,779); the AI battle 188,802 at 100 s (11,198 dead, 0.41 of main's). So the band's start at arm's length is the whole of the difference in the pile and the scripted front, and only a part of it in the AI battle. Next trial build: the closing distance at 1.2 m for every kind.

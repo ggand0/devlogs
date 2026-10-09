@@ -181,3 +181,44 @@ Trials on the same binary (alive; the AI battle one run each):
 Neither the body distance nor the contact is the cause: the pile and the front are within a few percent of the current build either way, and the AI battle stays at a third of main's pace. Next the trial builds: the brake band at main's distances, then the closing distance at 1.2 m for all.
 
 Trial build, the brake band at main's distances (`BRAKE_FAR` 1.12, `BRAKE_NEAR` 0.82; the setting apart, the share, the cap and the fight distance as on the branch): pile 2,943 alive at 40 s (main 2,914, the branch 2,978), the attacked front gave 7.2 m; the 200k front 185,391 at 70 s (main 184,609, the branch 187,779); the AI battle 188,802 at 100 s (11,198 dead, 0.41 of main's). So the band's start at arm's length is the whole of the difference in the pile and the scripted front, and only a part of it in the AI battle. Next trial build: the closing distance at 1.2 m for every kind.
+
+Trial build, the closing distance at 1.2 m for every kind (the band back at 1.3 to 0.9 m): pile 2,982 alive at 40 s (the branch 2,978), the 200k front 194,372 and 187,779, the same counts as the branch to the man (a Move-ordered line closes on nobody, so the stop distance never acts there), the AI battle 191,589 at 100 s (the branch 192,121). The fight distance by weapon is not the cause anywhere. Next, AI battle only: the band with the body at 0.9 m, the band alone a second time, and main a second time, to see the run-to-run spread.
+
+AI battle only, 100 s (`PACE_ONLY=ai`), dead by 100 s:
+
+| | Dead by 100 s |
+|---|---|
+| Main, run 1 and run 2 | 27,352; 22,086 |
+| The branch (body 1.2, band 1.3 to 0.9 m) | 7,879 |
+| The band at main's distances, run 1 and 2 | 11,198; 14,746 |
+| The band at main's distances and the body at 0.9 m | 22,445 |
+| The body at 0.9 m... at 1.0 m, the branch's band | 10,464 |
+| The soft wall, the branch's band | 7,674 |
+| The closing distance at 1.2 m for all, the branch's band | 8,411 |
+
+The cause, named: the killing pace in the AI battle is set by how many men stand within reach of an enemy, and two of the branch's changes thin that: the crowd brake starting at arm's length, so an arriving unit eases off before it packs against the enemy, and the body distance of 1.2 m against 0.9 m, a press 1.7 times thinner by area. With both at main's values the AI battle kills at main's pace (22,445 against main's 22,086 and 27,352); each alone gives about half. The contact rule and the fight distance by weapon are not causes. In the pile and the scripted front the band alone is the whole of the difference. Main's own spread between two runs is 5,000 dead, a fifth, so single runs are read to that.
+
+The old band in the port, figure 043 (`work/notes/vis/043-gap-waves-old-band-with-the-cap.png`, script `gap_waves_old_band_043.py`): the push scene's right gap column under the shared speed with the cap, the current band against 0.2.1's band, at the body 1.2 and at 0.9. The shared speed carries the holding line in that scene whatever the band; the band only sets how fast: the mass is through by 58 s with the current band, by 22 s with 0.2.1's, and at 0.9 with 0.2.1's band the column shows the lurch early (blue patches, men thrown back) and is through by 45 s. The stripes cannot be read under the share there because the flow saturates the scale. So in the port, 0.2.1's band under the share weakens a holding line further.
+
+### Step 7: why archers kill 1.9 times faster at true size
+
+The archery scenario (`FL_TEST_ARCHERY`, the gate's `arch`, alive from the fingerprint log): at 36 s main's binary has lost 146 men, the branch 279 (ratio 1.9, as devlog 0182 measured at the 1.0 body). The cause is in `src/arrows.rs`: an arrow hits a man when its path passes within `HIT_RADIUS` 0.35 m of his axis and within his half height above and below his centre. The branch draws the men at their true height, so `half_height` rose from about 0.55 to 0.85 m and the vertical window an arrow can hit nearly doubled; the horizontal radius did not change. The damage per hit (`missile::BASE_DMG` 20 times 1.28 to the power of attack minus armour and shield) was calibrated against archery-range logs with the small bodies: about 11 percent kills per arrow against unarmoured men, 4 against shielded lights, 1 against heavies.
+
+A trial with the damage halved (`BASE_DMG` 10.5): 12 dead at 36 s against 279. Damage is a threshold against hit points (80 to 160), so halving it stops one-hit kills instead of halving them; the damage is not the lever. The kills per arrow scale with the hits per arrow, which the true height doubled. Proposal: M2TW's own mechanism for this, a lethality per landed arrow (the share of hits that wound; the rest glance off armour or the shield's rim), first set to 146 over 279, about 0.52, then checked per kind against the three calibrated shares. Not built; it waits for Gota's yes.
+
+### Step 8: performance by the perf rules
+
+`tmp/runs/soldier-scale/perf/perf-ab.sh`: 200k, `FL_TEST_FRONT=1` with the AI on, `FL_WINDOW=2560x1360`, the flank view locked from both ends, 120 s each, order main, branch, branch, main; the fps counter's 2 s reports averaged over the last 60 s; the load and the GPU clock logged beside each run (`tmp/runs/soldier-scale/perf/`). Main's binary is `bin/flanks-main` (66044d1), the branch `target/opt-dev/flanks` at 46bb464. Unattended: the window was not focused by hand and the desktop was not checked for other drawing, but nothing else was started.
+
+| Run | fps | Sim step |
+|---|---|---|
+| Main, west end | 150 | 9.37 ms |
+| Branch, west end | 167 | 9.42 ms |
+| Branch, east end | 157 | 9.29 ms |
+| Main, east end | 139 | 9.41 ms |
+
+The branch reads 12 to 13 percent higher from both ends at the same sim step; the GPU clock sat at 1,800 to 1,950 MHz in all four (a 600 MHz idle reading at the first run's start). The load average ran 6 to 12 across the runs, the game's own threads. The wider spacing draws fewer men in the near levels from the flank, which is the likely reason; not isolated.
+
+### The figure redrawn
+
+Figure 041 redrawn for the state at 46bb464: the body at 1.2 m in panel 3, the shared speed as the rule in panel 6 with the soft wall as the alternative, the lane gone from panel 7 with the step back's count in its place. The panels in `work/notes/vis/041-panels/` are recropped (`041-6-shared-speed.png`, `041-7-fight-distance.png`).

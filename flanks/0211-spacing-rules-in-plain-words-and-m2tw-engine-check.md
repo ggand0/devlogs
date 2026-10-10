@@ -222,3 +222,27 @@ The branch reads 12 to 13 percent higher from both ends at the same sim step; th
 ### The figure redrawn
 
 Figure 041 redrawn for the state at 46bb464: the body at 1.2 m in panel 3, the shared speed as the rule in panel 6 with the soft wall as the alternative, the lane gone from panel 7 with the step back's count in its place. The panels in `work/notes/vis/041-panels/` are recropped (`041-6-shared-speed.png`, `041-7-fight-distance.png`).
+
+## 2026-10-10: Gota's questions on the close-out
+
+**The killing pace.** Gota keeps the slower pace, and asked what "the brake starting at arm's length" means. Figure 044 (`work/notes/vis/044-killing-pace-the-brake-start.png`, script `work/scripts/viz/killing_pace_brake_044.py`): the brake reads each man's neighbours within 1.4 m, one neighbour counting 1 minus his distance over 1.4, and the sum is the crowd number; the drive fades as it rises between six neighbours at 1.3 m (the start) and six at 0.9 m; 0.2.1's band was 1.12 to 0.82 m. Below the start a man with nobody in reach also stops going to the enemy he sees and waits for room (the memo gate at `crowd < crowd_brake().0`). Panel 1: a press at the 1.2 m body sits inside the branch's band (a quarter of the drive gone, the gate shut) and outside main's (all of the drive, the gate open, squeezing on to 1.12 m before the brake reads it); main's own press at 0.9 m is deeper into its band than the branch's is into its own, so what differs is where the braking begins relative to the body distance, 10 cm before it on the branch, 8 cm after it under main's band. Panel 2 draws the two presses to scale; panel 3 the trials' dead counts. The reading of the shove (the rear ranks carry the fighting rank onto the enemy and under main's band they keep shoving) is from the code, not measured.
+
+**The archers.** Gota questions a new mechanism at the close of a branch and read the 0.52 as a knight's death chance. It is not: the proposal was a share of landed arrows that wound at all, the rest glancing; the wound then does today's damage, so a knight's kill chance per landed arrow goes from about 2 percent back to the calibrated 1, a levy's from about 21 back to 11. Why the existing numbers cannot do it: hit points are fixed per kind (80 to 160) and the damage per strike is 20 times 1.28 to the factor with a 15 percent jitter, so the strikes a man needs is a fixed small count per kind and the damage only acts when a threshold moves (the halving trial: 12 dead against 279). Alternatives, none built: (1) the glance share, one number then per kind, a roll per strike; (2) the armour's cover per kind, the share of a man's silhouette a shaft can wound (all of a levy, little of a plate knight), with the uncovered strike doing the damage of an unarmoured hit and a covered one nothing, in place of today's accumulation of small plate hits; (3) the check first: count strikes per arrow and kills per strike per kind in `FL_TEST_ARCHERY` on both binaries, so the numbers for 1 or 2 are measured, not derived from the 1.9 ratio. The flight, the 3 m landing scatter and the body sweep stay as they are: they are the honest part.
+
+**The step back.** Gota: in a press it probably should fire, next branch. In M2TW a man moves to his attack spot only where there is room, and a crowded man sidesteps; in flanks the step back needs open ground behind, which a press never has until the men behind give room, which is the widening's job. The step back stays as it is; once the widening gives the room it fires by itself, and the room log's count will show it.
+
+**Performance.** Gota asked whether bigger men hide more soldiers. The renderer has no occlusion culling (`occlusion_query_set: None`, no depth prepass); every man in view is drawn at his level, and only the GPU's depth test skips hidden pixels. The perf logs' own counts, last reports of the west runs:
+
+| | Main | Branch |
+|---|---|---|
+| L0 | 4,252 | 3,033 |
+| L1 | 12,205 | 11,380 |
+| L2 | 80,170 | 80,102 |
+| L3 | 72,157 | 77,650 |
+| Fallen drawn | 25,267 | 21,433 |
+
+So the branch draws fewer men at the two fine levels (the level thresholds are per metre of height, so the switch distances did not move) and fewer fallen bodies (the slower killing), more at the far level. The depth test's share is not isolated; the check is the same A/B with `FL_LOD=0` on both, where every man carries the same mesh and only the pixel side differs.
+
+## 2026-10-10: the text check before the PR
+
+Gota settled the pace and the step back, and the archers go on their own branch (the wound share built here by mistake is parked on `backup/arrow-wound-share`, 805ae53). The text check of the branch (32 commits on main 66044d1, not 31 as the handoff first said): the commit messages have no Claude Code footer, no attribution line, no em dash and none of the banned words; the 229 added comment lines in `src/` have no em dash, no AI slop word and no "gate"; no devlog, note or `CLAUDE.md` is in any commit. Left for the PR: Gota's squash decision on the cancelling pairs (handoff 100) and the draft's final pass.

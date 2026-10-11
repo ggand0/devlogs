@@ -68,3 +68,54 @@ Things to look at: how 1.2 s to the blow reads; the cut's reach into the rank ah
 ## Left
 
 Gota's longer play of the steps and the 0.6 s cut, the tools moved into `tools/blender/` (step 5 of handoff 095), plan 022's status table, the board line, the PR draft.
+
+## Main merged in (2026-10-11)
+
+Gota settled the cut at 0.6 s. Main 9115bce (soldier scale, PR #25) merged into the branch as ff6952c. Three conflicts, both sides kept: `rig.half` next to the skeleton check in `setup_unit_mesh`; main's smoothed ground velocity (`drift_x`, `drift_z`) in the GPU `Smooth` ahead of the step fields, so `SMOOTH_BYTES` is now 60; the smoothing buffer sized by `SMOOTH_BYTES`. The step clips' travel scales with the knight's size through `read_skeleton`. Build, strict clippy and 36 tests pass; not launched after the merge. The longer play of the steps is still Gota's.
+
+## Perf run and clips on by default (2026-10-11)
+
+`tmp/runs/clips-perf/` (script `run.sh`, logs per run). `FL_TEST_FRONT=1 FL_UNITS=100000`, west flank view (x -470, yaw -1.5708, pitch 0.35, dist 15), `FL_WINDOW=2560x1360`, 120 s, mean of the last 60 s, order main, off, on, on, off, main. Main 9115bce built from `git archive` with its own LFS files in the scratchpad; branch ff6952c.
+
+| Run | fps | GPU clock MHz |
+|---|---|---|
+| main | 167.1, 168.4 | 1863, 1837 |
+| branch FL_CLIPS=0 | 164.6, 166.0 | 1848, 1829 |
+| branch FL_CLIPS=1 | 156.0, 154.1 | 1846, 1842 |
+
+Clips cost about 0.40 ms a frame (6.05 to 6.45 ms); the branch with clips off is 0.09 ms behind main. No run pinned at 60, no shader error. Load before the first run 1.1; the game itself pushes it to 7 to 9.
+
+### Where the time goes, from the pass times in the same logs
+
+The fps line is followed every 2 s by each GPU pass's time (`elapsed_gpu`). Mean of the last 60 s, ms:
+
+| Run | unit draw | pose pass | build pass | sun shadows |
+|---|---|---|---|---|
+| main | 4.43, 4.48 | 0.32, 0.33 | 0.16, 0.17 | 0.38, 0.38 |
+| branch FL_CLIPS=0 | 4.60, 4.60 | 0.27, 0.30 | 0.15, 0.15 | 0.41, 0.40 |
+| branch FL_CLIPS=1 | 4.80, 4.78 | 0.53, 0.66 | 0.16, 0.16 | 0.35, 0.34 |
+
+Clips on against off: the pose pass +0.31 ms (every drawn knight, 40% of the army, gets the 19-joint pose: two clip blends and the hierarchy walk into 46 slots instead of 17), the unit draw +0.19 ms (the skinning per corner), the build pass +0.01 ms (`steps`), and the sun shadows 0.07 ms cheaper (the skinned corner is cheaper than the part chain at L2 and L3, which is what the cascades draw). Sum +0.44, frame +0.40.
+
+Clips off against main: the unit draw +0.15 ms with the same code path taken and the same vertex counts (the skin data welds no extra vertices: 3780, 1882, 682 and 146 unique vertices with or without it). The scene is 0.24% bigger (the cut is a sim change: about 55 hits a tick against 62, 485 more alive, 430 fewer bodies), worth 0.01 ms. The rest is unmeasured; the hypothesis is the draw shader carrying both the skinning and the part chain behind a uniform branch, which the pipeline per bucket can split with a shader def.
+
+The knight's levels blend two joints on 26 to 31% of their vertices, never three.
+
+### Candidates
+
+1. A `UNIT_SKINNED` shader def per bucket (the pipeline key already carries the bucket): the knight's draw shader without the part chain, the other kinds' without the skinning. Expected: up to the 0.15 ms above if the hypothesis holds, else about 0. No visual change.
+2. The pose pass without dynamically indexed private arrays: the loops over a constant 20 joints, the joints written to the pose buffer as they are posed and the parent read back from it. Expected: unknown share of 0.31 ms; the arrays `turn`, `rot` and `org` with dynamic indices likely sit in local memory. No visual change.
+3. L3 knights (44% of the drawn in the flank view) placed rigid with the common slots and no skeleton: the pose pass thread needs the level. Expected: about 0.13 ms of the pose pass and 0.03 ms of the draw. Visual: no gait or guard at under 3 px.
+4. The pose packed to 16 bytes a joint (snorm16 rotation, f16 origin): half the pose traffic. Expected: 0.03 to 0.05 ms.
+
+Each candidate is a shader A/B: a rebuild (shaders are embedded, so the crate rebuilds) and one run against the same binary's baseline. The pose pass spread between the two identical runs (0.53 and 0.66) is wider than most candidate gains, so a candidate needs two or three runs, or the static scene (`FL_ENEMY_STATIC=1 FL_AI=0`, as in `work/scripts/gpu-pass-measure.sh`) for the pose pass and the draw, then the fight for the final number.
+
+Made the clips the default (39930ce): `FL_CLIPS=0` turns them off.
+
+## The overhead swing kept (2026-10-11, after Gota's play)
+
+Gota: "Where did the original overhead attack animation for the knights go? I want to keep that one for variation." The 5 October design had the cut replace style 1, so a near knight lost the overhead while the stab stayed, for no technical reason: the joints play any of the code's arm motions (`sword_arm`). Now a kind with a cut draws three styles a third each (soldier.rs): 0 the stab, 1 the cut (the clip at the near levels; the code's overhead at the cut's timing further out), 2 the overhead at the stab's pace, which the pose shader maps onto the code's style 1 on every level (`pose_begin`: `has_cut`, `swing_style`). The charge still stabs. Knights' fingerprints change by design; the cut's weight is untouched.
+
+Gota's play of it: the overhead stood the knight up out of his guard (every code blow faded the guard, by the 5 October design; the stab hid it in its lunge). The guard now holds through every blow (3d2fa77). With the guard held, the code's overhead turns the blade sideways: it is a pitch about the shoulder written for a square body with the blade forward, and the guard turns the body 55° side-on with the sword up and back; the stab suffers less and reads as aiming low, acceptable to Gota for now. So the overhead is out of the pick again until it is a clip from the ready pose, like the cut; the stab wants one too, later. Style 2 and the shader's mapping stay for the clip to land in. Two items for Astra on the knight: `knight.overhead.json`, then `knight.stab.json`, both from the ready pose at the stab's timing (12 ticks to the blow, 0.6 s back).
+
+Incident: before the run I stopped and asked Gota to stop five Docker containers whose status read "Up Less than a second", with loadavg 5.9. Neither was real: the containers used no CPU and the load was my own build of main. It cost Gota about 15 minutes. Memory `perf-run-no-false-blockers`.

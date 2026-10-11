@@ -189,3 +189,71 @@ It is on everywhere now; `FL_PATH=0` turns it off. Maps with no blocked ground a
 - Routed men flee in a straight line to their map edge and press into any wall in the way (out of scope: a path per soldier across the map).
 - The grid build takes about 20 ms on the main thread at the first tick of a battle on the obstacle and river maps (once; a crater refreshes only round itself).
 - The zig-zag plan is the slowest at about 10 ms (79k cells searched): the straight-line estimate is a poor guide in a maze. Plans run in the tick job after the soldiers, so at 200k it adds to a job that finishes well inside the 33 ms tick, but it is the case to watch if maps grow mazes.
+
+## 2026-10-11: the rebase onto main a4c29b2, and the River cost
+
+Written by Claude Fable 5.1. The branch moved from `flanks-agent` to the main tree and was rebased onto main a4c29b2 (soldier scale, side shuttle, skeleton clips) with no conflicts; backup ref `backup/pathfinding-pre-rebase`. Three fixes on top:
+
+- `FormSpacing::pitch` takes the kind since the per-kind gap: one call in `half_width`.
+- A menu switch between two maps of the same size refreshed the old grid in place, so Grassland after River kept a grid and planned near the field's edge. The grid remembers its map and rebuilds on a change.
+- The cost that the Big Grassland bench could not show, because Big Grassland has no grid: on the River map the AI's attacks across the water all get routes, and a man whose straight line to his slot is blocked scanned his whole leg every tick (one line check per 2 m, each marching at half-metre steps along walls). 200k on River: kernel 36 ms a tick, 11 fps against main's 210. Counters over 150 ticks: 3.8 M man-ticks in routed units, 1.55 M with the slot line blocked, 0.95 M falling through every check (men on the map's cut-off terraces or at the field margin), 70 M line checks, 550 M steps. Now a line check looks at most 48 m ahead (`nav::SIGHT`; the waypoint leads him beyond) and the leg scan is five probes ahead and two back. River 200k after: kernel 9.7 to 9.9 ms against main's 9.05 to 9.14 (same binaries' settings: `bench4.sh` 900 m camera, 2K window, `FL_UNITS=100000`), fps 207 to 217 against 208 to 210. Logs `tmp/runs/perf4/logs/pfr-*.log` (before), `tmp/runs/path/bounded-river.log` (after), `tmp/runs/path/probe-river.log` (the counters).
+
+Big Grassland 200k after the rebase (ABBA, 80 s): main 207 and 209 fps, kernel 9.18 and 9.34 ms; branch 210 and 208 fps, kernel 9.04 and 9.15 ms. No grid there, so no cost.
+
+The obstacle scenes on main's soldiers (1.70 m, the per-kind gap): all seven single-unit cases arrive inside their bounds; the narrow gap and the posts are 7 to 12 s slower than on the old main (wider men squeeze slower). The shared gap, over its bound before, ends at 98.5% at 180 s: the head-on jam of open question 1, unchanged.
+
+Seen in the River run's plans: regiments on the terraced high ground at the map's edges are in cut-off regions, so their attacks across the field plan "goal out of reach" and end at the terrace's edge; on main the same regiments press against the risers. Not changed.
+
+## 2026-10-11: the town map and what many obstacles cost
+
+Written by Claude Fable 5.1. Gota asked whether the design scales to a siege map with many buildings, and for a test map to show it. `FL_MAP=town` (commit f8e5574): Big Grassland's ground with a walled town across the middle, 1200 by 600 m, a 6 m wall with three gates on each long side and one on each short side (18 m walkable), avenues 30 m wide through the gates, a plaza 100 m across, and 495 houses of 14 m on a 30 m pitch (10 m walkable streets), one in eight left out for yards. The armies must stand outside it: `FL_ARMY_GAP=700` puts their first ranks at z ±350; without it the layout spawns regiments among and on top of the houses (Gota's `refs/pathfinding/debug0.png`: men standing on house tops, 155k men, the kernel at 22.9 ms).
+
+200k AI battle, 120 s, 2K window, the 900 m locked camera, `FL_ARMY_GAP=700`, the branch binary (53227e2 plus the map) on both maps:
+
+| | Big Grassland | Town |
+|---|---|---|
+| fps mean after 60 s | 199 | 186 |
+| kernel per tick | 7.2 to 8.7 ms | 8.5 to 9.9 ms |
+| frame with a tick p90 / max | 6.2 / 11 ms | 10.3 / 26 ms |
+| inside the fixed tick max | 5.6 ms | 18 ms |
+| grid build (first tick, main thread) | none | 125 ms |
+| cost table (one tick job) | none | 49 ms |
+| plans in 120 s | 0 | 64: p50 16 ms, p90 28 ms, max 39 ms (142k cells) |
+| plan batches | 0 | 4: 30 to 49 ms each |
+
+Logs `tmp/runs/path/town-1.log`, `town-base.log`.
+
+What scales and what does not:
+
+- The per-man work (about 1.2 ms more kernel with the armies outside the town) is fine there, but Gota's run with the armies spawned inside the town read 22.9 ms: a man standing among houses has his slot line blocked most of the time and pays his probes every tick, and a man on a house top (a cut-off region) fails every probe. The next bound is the one `look_around` uses: each man re-reads his route every eighth tick and keeps the point he chose (one Vec2 column), cutting that work eight times.
+- The plans do not scale: A* on the 2 m grid searches up to 142k cells for one route through the town, 16 to 39 ms each, and a batch of 16 runs inside the tick job after the kernel, so kernel plus batch reaches 40 to 58 ms against the 33 ms tick and the frame waits (the 26 ms frames). The fix: a node budget per plan per tick (about 4,000 cells, 1 ms), the search resumed next tick, the regiment walking straight until its route arrives; deterministic, and no tick waits. Later, a coarse graph over the fine grid so a plan searches a corridor, not the map.
+- Once per battle: the grid (125 ms) and the first cost table (49 ms) belong in the battle's setup, before the first tick.
+- Deployment: the army layout and the deployment placement know nothing of blocked ground, so on any map with buildings regiments spawn in walls and on roofs. Open, below.
+
+## 2026-10-11, later: the fixes the town asked for
+
+Written by Claude Fable 5.1. Four commits on the branch, in this order.
+
+**Spawn and deployment off blocked ground (dffbcdb).** The walkability grid and the cost tables are built at the battle's setup (`setup_battle` calls `Routes::prepare` before the spawn), so the first tick finds them. The army layout checks every regiment's footprint (`NavGrid::footprint_clear`: every point of the block, sampled per cell, walkable and in the field's region) and moves a regiment whose planned slot fails to the next free slot in spare full-width ranks behind the army, out to the field's edge. On the town 126 of 200 regiments move; the armies stand north and south of the wall, three regiments take open yards inside it (the rule allows any open ground). A deployment drag or click snaps a failing anchor to the nearest passing one inside the zone (`nearest_footprint`, 300 m). Maps without a grid lay out exactly as before (Grassland and Big Grassland fingerprints equal to main below). Picture: `tmp/shots/pathfinding/town-spawn_15s.png`.
+
+**The search budget (fbe0676).** `NavGrid::begin` and `advance`: a search closes at most `PLAN_BUDGET` = 4,000 cells per tick and goes back into the next job (`PlanJob` carries the `Search`), its visited cells in a map rather than a grid-sized scratch. The zig-zag now takes 21 ticks (39 ms of work spread over 0.7 s) and a town route up to 21 ticks; a tick's batch of 16 searches costs 2.4 ms p50, 4 ms max. Regiment widths round up to 6 m classes (`Span::of`), so a battle shares two or three cost tables (16 bytes a cell, 16 MB each on a 2048 m map) instead of one per facing; the setup builds the classes for each regiment's width along, across and on the diagonal. The search for reachable ground round an unreachable goal stops at 400 m (the River run's one 31 ms batch was that search over the whole map for regiments stuck on terraces).
+
+**The per-man memo (d4651e6).** A new column `way` (Vec2 per man): the point he chose on his route, NaN with no route, infinite when his way to the slot was clear. `drive` reads the route every `LOOK_TICKS` (8) per man, staggered by index, or when he reaches his point or has none, and walks on what he chose between reads.
+
+Town, 200k, the default army gap (the armies in their spare ranks against the wall), 120 s:
+
+| | before (f8e5574) | budget (fbe0676) | budget + memo (d4651e6) |
+|---|---|---|---|
+| fps mean after 60 s | 184 | 184 | 196 |
+| kernel per tick | 8.4 to 9.9, windows of 13.6 and 14.5 | 8.5 to 9.9, 13.6 and 14.5 | 8.2 to 9.3 |
+| frame with a tick p90 / max | 10.3 / 26 ms | 6.0 / 8.0 ms | 6.7 / 10.1 ms |
+| inside the fixed tick max | 18 ms | 4.3 ms | 4.8 ms |
+| plan batch p50 / max | 30 / 49 ms | 2.4 / 3.6 ms | 2.5 / 4.0 ms |
+
+Plain Big Grassland with the same binary read 199 fps and 7.2 to 8.7 ms, so the town's whole cost at 200k is about 1 ms of kernel on the workers and nothing on the frame. River 200k: kernel 9.3 to 9.7 ms, 203 fps, frames with a tick max 7.9 ms. Logs `tmp/runs/path/town-{1,2,3}.log`, `river-m.log`.
+
+The obstacle scenes with all of it: 9 of 9 arrive; the seven single-unit cases inside their bounds, the shared gap 149 and 173 s (the head-on jam, open question 1). The width classes change a few routes slightly (the wide gap 203 m in 4 waypoints instead of 197 m in 7).
+
+Not changed: the regiments the River layout puts on the terraced high ground are off the field's region, so the footprint check now moves them to spare ranks there too, which changes the normal River battle's layout from main's (the scripted scenarios spawn their own blocks and are unchanged).
+
+Final checks at d4651e6 (`tmp/runs/path/final-checks.out`): the all-cases scene twice, 63/63 fingerprints equal, and inline (`FL_PIPELINE=0`) against pipelined 63/63; a clean main a4c29b2 build against the branch, the four scenarios of `gate.sh` on Grassland, Big Grassland and River: 12 of 12 equal (River pile2 21/21, that run ended early under load). The 200k Big Grassland ABBA ran under a load of 11 to 17 from other work on the machine and its frame rates are void (main itself read 176 and 169 against 207 to 209 earlier in the day); the kernel p50, which the pool absorbs, read 9.42 and 9.48 ms on main against 9.52 and 9.62 on the branch. To be run again on a quiet machine.

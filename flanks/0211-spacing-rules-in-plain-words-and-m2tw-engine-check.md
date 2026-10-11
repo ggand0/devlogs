@@ -246,3 +246,7 @@ So the branch draws fewer men at the two fine levels (the level thresholds are p
 ## 2026-10-10: the text check before the PR
 
 Gota settled the pace and the step back, and the archers go on their own branch (the wound share built here by mistake is parked on `backup/arrow-wound-share`, 805ae53). The text check of the branch (32 commits on main 66044d1, not 31 as the handoff first said): the commit messages have no Claude Code footer, no attribution line, no em dash and none of the banned words; the 229 added comment lines in `src/` have no em dash, no AI slop word and no "gate"; no devlog, note or `CLAUDE.md` is in any commit. Left for the PR: Gota's squash decision on the cancelling pairs (handoff 100) and the draft's final pass.
+
+## 2026-10-11: merged
+
+PR #25 "Make soldiers life-size and fix jittering crowds", merged with a merge commit, main 9115bce. All 32 commits kept. Backups: `backup/soldier-scale-2026-10-10` and `work/backups/soldier-scale-2026-10-10.bundle`.

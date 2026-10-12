@@ -1,0 +1,17 @@
+# Archer 22-joint rig and L0 lower body
+
+Written by GPT-6.
+
+Gota approved two coat joints and changes to src/unit_meshes.rs and src/shaders/unit_pose.wgsl, then requested that the source changes be committed for Claude's spearman integration. Commit 12cc506 on feat/spearman-archer-clips raises capacity from 20 to 22 and the packed skinned pose stride from 37 to 39 vec4 slots. It changes only those two files. Build and clippy --profile opt-dev -D warnings passed. A 20-second muted game smoke test loaded the 19-joint knight and rendered battle without shader errors or panics. The game stopped. No sim diff or hash check.
+
+The model revision is assets_dev/archer/lower_body_v2. Original skeleton_v1, rejected ready_v1 and the 20-joint lower_body_v1 experiment remain intact. Two new pelvis children, coat_r and coat_l, are appended at the thigh pivots (±0.115, 0.910, 0). The existing bake_helpers removes axial thigh twist. Stand/ready JSON files have 91 values per sample. Original 20 joint transforms, other body attributes and all L1/L2/L3 mesh and skin attributes remain unchanged. New coat weights are on the L0 tunic only; lower details need their own revision after this L0 review.
+
+The L0 leg profiles and slit geometry continue the lower_body_v1 experiment. The decisive additional fix is anchoring the upper hose ring to the pelvis; a thigh blend up to the top ring still crossed the coat at the hip even with twist removed. The upper hose now blends from pelvis to thigh below 0.94 m over 0.125 m. Coat weights transition from pelvis to the swing-only helpers below 1.035 m over 0.220 m.
+
+Measurements: 22 joints; triangle counts 2,987 / 680 / 250 / 56; ready width 0.787148 m, reach 0.626562 m; rest height 1.8 m. No held arrow in the preview. The ready bow and original 20 joint rotations are unchanged. The shared stand and ready validator passes. GLB inspection confirms second UV, VEC4 color and skin attributes. Surface boundary, nonmanifold and winding counts equal the source; this is not a new full model acceptance claim.
+
+The same diagnostic as v1 checks 201 times through ten seconds of alternating bent-knee stances, offsetting alternate checks between clip samples. It is a sliding-foot deformation exercise, not a gait. Original model: 90 cloth/leg edge crossings at ready, 116 maximum through the sweep. Revised L0: zero in standing, ready and throughout the sweep; sole error below 0.000057 mm. Crossings are edge/surface counts, not a universal penetration-depth or containment proof.
+
+Review: seven camera directions, before/after whole-body and leg close-ups, full 241-frame video at 24 fps, and a half-second motion sequence. Inspected front, back, oblique and side ready renders and the full ordered motion sequence. The cloth follows the legs without the earlier protruding thighs, while calf/knee contours read separately. Browser playback passed through the full loop, and all local links resolve. Review page: assets_dev/archer/lower_body_v2/review.html. Model acceptance remains with Gota; no final model or clips installed. Private iteration remains uncommitted pending acceptance, following the narrowed asset archive rule.
+
+Claude's performance/integration note is work/notes/056-archer-22-joints-2026-10-12.md. Two additional fixed pose slots cost 32 bytes per allocated skinned soldier slot (+5.4%); actual joint loops remain driven by each model's joint count. No performance comparison was run.

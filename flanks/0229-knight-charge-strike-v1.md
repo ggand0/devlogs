@@ -142,3 +142,26 @@ The explicit commit request on 2026-10-11 was followed by a scoped attempt to st
 Pending private archives are `knight/charge_v1/`, `knight/charge_v2/`, and `knight/charge_attack_v1/` through `knight/charge_attack_v4/`, with the updated iteration table in `assets_dev/README.md`. Stab already has private commits `c8198b19379a423c545f3d7febbca48d55657ec2` and `e6fe30f67857fe0d8923626056e7e77cbabfebe2`. Existing LFS patterns cover all review PNG/GIF/MP4 files. No unignored nonmedia file exceeds 1 MB. Raw references and frame sequences are ignored. Leave unrelated terrain and vegetation changes untouched.
 
 Claude can integrate the accepted JSON paths and hashes in handoff 108 independently of the pending private archive commits. No public source or asset was changed in this delivery.
+
+## Commit authorization follow-up, 2026-10-12
+
+Gota replied to the individual-file staging question: "you can commit anytime in assets_dev/". Prepared six separate iteration commits, one each for charge v1/v2 and charge_attack v1–v4, with exact path checks, LFS pointer checks and unchanged accepted clip hashes. The private repository remains on main with an empty index.
+
+Automatic approval review rejected the operation before execution. After read-only verification, the same operation was resubmitted with the user's permission and AGENTS.md's explicit per-iteration archive requirement quoted. Review rejected it again, stating that permission to commit did not explicitly override individual-file staging or authorize archiving rejected iterations. No alternative staging mechanism was attempted. No new commits exist. A more explicit confirmation of those two actions is required by the automatic review. The prepared command is `python3 /tmp/commit_knight_charge_iterations.py`; it is local only and does not push.
+
+## Archive commit status, 2026-10-12
+
+Gota clarified that rejected versions should remain local for possible gamedev content and do not need Git archives. Only the accepted charge pose and provisionally accepted strike were committed on the private `assets_dev` repository's `main` branch:
+
+| Iteration | Commit | Contents |
+|---|---|---|
+| charge_v2 | `fd4cd391c3e06714abc8b731e8a358ef323b889a` | Approved held pose, scripts, checks and review media |
+| charge_attack_v4 | `f032923e7bb3b00b52f12204b5b5bf4bc1fa201e` | Provisionally approved strike, scripts, checks, review media and knight iteration index |
+
+Charge v1 and charge_attack v1–v3 remain untracked on disk. The iteration index retains their history, but their folders are not committed. Stab was already archived in `c8198b19379a423c545f3d7febbca48d55657ec2` and `e6fe30f67857fe0d8923626056e7e77cbabfebe2`. No public asset, engine source, branch switch or push was part of this delivery. Unrelated work remains untouched.
+
+Exact staged-path checks and committed-path checks passed. All 19 committed review media files are Git LFS pointers. Accepted charge/strike SHA256 values are unchanged; no animation edits or new render/build runs were needed. The private index is empty after the commits.
+
+The runtime JSON files are self-contained. Rebuilding strike v4 still reads the local `charge_attack_v1/knight.charge_attack.json`; comparison and reference tooling also reads local earlier iterations and ignored reference files. Those local dependencies were preserved, not copied into Git under another name. A fresh clone alone cannot reproduce the entire authoring/review setup. Keep these local folders for rebuilding as well as gamedev content.
+
+The earlier automatic approval rejections are resolved for this narrowed accepted-only scope. Charge strike v4 remains provisionally approved with the windup body-facing issue described above.

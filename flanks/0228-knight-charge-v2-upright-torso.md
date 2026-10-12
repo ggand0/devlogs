@@ -37,3 +37,7 @@ Next is `knight.charge_attack.json`, a complete charging strike rather than anot
 ## Consolidated delivery, 2026-10-11
 
 Handoff 108 now covers the accepted charge v2 pose, provisionally approved charge strike v4 and already integrated stab. The charge pose's bytes and approval are unchanged. A new scoped staging attempt after the explicit commit request was rejected by automatic approval review because of the ambiguous individual-file staging rule in AGENTS.md. No archive commit was created; clarification is required before staging.
+
+## Accepted pose committed, 2026-10-12
+
+The accepted charge v2 folder is committed on private assets_dev/main as `fd4cd391c3e06714abc8b731e8a358ef323b889a`. All eight review media files use LFS. Clip bytes remain unchanged. Gota clarified that rejected iterations stay local, so charge v1 remains untracked on disk. Handoff 108 includes this commit and the provisionally accepted strike v4 commit. No public asset or runtime code changed.

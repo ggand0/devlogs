@@ -16,3 +16,8 @@ He is built like the knight: the same parts (body, sword arm, legs, shield arm, 
 - A cut clip plays the sim's slow cut, and a kind without one in the sim does not load it. He had none (his style 1 was the quick swing at 9 ticks), so in dae0345 he takes the knight's cut, 18 ticks to the blow and 21 back, by Gota's order: his two blows are the stab and the cut, both from the knight's clips at their own speed. `cut_weight` scales the cut's damage by its longer cycle, so his damage over time is unchanged; how often he hits first changes, since a cut gives the enemy longer to strike.
 - His stab and charging blow play the knight's clips over his 9-tick wind-up (0.33 s against the knight's 0.43 s), so up to the contact they run about 1.3 times faster.
 - One frame in play: he stands in the knight's standing pose, skinned on every visible man.
+
+## Not measured
+
+- The man-at-arms' cut changes his melee, not his losses to arrows (the archer rebalance, PR #29, set those): his damage over time is the same, but a cut gives his enemy 0.6 s to strike first where his quick swing gave 0.33 s. No battle was run to measure it.
+- PR #30 merges main 58f90d3 without conflicts; the merged tree passes strict clippy and the 44 tests.

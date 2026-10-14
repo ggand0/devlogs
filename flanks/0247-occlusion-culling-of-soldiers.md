@@ -20,7 +20,15 @@ The unit pass drew every soldier inside the frustum, hidden or not. The GPU's de
 - **Modes**, read once from `FL_OCCLUDE`: 0 off, 1 cull (the default since 8039d9c), 2 count (the test runs and counts, everything draws). `FL_GPU_CHECK` turns cull into count. The periodic log prints `unit occlusion (<mode>): hidden per level [...]` under the fps line.
 - **A latent bug on main**: `selection_rings::init_ring_pipeline` read `MeshPipeline` at RenderStartup with no ordering against the system that inserts it. Adding one RenderStartup system reordered the schedule and the game panicked on the missing resource. Fixed in its own commit (d2f4757) by ordering it after `MeshPipelineSystems`, as `init_custom_pipeline` already was.
 
-Commits: d2f4757 (ring pipeline order), 0d87dd4 (the test, off by default), aff8050 (the probe, the CPU path, map rebuild as a cut, the coverage test), 8039d9c (on by default).
+Commits: d2f4757 (ring pipeline order), 0d87dd4 (the test, off by default), aff8050 (the probe, the CPU path, map rebuild as a cut, the coverage test), 8039d9c (on by default), 5e3a2a1 (comment fixes from the text check on 2026-10-14).
+
+## Where the build left plan 025, and why
+
+- **Its own pyramid instead of Bevy's.** Bevy's builder rounds the screen down to a power of two and samples it, so its texels do not line up with pixels and a conservative read has to allow for the mismatch. Ours maps exactly (texel x of level k covers pixels [x, x + 1) * 2^(k+1), the last texel of a level takes the odd row or column), and the unit test `levels_cover_every_pixel` walks every pixel through every level for four screen sizes.
+- **The box sizes measured in the vertex shader instead of a CPU unit test.** The plan asked for a test that poses every clip frame on the CPU, but only the GPU poses soldiers: no CPU skinning or part chain exists. `FL_OCCLUDE_CHECK=1` records how far every drawn corner reached from its soldier; over three long battles (clips on and off) that gave the reach, and the boxes are the reach plus 15 cm.
+- **A same-frame check instead of a pixel diff between two runs.** Two runs never pose alike because the idle sway and the cheer read the clock, even frozen in deployment. Instead, count mode with `FL_OCCLUDE_CHECK=1` draws the soldiers the test would hide in flat magenta, and the magenta pixels in screenshots are counted: 0 with the camera still and orbiting (`FL_CAM_ORBIT`, added for this). The control that marks every tested soldier gives 2.5M magenta pixels, so the mark and the counter work.
+- **The pyramid every 16th frame while it hides little.** Built every frame, it cost about 0.15 ms of frame time in the views from above for nothing. It is now built every 16th frame until a probe finds enough hidden soldiers (3M vertex runs), which removed that loss.
+- **The branch name.** `feat/occlusion-culling`, as Gota asked; the plan had said `perf/occlusion-culling`.
 
 ## The checks
 
@@ -74,6 +82,19 @@ The pose pass shrinks with the draw (0.43 to 0.14 ms in the low flank view at 20
 First batch, the pyramid every frame (0d87dd4 with `FL_OCCLUDE=1`): the same gains in the flank views, and in the mid-air views +0.14 to +0.18 ms, which is what the probe removed. The branch with `FL_OCCLUDE=0` matched main (161.6 against 159.9 fps at 200k, 136.2 against 137.0 at 300k).
 
 One pass time moved without a frame time to match: `sun_shadows` reads about 0.15 ms more with the test on in every view, the mid-air views included, where the pyramid is built only every 16th frame. That span is two raw encoder timestamps around the shadow pass (render_units_shadow.rs `ShadowPassTimer`), not a pass timestamp, and the frame times in the mid-air views are equal to main's. Not measured further.
+
+### Gota's measurement (2026-10-14)
+
+Gota's own battle and views on the branch build, the fps counter read by eye over two runs each (the second run in parentheses):
+
+| View | main | branch |
+|---|---|---|
+| Ground, one side | 160 to 165 after a while (163 to 165) | 168 to 173 (168 to 173) |
+| Mid-air, one side | 146 to 150 (137 to 139) | 150 to 151 (146 to 148) |
+| Ground, the other side | 155 to 158 | 161 to 163 (158 to 163) |
+| Mid-air, the other side | 130 to 134 | 141 to 143 (136 to 138) |
+
+Gota's reading: the far right flank ground view gained, because the ground slopes there, which matches the ground hiding most of the hidden soldiers above. The branch reads as fast as or faster than main in every one of Gota's views. The mid-air gains of 4 to 10 fps there are larger than the benchmark's mid-air views showed (equal within 0.07 ms); main's mid-air view varied by 10 fps between Gota's two runs, so they are within that spread, and the hidden count in those views was not logged.
 
 ### Other paths
 

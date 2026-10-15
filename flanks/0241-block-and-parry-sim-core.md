@@ -50,6 +50,27 @@ Gota's play: a turned blow looked like a bug, the attacker swinging through and 
 - `unit_pose.wgsl`: the skinned shield arm lifts forward and in (0.9 and 0.35 rad on the upper arm) with the elbow bent (0.9 rad) for a block; the sword arm goes up and across (1.3 and 0.6 rad, forearm 0.4) for a parry; an armour flinch rocks the body 0.12 rad through the stagger's turn. The parts path lifts the shield as the wall does and raises the blade 1.3 rad.
 - Looked at: the arena's frontal lane from the east end of the line (`tmp/runs/parry/shots/arena-c_*`, the burst sheet `burst_sheet.png`): blocks show as shields raised square in front at chest and face height while the enemy swings; nothing detached. The parry and the jolts were too brief to catch in stills, so their look is unverified by eye.
 
+## The clips in (2026-10-15)
+
+Main (the occlusion culling merge, ab80162) merged into the branch as 73618cf. Then Astra's knight package (handoff 118): `assets/units/knight.glb` with the 20-joint skeleton (a `forearm_twist_l` between the forearm and the hand) and the corrected shield mount, the ten legacy clips migrated, and `knight.block.json` (0.80 s, guard 0.20, recoil 0.40, recover 0.50) and `knight.parry.json` (0.90 s, guard 0.15, deflect 0.20, recover 0.50).
+
+- The sim's timelines now follow the clips: block raise 6, up 6, length 24 ticks; parry raise 5, up 3, length 27. The guard window ends at the block's recoil and the parry's deflect. Fingerprints change by design; the direction scene is deterministic (18 of 18 twice).
+- The player: `SKEL_CLIP_SLOTS` 14 to 16, slots `block` and `parry`; the loader reads `events.guard` as the clip's key time. The fourth anim2 float carries a block as 1 plus how far the clip has run and a parry as 2 plus the same (both render paths); the pose shader plays the clip from the sim's timer as authored, legs keeping the gait on the move. The counter stab plays from its half wind-up as any stab does.
+- Removed at Gota's word (2026-10-15, the commit amended): an ease in from ready over the clip's first 0.1 s and out over its last, and a blend from the parry's guard pose into the counter stab over the rest of the wind-up. Gota despised both motions next to Astra's clips. The clips cut in at their first sample and out at their last; the counter stab starts from the parry's guard pose without a blend.
+- The man-at-arms shares the knight's clips but his model has the old 19-joint skeleton. He keeps copies of the old clips as `man_at_arms.<clip>.json`; a kind's own file wins over the shared one, and a shared optional clip with other joints is skipped. He has no block or parry until his model is migrated (handoff 119 for Astra).
+- Looked at: the arena from the east end of the line, a 24-frame burst (`tmp/runs/parry/shots/clips_sheet.png`): the shield comes up square in front of the face, the blade rises for the parry, no broken limbs.
+- Commit: the clip integration after 73618cf.
+
+## The parry hold and the twitch (2026-10-15)
+
+Gota's play: the parry into the counter was rushed or slow by luck. Cause: a parry that stopped the blow switched to the counter 0.17 s into its clip (the blade is timed to be up exactly at the strike, and the counter followed at once), while a late parry played all 0.9 s. Gota picked fix 1: the stopped blow marks the parry (`GUARD_STOPPED`, the charge bit, free in the defend state), the clip plays on to `PARRY_COUNTER_AT` (11 ticks, 0.37 s, through the deflect at 0.20 s), and the kernel starts the counter there. The late parry still plays through.
+
+Gota's second ask: a blow the dice stopped (shield, skill or armour credit) showed nothing; a twitch that reflects the blow's direction. Built render only: the damage apply writes the side (1 front, 2 his left, 3 his right, 4 behind) and `TWITCH_TICKS` (9) into the hit-flash column as values 16 and up; the kernel counts the low nibble down and drops it; the red flash and the impale check ignore those values; the GPU pack sends them whatever the hit-flash setting says. The fourth anim2 float carries it as 3 plus the side plus how much is left. The pose: a frontal blow pitches him back 0.10 rad through the stagger's pitch, one from behind forward 0.08, a side blow 0.04 back plus the struck shoulder turned back 0.25 rad (the chest joint on the skinned path, the shoulder turn on the parts path), quick in over the first quarter, eased out by the end. Nothing new drawn.
+
+Not looked at in motion by me; Gota judges in play. Strict clippy clean; the direction scene deterministic (18 of 18 twice); fingerprints change by design (the hold).
+
+Also this day: Gota's callout on my explanation of the fight (one mechanism explained as two steps, the dice roll's credit split presented as three things); the rule is in `docs/internal/002` and the explain-like-gota memory.
+
 ## Open
 
 - A man who answers while his cooldown has a long way to go comes back ready when the clip ends, which can be sooner than his cooldown would have been (the answer wait plus clip is 21 to 39 ticks, the cooldown 25 to 60). M2TW's reaction has the same property. If play shows defenders swinging faster than non-defenders, the fix is a leftover cooldown after the clip.

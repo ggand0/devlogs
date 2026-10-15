@@ -33,3 +33,7 @@ Final candidate checks: 161 interpolated poses, exact shared start/end sample, l
 Gota accepts block_v3 for now and requests its commit on 2026-10-13. He will evaluate it in-game and return with any problems. This accepts the presented motion without claiming the known grip/strap contact limitation is resolved. He explicitly requires an orbit view from the next animation onward; include the full clockwise and counterclockwise orbit in the parry review. The next reference is defend_mid_slashlr, not defend_mid_slashrl.
 
 The approved package is committed as c069a14 on the private assets repository main. Review media are LFS pointers; reference-derived media and build output are excluded. Handoff 116 records the complete model/clip package and the timing/entry-blend differences for in-game evaluation.
+
+## Final common model for block and parry
+
+On 2026-10-15 Gota approves parry_v2 and its corrected shield mount. Use parry_v2/compatible/knight.glb with the complete matching clip package for both actions. The block clip remains byte-for-byte unchanged; only shield geometry and strap normals differ from this iteration's model. The final package is archived in 97843937e2c6f5dc8e58efaf88d14756b4a18ad8. Handoff 118 supersedes handoff 116's model path and records that knight block and parry assets are complete; player integration and in-game checks remain separate.

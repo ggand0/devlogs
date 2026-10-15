@@ -41,3 +41,9 @@ The page is http://127.0.0.1:8767/parry_v1/review.html. It includes synchronized
 All videos are decoded with ffmpeg and played in headless Firefox through a full cycle and wrap. Timed browser captures and ordered reference/new frames are the visual inspection method, not direct real-time human viewing. Source motion, counter sequence and orbit captures were inspected. This is offline CPU skinning, not an in-game test. The server returns HTTP 200 for both block and parry pages, comparison video and orbit.
 
 Parry v1 is awaiting Gota's visual review and is not committed. Its row is in assets_dev/README.md. No game source, shipped assets or sim data changed. Only the already approved block package was committed in this turn. Devlogs remain uncommitted and are backed up at session end.
+
+## Final review outcome
+
+On 2026-10-15 Gota confirms the motion is good and requests correction of the shield-arm clipping. Parry_v2 fixes the common shield mount while preserving all five v1 clip/pose files byte for byte. He approves that revision. The motion source and required clip dependencies are archived at their v1 paths with the v2 commit; the superseded v1 review package stays local. See devlog 0248 and handoff 118 for completion and integration details.
+
+The approved motion dependencies and corrected v2 package are committed as 97843937e2c6f5dc8e58efaf88d14756b4a18ad8 on assets_dev main.

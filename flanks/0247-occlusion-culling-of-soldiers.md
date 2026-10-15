@@ -1,6 +1,6 @@
 # 0247: occlusion culling of soldiers
 
-Written by Claude Opus 5.5. Branch `feat/occlusion-culling` off main e567f3e, 2026-10-13, built from plan 025 (docs/plans/025-occlusion-culling.md).
+Written by Claude Opus 5.5. Branch `feat/occlusion-culling` off main e567f3e, 2026-10-13, built from plan 025 (docs/plans/025-occlusion-culling.md). Merged as PR #31 on 2026-10-14 (main ab80162).
 
 ## The point
 
@@ -20,7 +20,7 @@ The unit pass drew every soldier inside the frustum, hidden or not. The GPU's de
 - **Modes**, read once from `FL_OCCLUDE`: 0 off, 1 cull (the default since 8039d9c), 2 count (the test runs and counts, everything draws). `FL_GPU_CHECK` turns cull into count. The periodic log prints `unit occlusion (<mode>): hidden per level [...]` under the fps line.
 - **A latent bug on main**: `selection_rings::init_ring_pipeline` read `MeshPipeline` at RenderStartup with no ordering against the system that inserts it. Adding one RenderStartup system reordered the schedule and the game panicked on the missing resource. Fixed in its own commit (d2f4757) by ordering it after `MeshPipelineSystems`, as `init_custom_pipeline` already was.
 
-Commits: d2f4757 (ring pipeline order), 0d87dd4 (the test, off by default), aff8050 (the probe, the CPU path, map rebuild as a cut, the coverage test), 8039d9c (on by default), 5e3a2a1 (comment fixes from the text check on 2026-10-14).
+Commits: d2f4757 (ring pipeline order), 0d87dd4 (the test, off by default), aff8050 (the probe, the CPU path, map rebuild as a cut, the coverage test), 8039d9c (on by default), 5e3a2a1 and c5c670e (comment fixes from the text check and the final review on 2026-10-14).
 
 ## Where the build left plan 025, and why
 

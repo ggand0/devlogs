@@ -71,9 +71,62 @@ Not looked at in motion by me; Gota judges in play. Strict clippy clean; the dir
 
 Also this day: Gota's callout on my explanation of the fight (one mechanism explained as two steps, the dice roll's credit split presented as three things); the rule is in `docs/internal/002` and the explain-like-gota memory.
 
+## The counter spread and the exchange (2026-10-17)
+
+Gota, after seeing the twitch (FL_TWITCH, 7f69eaa): every parry showing the same 0.37 s before the counter is boring; scale it by skill with a spread, let the counter be answered with diminishing odds so a chain can be seen, and never for ever.
+
+- 886401b: from the tick after his blade stops the blow, the man launches the counter with a chance each tick of `COUNTER_PER_TICK` (0.04) per point of defence skill, at `PARRY_COUNTER_AT` (0.37 s) for sure. A knight (0.24 a tick) mostly counters at 0.20 to 0.30 s, one in five at the cap; a spearman about half at the cap. Whether he counters at all is a roll at the stop, `COUNTER_CHANCE_BASE` 0.8 plus 0.03 per skill point less fatigue; a parry without a counter plays its whole clip. A per-tick chance instead of a drawn time because the defend byte has no room to store a drawn tick while the timer drives the clip. FL_COUNTER_TICK, FL_COUNTER_BASE, FL_COUNTER_SKILL.
+- 468aec0: the counter warns its target like any swing, one deeper in the exchange. A new per-soldier column `chain` holds the depth of the blow a man is answering; the warning carries `chain`. The parried man may answer the counter from the bind anywhere in his recovery (the 0.4 s rule is skipped when the warning is a counter from the man he struck). His on-time share is multiplied by `CHAIN_SHARE` [1.0, 0.6, 0.3, 0.1] by depth and is nothing beyond, so no exchange runs on. The counter's wind-up rounds up (a man-at-arms' 4.5 ticks to 5) so it can be parried on time by a raise of 5; a block (raise 6) is on time only against a knight's counter. FL_CHAIN as a comma list.
+- Counts: the dir-test and arena lines print parries by depth. Direction scene at 44 s: [724, 67, 3, 0, 0]; the arena at 36 s: [241, 31, 2, 0, 0]. Deterministic (the 44 s stat line equal twice).
+- Gota, after play: the counter base stays 0.8, and a counter is never blocked (the parry earned it): the answer to a warning with depth above 0 is always the parry. Arena at 36 s after it: parries by depth [244, 78, 15, 3, 0], a third counter parried a few times a match, a fourth never seen.
+- Not looked at in motion by me; Gota judges in play. The parry of a counter starts from the stopped cut's pose with no blend, like the counter's own cut.
+
+## Astra's 19-joint knight and the spearman's parry in (2026-10-17)
+
+Commit 2b5f669: handoff 123's knight package (`assets_dev/knight/defend_19_v1/compatible`, model on the 19-joint family skeleton, block and parry re-exported, ten legacy clips as before) and handoff 125's spearman package (`assets_dev/spearman/parry_v1/compatible`, corrected shield mount, shield-led parry on the knight's parry timeline). Hashes checked against both handoffs. The loader lines: the knight 19 joints with block and parry; the man-at-arms now plays the knight's block and parry (his ten clip copies are byte-equal to the knight's legacy files and can go, with Gota's word); the spearman loads the parry, no block. Astra's warning stands: the counter out of the spearman's parry cuts to the stab's half wind-up with the spear sideways, about 2.2 m of spear displacement, until a counter-specific entry exists.
+
+## The man-at-arms' left arm (2026-10-17)
+
+Gota in play: the man-at-arms' left arm is broken in every attack, block and parry. Not the clips (byte-equal to the knight's, which is fine) and not the player: in `man_at_arms.glb` L0, 87 sleeve vertices of the left arm (33 on the upper arm, 54 on the forearm, within 9 cm of the arm axis) are skinned to the `shield` joint at weight 1.0 with the shield part id, so every hand turn carries the sleeve. The knight, the spearman and the man-at-arms' L1 have none. Present since the model (9971fe7); the block and parry made it obvious. Handoff 128 asks Astra to reweight them.
+
+Fixed by Astra (handoff 132, assets_dev 78f7353), in the game as 1a101aa: the sleeve weighted to the arm, and the shield board 100 mm out and 30 mm down so the arm clears it through all twelve knight clips. The count reads 0 on the upper arm and 10 on the forearm, all at the 8 cm edge of the test next to the hand, which is the strap anchor, not the sleeve. Gota noted the right arm looks slightly odd in the shared stab; left for later, no cause diagnosed.
+
+## The twitch on the spearman and the man-at-arms (2026-10-17)
+
+Gota: spearmen show no twitch. Cause: a spearman answers nearly every blow he sees (the answer is set for late ones too), the sim wrote no twitch for a defending man, and his block has no clip, so a blow the dice stopped on him showed nothing at all. Fix (one commit after 2b5f669): the sim writes the twitch for a defending man as well; the build shader shows the answer clip only when the kind has it (a per-kind bit mask in `params.parry.w`, block bit 2k, parry bit 2k + 1, filled from the skeleton tables) and the twitch otherwise. The knight and the man-at-arms keep their clips; the spearman twitches on a block and plays his parry; the parts path shows the twitch for any answer.
+
+## The spearman's block and his counter (2026-10-17)
+
+Gota: reuse the knight's block for the spearman, and he does not see the counter out of a spearman's parry. Commit a905f33 copies `knight.block.json` in as `spearman.block.json`; both models are on the 19 joints, the loader takes it (the charge scene's log lists the spearman with block and parry). The right arm holds the spear where the knight's hangs the sword; Gota judges it at game zoom, Astra's spear arm replaces the file when it comes.
+
+The counter: measured with temporary prints in the charge scene (spearmen against knights, 50 s), not committed. The sim launches it on spearmen as on knights: knights 446 counters of 454 stopped parries, spearmen 108 of 121. What differs is the share of parries that stop the blow at all, by skill (0.1 per point): knights 433 of 769 parry answers on time, spearmen 130 of 658. So 4 spearman parries in 5 play the whole clip with no counter, and the rest show a 0.17 s half-poke, since his stab's contact is at 0.33 s and the counter starts at half the wind-up. Commit c5fcf33 reads the share from `FL_COUNTER_WINDUP` (default 0.5) so 1, the full wind-up, can be tried. Also seen: spearmen answer knights' counters (depth 1) more often than they parry a plain blow, 402 against 228, since a counter is always answered with the blade.
+
+## The counter window by kind (2026-10-17)
+
+Gota, with the full stab as the counter (bfca48d): the spearman's parry is shield-led, so his counter should wait for the deflect to play. `PARRY_COUNTER_AT` became `COUNTER_WINDOW` per kind, (from, by) in ticks: sword kinds (0, 11) as before, spearman (11, 15), 0.37 s to the recover event at 0.50 s. Measured in the charge scene (45 s, temporary print): knight launches at ticks 5 to 11 as before; spearman at 11 to 15, 60 percent at 15. FL_PARRY_SHARE (bfca48d) sets a kind's parry share from the command line for a look.
+
+## The 200k benchmark against main (2026-10-17)
+
+The perf rule: the AI battle (`FL_TEST_FRONT=1 FL_UNITS=100000`), 2560x1360, camera locked, 120 s, the mean of the last 60 s, main ab80162 built from `git archive` into `target-agent` (`tmp/runs/perf4/bin/flanks-mainab`, md5 3869e86c), the branch at 5afe53a (`flanks-parry`, md5 8645ab1b). Order main, branch, branch, main in the low flank view, then main, branch in its mirror. Load average 4 to 12 (the game's own threads; docker idle), GPU clock 1830 to 1905 MHz a minute in. Script `work/scripts/perf/occl-bench.sh`, logs `tmp/runs/perf4/logs/p-*.log`, summary `occl_summary.py`.
+
+| View | main fps (ms) | branch fps (ms) | Frame | Unit draw | Vertex runs | Alive at 120 s |
+|---|---|---|---|---|---|---|
+| Low flank, run 1 / 2 | 208.7 (4.80) / 206.2 (4.86) | 208.0 (4.81) / 207.3 (4.83) | 0.00 ms | 2.41 to 2.21 ms | 33.7 to 31.4 M | 178k to 195k |
+| Low flank mirror | 161.4 (6.20) | 164.3 (6.09) | -0.11 ms | 4.42 to 4.27 ms | 62.4 to 60.6 M | 178k to 195k |
+
+Equal within noise. The unit draw is 0.15 to 0.2 ms cheaper on the branch with 17k more men alive, since the slower fight leaves 17k fewer fallen on the ground in view; the pose, build and shadow passes are the same. No error lines, no run pinned at 60 fps.
+
+The tick, from the last fps sample of the first flank runs: inside the fixed tick on the main thread p50 1.5 ms on main, 1.4 on the branch; the kernel's step on the job threads 9.2 to 10.5 ms with 17k more men alive and 137 events a tick against 63 (every wind-up now sends a warning); frame with a tick p50 5.5 ms on both.
+
+## The spearman's block in (2026-10-17)
+
+Gota: the knight's block on the spearman is bad, the grip jumps to hold the spear upright. Astra's own spearman block (handoff 136, `assets_dev/spearman/block_v2/compatible`, SHA-256 0c06db5e, after the defend_stab_mid reference with a shallower recovery) replaces the copy; the same 0.80 s timeline, the model unchanged (09026621). Loader lines from the charge scene: the spearman has block and parry. Handoff 122's three items are all delivered.
+
 ## Open
+
+- Gota, 2026-10-17: a second parry motion, so not every parry is the same clip, and an attack clip that serves both the regular attack and the counter, so the counter stops cutting into the stab's half wind-up. Both are clips for Astra, after the spearman's block.
 
 - A man who answers while his cooldown has a long way to go comes back ready when the clip ends, which can be sooner than his cooldown would have been (the answer wait plus clip is 21 to 39 ticks, the cooldown 25 to 60). M2TW's reaction has the same property. If play shows defenders swinging faster than non-defenders, the fix is a leftover cooldown after the clip.
 - The hit rate and `GUARD_PER_SKILL` are starting values; the fight length Gota wants sets them.
-- The counter is a stab at half the wind-up and warns nobody.
+- The counter is a stab at half the wind-up; it warns its target since 468aec0.
 - Gota, 2026-10-13, after the reference sheets: the `defend_*_slashrl` clips read as counterattacks rather than defences, and what they defend against is unclear (the data lists them as the answer to a right-to-left slash). The parry reference is `defend_mid_slashlr`, the block `defend_mid_stab`. Later, not soon: decide the outcome at the swing's start so the attacker can play the fail clips (plan 024, later list).

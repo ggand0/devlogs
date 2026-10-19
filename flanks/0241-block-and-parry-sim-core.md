@@ -124,6 +124,8 @@ Gota: the knight's block on the spearman is bad, the grip jumps to hold the spea
 
 ## Open
 
+- Gota, 2026-10-18, for Astra after this branch: a second clip for the sword attack and a second for the sword parry, so not every attack and parry is the same motion (with the 2026-10-17 note below on one attack clip serving the attack and the counter).
+- Gota, 2026-10-18: the left hand of the sword-and-shield models (knight, man-at-arms) does not look like it grasps the shield when looked at closely from behind; the grip needs fixing on the models.
 - Gota, 2026-10-17: a second parry motion, so not every parry is the same clip, and an attack clip that serves both the regular attack and the counter, so the counter stops cutting into the stab's half wind-up. Both are clips for Astra, after the spearman's block.
 
 - A man who answers while his cooldown has a long way to go comes back ready when the clip ends, which can be sooner than his cooldown would have been (the answer wait plus clip is 21 to 39 ticks, the cooldown 25 to 60). M2TW's reaction has the same property. If play shows defenders swinging faster than non-defenders, the fix is a leftover cooldown after the clip.

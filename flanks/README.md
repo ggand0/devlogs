@@ -134,4 +134,4 @@ This directory is intentionally not committed (see `.gitignore`).
 | 0279 | 2026-10-21 | [Archer knife standing and ready](0279-archer-knife-standing-and-ready.md) | Reference-led static knife poses, full-body orbits, preserved hood/body and later integration destination |
 | 0280 | 2026-10-21 | [Archer dagger grip](0280-archer-dagger-grip.md) | Correct handle axis and wrist, preserve reviewed stance and blade direction, add grip close-ups |
 | 0281 | 2026-10-21 | [Archer fitted back quiver](0281-archer-fitted-back-quiver.md) | Reference-led diagonal back placement without a harness; approved dagger retained; 177 sampled poses and textured orbit review |
-| 0282 | 2026-10-21 | [Archer straight back quiver](0282-archer-straight-back-quiver.md) | Remove the rejected case bend; fit a straight rigid quiver; 177 sampled poses and full-body review |
+| 0282 | 2026-10-22 | [Archer straight back quiver](0282-archer-straight-back-quiver.md) | Approved straight quiver; source/archive committed; 177 sampled poses; integration handoff 140 |

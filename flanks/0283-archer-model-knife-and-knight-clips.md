@@ -57,3 +57,51 @@ Astra's source commits cherry-picked by Gota (a36be4c, 03b20e0, 3da75a3), then c
 - The back-quiver reload clip (Astra's next).
 - The 200k flank-view measurement against main, at the end.
 - Gota plays.
+
+## Astra's distance levels (handoff 143, 2026-10-23)
+
+Candidate `assets_dev/archer/rework_lods_v1/archer.glb` (SHA-256 `f344e311…`, the same bytes as `../flanks-gfx/assets/units/archer.glb`, still uncommitted there when checked). The knife is part 20 on all four levels and the bow limbs are their own parts down to L3, so the existing hide rule covers them with no code change. Checked in game at forced L1, L2 and L3 (`FL_LOD_PX`), knife and bow each: no shader or asset errors; bows show with the bow out, knife shows and the bow hides with it out at every level. L1 matches L0 pose for pose (the marching knife-out archers hold their arms forward at both levels: the knight's charge pose over the gait). Shots in `tmp/runs/archer-model/lods/`. Integration waits for Astra's commit of the GLB and `tools/blender/archer/lods/`; once it is in, `tag_knife.py` has no use (the builder writes part 20).
+
+## History rebuilt (2026-10-23)
+
+Astra's distance-model commit f34fb36 moved here from `feat/archer-hood-source`; `../flanks-gfx` switched to `main` (8810113, origin/main). Then, at Gota's order, the text audit: every commit message read in full and rewritten (process words such as "Ship" and "approved", internal terms, test counts), and every added line grepped. Fixes folded into the commits that introduced them: plan references and a non-ASCII sign in sim comments, an em dash in ai.rs, en dashes and "dagger" in the tool READMEs, "approved" in the distance-model build, "kit" in the shader names (`P_KNIFE`, `put_away`). `tag_knife.py` stays: the distance build needs its output as the source. The intermediate tagged model is gone from the history; the last commit carries the final model.
+
+New branch, 9 commits on main 8810113: 7242126, 6ac7ef8, 4821693, bc934e0, 7f1302f, 29bdcae, bb5715c (`tag_knife.py`), 392694e (code), 74d0854 (model and distance meshes). Backups: `backup/archer-rework-2026-10-23` (old tip 93cdd11), `backup/archer-hood-source-2026-10-23` (f34fb36), bundle `work/backups/archer-rework-and-hood-source-2026-10-23.bundle` (verified). Clippy, build and the 50 tests pass; both render paths draw the knife scene with no errors.
+
+## Gota's play, 2026-10-23: three issues
+
+Gota played the branch at 74d0854 (the melee animations look good) and reported, in Gota's words:
+
+> melee animations look good but i found bugs
+> A: it does melee charge pose when doing bow attack move
+> B: should remove spear wall ui icon for archers
+> C: this bug
+>
+> 1. i order attack on distant enemy: refs/archer/attack_move_debug0.png
+> 2. archer unit gets blocked by some unit: attack_move_debug1.png
+> 3. some overflown soldiers go straight into the enemy line because of unit center is still at "safe" distance or whatever (no skirmish mode): attack_move_debug2.png
+> 4. at some point it starts attacking with bow: attack_move_debug3.png
+> 5. then soldiers suddenly back off
+> 6. some guys still end up fighting in melee: attach_move_debug4.png
+> Something similar also happens when there's no block units, though the unit starts backing off earlier. still awkward behavior
+
+### A: the charge pose with the bow out (fixed, 05b627b)
+
+The knight's charge clip, now on the archer, held his upper body in the charge pose whenever his regiment was confident and he ran, bow out or not. The pose holds now only for an archer with his knife out.
+
+### B: the wall button for archers (fixed, abb2ff6)
+
+`refresh_control_buttons` starts `all_wall` and `all_spear` true and clears them only for non-archer regiments, so a selection of archers alone showed the wall button lit with the spear wall icon. The button now greys out when nothing picked can form a wall, as the archer buttons do for a selection without archers.
+
+### C: an attack-ordered archer regiment streams into the enemy line, then backs off
+
+The pictures: (0) the order on a distant block; (1) a friendly block stands in the way and the archers stream around it into a long column; (2) the head of the column walks on toward the enemy while the regiment's block is still short of range; (3) the regiment starts shooting; then the men walk back; (4) a few of the head are caught in melee.
+
+The cause, read from the code:
+
+- An archer attack order's march goal is the target block's centre (`Groups::goal`, `Order::Attack` gives `t.centroid`; `resolve_orders` passes it to the kernel). Each man walks to that goal plus his own offset in the formation, so every man's destination lies inside or beside the enemy block. Nothing in the march holds a man back at shooting distance; only the regiment's stand-off stops the march.
+- The stand-off test (`archer_fire_solutions`, `edge_gap`) measures the regiment as a rectangle of its files and ranks around its centroid. A column strung out around a friendly block is not that rectangle: its centroid lags far behind its head, so the test still reads "out of range" while the head is already at the enemy.
+- When the stand-off begins, the regiment's frame snaps to its centroid (`gd.anchor = gd.centroid`), and every man walks to his place around it: the head of the column, far ahead of the centroid, walks back. That is step 5.
+- Without a block in the way, the regiment stays in formation but its men still head for places at the enemy until the stand-off; the early back-off there is likely the same snap, not measured.
+
+A first proposal (march to the point where the block gap is 96 m) was rejected by Gota: a fixed number tied to today's one bow range, and a point taken from the block rectangle, the same view of the regiment that hid the column's head.

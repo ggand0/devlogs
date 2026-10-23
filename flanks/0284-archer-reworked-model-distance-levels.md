@@ -6,7 +6,7 @@ Written by GPT-6. 2026-10-22. Graphics branch `feat/archer-hood-source`.
 
 Gota asked for the three distance variants requested by Claude in handoff 142. The integrated L0 already has the approved arms_v7 body, hood_v4 hood and scarf, melee_poses_v2 knife and quiver_v3 straight back quiver. This iteration changes the three distance meshes and writes the knife's part 20 during the build. It does not change the approved L0 geometry or animation clips.
 
-Iteration: `assets_dev/archer/rework_lods_v1/`. Review: `review.html`. Candidate: `archer.glb`. Current result is for review, not yet promoted or committed.
+Iteration: `assets_dev/archer/rework_lods_v1/`. Review: `review.html`. Candidate: `archer.glb`. Gota approved the distance models on 2026-10-23.
 
 ## Construction and corrections
 
@@ -50,4 +50,17 @@ Candidate SHA-256: `f344e31139e4648cecaea55a343427fd7e70c00b902a88d24ea7a52edb56
 
 ## Remaining work
 
-Gota reviews the distance models. Once approved, archive the iteration in the private assets repository, promote the build source and ship the GLB on the integration branch. No public source or final asset has been changed in this step. The back-quiver reload remains the next animation task. Sword draw stays skipped; knife attacks continue to use the knight clips, per handoff 142.
+The distance models are approved. The model and portable build source are committed on the graphics branch for integration into `feat/archer-rework`. The back-quiver reload remains the next animation task. Sword draw stays skipped; knife attacks continue to use the knight clips, per handoff 142.
+
+## Approval and promotion, 2026-10-23
+
+Gota: “looks good, approved, feel free to document into the devlog”. Approval covers L1/L2/L3 at 800/240/60 triangles, with the previously approved L0 unchanged. The approved GLB checksum remains `f344e31139e4648cecaea55a343427fd7e70c00b902a88d24ea7a52edb56eb80`.
+
+Promoted the build to `tools/blender/archer/lods/build_lods.py` with explicit source/output arguments and no private source-map dependency. It reads knife part 20 from the approved L0 and verifies all L0 channels with a fingerprint. A fresh background Blender run reproduced every attribute and index array of all four levels exactly; joints and pivots also match. Copied the approved bytes to `assets/units/archer.glb` in the graphics worktree. The main worktree remains for Claude/Gota to integrate.
+
+Commits:
+
+- Private assets repository `main`: `5f6397b`, Add the archer distance meshes (49 files, including the iteration row; images and videos use LFS).
+- Graphics `feat/archer-hood-source`: `f34fb36`, Add the archer distance models (`assets/units/archer.glb` through LFS and the two portable build files).
+
+Handoff 143 now records approval and the graphics commit to cherry-pick into `feat/archer-rework`. No pushes or changes to main-tree source were made. Development logs and handoffs remain uncommitted.
